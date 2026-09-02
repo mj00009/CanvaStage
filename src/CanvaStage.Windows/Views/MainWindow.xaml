@@ -54,7 +54,7 @@
                             <TextBlock Text="Create a Canva Connect integration, enable design:meta:read and design:content:read, and add this exact redirect URL:" Style="{StaticResource MutedText}" Margin="0,5,0,10" TextWrapping="Wrap" />
                             <DockPanel Margin="0,0,0,16">
                                 <Button Content="Copy URL" Command="{Binding CopyRedirectUrlCommand}" DockPanel.Dock="Right" Style="{StaticResource TextButton}" />
-                                <TextBox Text="{Binding RedirectUrl}" IsReadOnly="True" />
+                                <TextBox Text="{Binding RedirectUrl, Mode=OneWay}" IsReadOnly="True" />
                             </DockPanel>
                             <UniformGrid Columns="2">
                                 <StackPanel Margin="0,0,12,0">
