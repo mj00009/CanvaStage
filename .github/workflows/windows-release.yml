@@ -77,6 +77,32 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true
           --output publish/CanvaStage-win-x64
 
+      - name: Smoke test published WPF application
+        shell: pwsh
+        run: |
+          $application = Join-Path $PWD 'publish/CanvaStage-win-x64/CanvaStage.Windows.exe'
+          if (-not (Test-Path $application)) {
+            throw "Published application was not found: $application"
+          }
+          $process = Start-Process -FilePath $application -ArgumentList '--smoke-test' -PassThru
+          if (-not $process.WaitForExit(30000)) {
+            Stop-Process -Id $process.Id -Force
+            throw 'The published WPF application did not exit from smoke-test mode within 30 seconds.'
+          }
+          if ($process.ExitCode -ne 0) {
+            throw "The published WPF application smoke test failed with exit code $($process.ExitCode)."
+          }
+
+      - name: Collect application diagnostics
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path ci-diagnostics -Force | Out-Null
+          $source = Join-Path $env:LOCALAPPDATA 'CanvaStage'
+          if (Test-Path $source) {
+            Copy-Item -Path (Join-Path $source '*.log') -Destination ci-diagnostics -Force -ErrorAction SilentlyContinue
+          }
+
       - name: Create portable ZIP and checksum
         shell: pwsh
         run: |
@@ -109,6 +135,7 @@ jobs:
             **/*.binlog
             **/*.log
             TestResults/
+            ci-diagnostics/
           if-no-files-found: ignore
 
       - name: Create or update GitHub Release

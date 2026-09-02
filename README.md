@@ -2,7 +2,7 @@
 
 Canva Stage is a Windows desktop confidence-monitor app for churches using Canva presentations. It gives people on stage a separate, readable output while the congregation continues to see the regular Canva presentation.
 
-> **Project status:** `v0.2.0` adds the Canva connection workflow to the Phase 1 confidence-output foundation. A church still needs to configure and authorize its own Canva integration before live Canva content can be used.
+> **Project status:** `v0.2.1` adds startup diagnostics and a release-build launch check to the Canva connection workflow and Phase 1 confidence-output foundation. A church still needs to configure and authorize its own Canva integration before live Canva content can be used.
 
 ## What it will do
 
@@ -52,6 +52,10 @@ CanvaStage does not capture the primary display or infer the current slide. The 
 
 Press `Escape`, or hover over the top-right corner of the confidence-output window to reveal the close button. Closing the output blanks it and returns to the operator controls.
 
+### If the app does not open
+
+CanvaStage records startup and unexpected-error details in `%LOCALAPPDATA%\CanvaStage\canvastage.log`. The log deliberately redacts Canva credentials, tokens, authorization codes, and authorization headers. Send that log with the Windows version and the release version when reporting a problem; do not send screenshots of Canva setup fields.
+
 ## Development
 
 The implementation target is a self-contained Windows x64 release, so volunteers should not need a separately installed .NET runtime.
@@ -65,7 +69,7 @@ dotnet test -c Release --no-build
 dotnet publish src/CanvaStage.Windows/CanvaStage.Windows.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
 ```
 
-The GitHub Actions workflow automatically discovers the solution and WPF application project. It builds and tests pull requests and `main`, uploads a self-contained Windows x64 artifact, and attaches that artifact to a GitHub Release for version tags such as `v0.1.0`.
+The GitHub Actions workflow automatically discovers the solution and WPF application project. It builds and tests pull requests and `main`, launches the published executable in a short smoke-test mode, uploads a self-contained Windows x64 artifact, and attaches that artifact to a GitHub Release for version tags such as `v0.2.1`.
 
 The portable release ZIP includes a SHA-256 checksum. The app runs without requiring administrator elevation and stores mutable state under the shared Windows operator's local app-data directory.
 

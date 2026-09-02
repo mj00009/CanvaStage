@@ -30,4 +30,9 @@ public static class PrivacySafeLog
             System.Diagnostics.Debug.WriteLine("CanvaStage could not write a diagnostic log entry.");
         }
     }
+
+    public static void WriteException(string context, Exception exception)
+    {
+        Write($"{context}{Environment.NewLine}{exception}");
+    }
 }
