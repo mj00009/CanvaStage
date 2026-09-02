@@ -59,21 +59,21 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <Grid Margin="0,0,0,22">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <StackPanel>
                     <TextBlock Text="{Binding OperatorPageTitle}" Style="{StaticResource PageTitle}" />
                     <TextBlock Text="{Binding OperatorPageSubtitle}" Style="{StaticResource MutedText}" Margin="0,5,0,0" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                <WrapPanel Grid.Row="1" Margin="0,14,0,0" HorizontalAlignment="Right">
                     <Border Style="{StaticResource LiveStatusCard}" Margin="0,0,12,0">
                         <StackPanel Orientation="Horizontal"><TextBlock Text="●" Foreground="{StaticResource SuccessBrush}" Margin="0,0,8,0" /><TextBlock Text="{Binding LiveReadinessText}" Foreground="{StaticResource PrimaryTextBrush}" FontWeight="SemiBold" /></StackPanel>
                     </Border>
                     <ToggleButton Content="Always on top" IsChecked="{Binding IsOperatorTopmost}" Style="{StaticResource SecondaryToggle}" Margin="0,0,12,0" />
                     <Button Content="Run checks" Command="{Binding TestSetupCommand}" Style="{StaticResource SecondaryButton}" Margin="0" />
-                </StackPanel>
+                </WrapPanel>
             </Grid>
 
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -83,7 +83,7 @@
                         <Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsLiveControlSelected}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style>
                     </Grid.Style>
                     <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="330" /></Grid.ColumnDefinitions>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="300" /></Grid.ColumnDefinitions>
                     <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource PanelCard}" Margin="0,0,18,16">
                         <Grid>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
