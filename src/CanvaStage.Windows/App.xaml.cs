@@ -112,14 +112,11 @@ public partial class App : System.Windows.Application
     {
         try
         {
-            var renderSize = new System.Windows.Size(mainWindow.Width, mainWindow.Height);
-            mainWindow.RootLayout.Measure(renderSize);
-            mainWindow.RootLayout.Arrange(new System.Windows.Rect(renderSize));
-            mainWindow.RootLayout.UpdateLayout();
-            int width = Math.Max(1, (int)Math.Ceiling(renderSize.Width));
-            int height = Math.Max(1, (int)Math.Ceiling(renderSize.Height));
+            mainWindow.UpdateLayout();
+            int width = Math.Max(1, (int)Math.Ceiling(mainWindow.ActualWidth));
+            int height = Math.Max(1, (int)Math.Ceiling(mainWindow.ActualHeight));
             var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-            bitmap.Render(mainWindow.RootLayout);
+            bitmap.Render(mainWindow);
 
             string? directory = Path.GetDirectoryName(screenshotPath);
             if (!string.IsNullOrWhiteSpace(directory))

@@ -9,7 +9,7 @@
         MinHeight="720"
         Topmost="{Binding IsOperatorTopmost}"
         WindowStartupLocation="CenterScreen">
-    <Grid x:Name="RootLayout" Background="{StaticResource SurfaceBrush}">
+    <Grid Background="{StaticResource SurfaceBrush}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="286" />
             <ColumnDefinition Width="*" />
