@@ -162,7 +162,7 @@
                             <StackPanel Margin="0,12,0,0">
                                 <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsCanvaDownloadProgressVisible}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></StackPanel.Style>
                                 <TextBlock Text="{Binding CanvaDownloadDescription}" Style="{StaticResource MutedText}" Margin="0,0,0,7" />
-                                <ProgressBar Height="10" Minimum="0" Maximum="100" Value="{Binding CanvaDownloadProgressPercent}" IsIndeterminate="{Binding IsCanvaDownloadProgressIndeterminate}" />
+                                <ProgressBar Height="10" Minimum="0" Maximum="100" Value="{Binding CanvaDownloadProgressPercent, Mode=OneWay}" IsIndeterminate="{Binding IsCanvaDownloadProgressIndeterminate}" />
                             </StackPanel>
                             <Button Content="Use local demo deck" Command="{Binding UseDemoDeckCommand}" Style="{StaticResource TextButton}" HorizontalAlignment="Left" Margin="0,12,0,0" />
                         </StackPanel>
