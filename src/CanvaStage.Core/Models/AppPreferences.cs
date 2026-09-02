@@ -7,7 +7,9 @@ public sealed record AppPreferences(
     MonitorLayout MonitorLayout,
     NextLineOption NextLineOption,
     MonitorAppearance Appearance,
-    bool IsOperatorTopmost)
+    bool IsOperatorTopmost,
+    string? SelectedPresentationId = null,
+    string? SelectedPresentationTitle = null)
 {
     public static AppPreferences Default { get; } = new(null, 1, OutputMode.Monitor, MonitorLayout.CurrentAndNext, NextLineOption.FirstNonEmptyLine, MonitorAppearance.Default, false);
 }

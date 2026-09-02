@@ -65,4 +65,14 @@ public partial class OutputWindow : Window
             viewModel.UpdateClock();
         }
     }
+
+    private void CloseOutput(object sender, RoutedEventArgs eventArgs) => Close();
+
+    private void OutputWindowKeyDown(object sender, System.Windows.Input.KeyEventArgs eventArgs)
+    {
+        if (eventArgs.Key == System.Windows.Input.Key.Escape)
+        {
+            Close();
+        }
+    }
 }

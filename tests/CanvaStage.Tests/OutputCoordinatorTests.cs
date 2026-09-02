@@ -54,6 +54,27 @@ public sealed class OutputCoordinatorTests
         Assert.Equal(NextLineOption.Hidden, coordinator.Snapshot.NextLineOption);
     }
 
+    [Fact]
+    public void ReplacingTheDocumentKeepsAValidPageAndPublishesTheNewContent()
+    {
+        var coordinator = CreateCoordinator(selectedPage: 3);
+        var replacement = new PresentationDocument(
+            "canva-123",
+            "Sunday service",
+            [
+                new PresentationPage(1, "Welcome", ["Welcome home"], "#111111", "#FFFFFF"),
+                new PresentationPage(2, "Prayer", ["Let us pray"], "#111111", "#FFFFFF")
+            ],
+            DateTimeOffset.UtcNow);
+
+        coordinator.SetDocument(replacement);
+        coordinator.StartOutput();
+
+        Assert.Equal("canva-123", coordinator.Snapshot.Document.Id);
+        Assert.Equal(1, coordinator.Snapshot.SelectedPageNumber);
+        Assert.Equal("Welcome home", coordinator.Snapshot.CurrentPage?.PrimaryText);
+    }
+
     private static OutputCoordinator CreateCoordinator(int selectedPage = 1, NextLineOption nextLineOption = NextLineOption.FirstNonEmptyLine)
     {
         AppPreferences preferences = AppPreferences.Default with

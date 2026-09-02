@@ -16,4 +16,5 @@ public interface IOutputCoordinator
     void SetLayout(MonitorLayout layout);
     void SetNextLineOption(NextLineOption option);
     void SetAppearance(MonitorAppearance appearance);
+    void SetDocument(PresentationDocument document, int? preferredPageNumber = null);
 }

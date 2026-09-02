@@ -4,7 +4,7 @@ namespace CanvaStage.Core.Services;
 
 public sealed class OutputCoordinator : IOutputCoordinator
 {
-    private readonly PresentationDocument _document;
+    private PresentationDocument _document;
     private int _selectedPage;
     private bool _isLive;
     private OutputMode _mode;
@@ -74,6 +74,20 @@ public sealed class OutputCoordinator : IOutputCoordinator
     public void SetAppearance(MonitorAppearance appearance)
     {
         _appearance = appearance;
+        Publish();
+    }
+
+    public void SetDocument(PresentationDocument document, int? preferredPageNumber = null)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (document.Pages.Count == 0)
+        {
+            throw new ArgumentException("A presentation must have at least one page.", nameof(document));
+        }
+
+        _document = document;
+        int requestedPage = preferredPageNumber ?? _selectedPage;
+        _selectedPage = document.FindPage(requestedPage)?.Number ?? document.Pages.First().Number;
         Publish();
     }
 

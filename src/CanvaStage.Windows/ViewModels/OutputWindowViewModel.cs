@@ -1,8 +1,10 @@
 using CanvaStage.Core.Models;
 using CanvaStage.Core.Services;
+using System.IO;
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
 using BrushConverter = System.Windows.Media.BrushConverter;
+using BitmapImage = System.Windows.Media.Imaging.BitmapImage;
 
 namespace CanvaStage.Windows.ViewModels;
 
@@ -11,11 +13,13 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
     private readonly IOutputCoordinator _coordinator;
     private OutputSnapshot _snapshot;
     private string _currentTime = DateTime.Now.ToString("h:mm tt");
+    private BitmapImage? _fallbackImage;
 
     public OutputWindowViewModel(IOutputCoordinator coordinator)
     {
         _coordinator = coordinator;
         _snapshot = coordinator.Snapshot;
+        _fallbackImage = CreateFallbackImage(_snapshot.CurrentPage?.FallbackImagePath);
         coordinator.SnapshotChanged += OnSnapshotChanged;
     }
 
@@ -29,6 +33,7 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
                 return;
             }
 
+            _fallbackImage = CreateFallbackImage(value.CurrentPage?.FallbackImagePath);
             OnPropertyChanged(nameof(IsBlank));
             OnPropertyChanged(nameof(IsMirror));
             OnPropertyChanged(nameof(IsMonitor));
@@ -43,6 +48,8 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(ShowNextLine));
             OnPropertyChanged(nameof(ShowClock));
             OnPropertyChanged(nameof(EffectiveFontSize));
+            OnPropertyChanged(nameof(FallbackImage));
+            OnPropertyChanged(nameof(HasFallbackImage));
         }
     }
 
@@ -68,6 +75,8 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
     public Brush BackgroundBrush => BrushFrom(Snapshot.Appearance.BackgroundColor);
     public Brush TextBrush => BrushFrom(Snapshot.Appearance.TextColor);
     public Brush AccentBrush => BrushFrom(Snapshot.Appearance.AccentColor);
+    public BitmapImage? FallbackImage => _fallbackImage;
+    public bool HasFallbackImage => _fallbackImage is not null;
 
     public void UpdateClock() => CurrentTime = DateTime.Now.ToString("h:mm tt");
 
@@ -82,6 +91,29 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
         catch (FormatException)
         {
             return Brushes.Black;
+        }
+    }
+
+    private static BitmapImage? CreateFallbackImage(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+            image.UriSource = new Uri(path!, UriKind.Absolute);
+            image.EndInit();
+            image.Freeze();
+            return image;
+        }
+        catch (Exception)
+        {
+            return null;
         }
     }
 

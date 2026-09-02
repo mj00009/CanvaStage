@@ -20,7 +20,9 @@ public partial class App : System.Windows.Application
         var coordinator = new OutputCoordinator(DemoPresentationProvider.Create(), preferences);
         _outputWindowManager = new OutputWindowManager(coordinator);
         var displayService = new DisplayService();
-        var viewModel = new MainViewModel(coordinator, _outputWindowManager, displayService, preferencesStore, preferences);
+        var credentialsStore = new CanvaCredentialsStore();
+        var canva = new CanvaConnectService(credentialsStore);
+        var viewModel = new MainViewModel(coordinator, _outputWindowManager, displayService, preferencesStore, canva, preferences);
         var mainWindow = new MainWindow(viewModel);
         MainWindow = mainWindow;
         mainWindow.Show();

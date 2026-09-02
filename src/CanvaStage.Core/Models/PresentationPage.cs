@@ -6,7 +6,8 @@ public sealed record PresentationPage(
     IReadOnlyList<string> TextBlocks,
     string MirrorBackground,
     string MirrorAccent,
-    bool HasFormattedText = true)
+    bool HasFormattedText = true,
+    string? FallbackImagePath = null)
 {
     public string PrimaryText => TextBlocks.FirstOrDefault(static text => !string.IsNullOrWhiteSpace(text)) ?? string.Empty;
 }

@@ -2,7 +2,7 @@
 
 Canva Stage is a Windows desktop confidence-monitor app for churches using Canva presentations. It gives people on stage a separate, readable output while the congregation continues to see the regular Canva presentation.
 
-> **Project status:** Phase 1 implementation is underway. The app currently includes the local demo deck, manual page control, Mirror/Monitor output, Preview, display targeting, and safe output recovery. Canva OAuth and content retrieval are the next implementation slice.
+> **Project status:** `v0.2.0` adds the Canva connection workflow to the Phase 1 confidence-output foundation. A church still needs to configure and authorize its own Canva integration before live Canva content can be used.
 
 ## What it will do
 
@@ -29,14 +29,28 @@ The first release is a native Windows 11 WPF app. Phases 1–2 use explicit manu
 
 ### Output modes
 
-- **Mirror:** Shows the selected Canva page image as faithfully as possible.
+- **Mirror:** Shows the selected presentation page content.
 - **Monitor:** Shows large, high-contrast current-slide text, with optional next-line and clock information. If usable text is not available, it falls back to the slide image.
 
 ## Canva account and privacy
 
-Each church supplies and authorizes its own Canva integration. The planned app will store connection credentials and tokens locally in protected Windows storage; they must never be committed to this repository, logs, GitHub Actions artifacts, or release downloads.
+Each church supplies and authorizes its own Canva integration. The app stores the Client Secret, access token, and refresh token locally in Windows DPAPI storage for the shared Windows operator account. They are never committed to this repository, logs, GitHub Actions artifacts, or release downloads. The operator UI shows only the Client ID after initial setup. Canva diagnostics redact credentials, tokens, OAuth codes, and authorization headers.
 
 The app’s client-only model is a deliberate church-managed approach. Canva recommends a secure backend for client-secret handling and token exchange, so do not describe this desktop-only approach as Canva’s preferred production security model.
+
+### Canva setup
+
+1. Enable MFA on the church Canva account and create an integration in the [Canva Developer Portal](https://www.canva.dev/docs/connect/creating-integrations/).
+2. Enable only `design:meta:read` and `design:content:read`.
+3. Copy CanvaStage’s displayed loopback redirect URL into Canva’s **Authorized redirects**. The current value is `http://127.0.0.1:27843/callback/`; Canva permits `127.0.0.1` for local development, not `localhost`.
+4. Enter the Client ID and Client Secret in CanvaStage, then select **Connect Canva** and finish authorization in the browser.
+5. Refresh presentations, select one, and choose **Apply**. CanvaStage exports a temporary PPTX to read native text. It downloads a page thumbnail only when a page has no usable text.
+
+CanvaStage does not capture the primary display or infer the current slide. The operator always advances its selected page manually. Canva export URLs are short-lived, and the downloaded export is retained only in memory.
+
+### Closing the output window
+
+Press `Escape`, or hover over the top-right corner of the confidence-output window to reveal the close button. Closing the output blanks it and returns to the operator controls.
 
 ## Development
 

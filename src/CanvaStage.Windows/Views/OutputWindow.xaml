@@ -9,7 +9,8 @@
         Background="#101113"
         Foreground="#F7F8FA"
         Topmost="True"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        KeyDown="OutputWindowKeyDown">
     <Grid>
         <Grid.Style>
             <Style TargetType="Grid">
@@ -95,6 +96,22 @@
                            TextWrapping="Wrap"
                            VerticalAlignment="Center"
                            TextAlignment="Center" />
+                <Image Grid.Row="1"
+                       Source="{Binding FallbackImage}"
+                       Stretch="Uniform"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Center">
+                    <Image.Style>
+                        <Style TargetType="Image">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasFallbackImage}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
                 <Border Grid.Row="2" BorderBrush="{Binding AccentBrush}" BorderThickness="0,1,0,0" Padding="0,22,0,0">
                     <Border.Style>
                         <Style TargetType="Border">
@@ -113,5 +130,30 @@
                 </Border>
             </Grid>
         </Grid>
+        <Button Content="×"
+                Click="CloseOutput"
+                ToolTip="Close confidence output (Escape)"
+                Width="56"
+                Height="56"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="0,10,10,0"
+                FontSize="32"
+                FontWeight="Light"
+                Foreground="#F7F8FA"
+                Background="#99000000"
+                BorderThickness="0">
+            <Button.Style>
+                <Style TargetType="Button">
+                    <Setter Property="Opacity" Value="0" />
+                    <Setter Property="Cursor" Value="Hand" />
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Opacity" Value="0.9" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </Button.Style>
+        </Button>
     </Grid>
 </Window>

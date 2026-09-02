@@ -42,6 +42,14 @@ public partial class MainWindow : Window
 
     private void PickAccentColor(object sender, RoutedEventArgs eventArgs) => PickColor(_viewModel.AccentColor, color => _viewModel.AccentColor = color);
 
+    private void CanvaSecretChanged(object sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is System.Windows.Controls.PasswordBox passwordBox)
+        {
+            _viewModel.SetCanvaClientSecret(passwordBox.Password);
+        }
+    }
+
     private static void PickColor(string initialValue, Action<string> apply)
     {
         using var dialog = new System.Windows.Forms.ColorDialog
