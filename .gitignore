@@ -1,0 +1,14 @@
+# Local Codex instructions and skills
+.agents/
+
+# .NET build output
+[Bb]in/
+[Oo]bj/
+TestResults/
+publish/
+
+# Local environment and diagnostic files
+.vs/
+*.user
+*.suo
+*.log
