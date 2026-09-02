@@ -95,6 +95,28 @@
 
     <Style x:Key="SecondaryToggle" TargetType="ToggleButton">
         <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" /><Setter Property="Background" Value="{StaticResource PanelBrush}" /><Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="Padding" Value="12,8" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ToggleButton}">
+                    <Border x:Name="ToggleBackground"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="5"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          RecognizesAccessKey="True"
+                                          TextElement.Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter Property="BorderBrush" Value="#52607A" /></Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="BorderBrush" Value="{StaticResource AccentHoverBrush}" /></Trigger>
+                        <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.48" /></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
         <Style.Triggers><Trigger Property="IsChecked" Value="True"><Setter Property="Background" Value="#251A4B" /><Setter Property="Foreground" Value="White" /><Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" /></Trigger></Style.Triggers>
     </Style>
     <Style x:Key="SegmentButton" TargetType="ToggleButton" BasedOn="{StaticResource SecondaryToggle}"><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="FontSize" Value="15" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Padding" Value="15,12" /></Style>
@@ -174,6 +196,7 @@
                                       Background="{TemplateBinding Background}"
                                       BorderBrush="{TemplateBinding BorderBrush}"
                                       BorderThickness="{TemplateBinding BorderThickness}"
+                                      Foreground="{TemplateBinding Foreground}"
                                       Focusable="False"
                                       IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
                                       ClickMode="Press"
@@ -244,7 +267,7 @@
                         <Border x:Name="CheckBorder" Width="16" Height="16" Margin="0,0,8,0" Background="#0A0D13" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="3">
                             <Path x:Name="CheckMark" Data="M 2 8 L 6.25 12 L 14 3" Stroke="White" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Visibility="Collapsed" />
                         </Border>
-                        <ContentPresenter VerticalAlignment="Center" />
+                        <ContentPresenter VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
                     </StackPanel>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True"><Setter TargetName="CheckBorder" Property="Background" Value="{StaticResource AccentBrush}" /><Setter TargetName="CheckBorder" Property="BorderBrush" Value="{StaticResource AccentHoverBrush}" /><Setter TargetName="CheckMark" Property="Visibility" Value="Visible" /></Trigger>

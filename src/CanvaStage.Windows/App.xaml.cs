@@ -108,15 +108,18 @@ public partial class App : System.Windows.Application
         return argument is null ? null : argument[argumentPrefix.Length..];
     }
 
-    private void CaptureUiDemoScreenshot(Window mainWindow, string screenshotPath)
+    private void CaptureUiDemoScreenshot(MainWindow mainWindow, string screenshotPath)
     {
         try
         {
-            mainWindow.UpdateLayout();
-            int width = Math.Max(1, (int)Math.Ceiling(mainWindow.ActualWidth));
-            int height = Math.Max(1, (int)Math.Ceiling(mainWindow.ActualHeight));
+            var renderSize = new System.Windows.Size(mainWindow.Width, mainWindow.Height);
+            mainWindow.RootLayout.Measure(renderSize);
+            mainWindow.RootLayout.Arrange(new System.Windows.Rect(renderSize));
+            mainWindow.RootLayout.UpdateLayout();
+            int width = Math.Max(1, (int)Math.Ceiling(renderSize.Width));
+            int height = Math.Max(1, (int)Math.Ceiling(renderSize.Height));
             var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-            bitmap.Render(mainWindow);
+            bitmap.Render(mainWindow.RootLayout);
 
             string? directory = Path.GetDirectoryName(screenshotPath);
             if (!string.IsNullOrWhiteSpace(directory))

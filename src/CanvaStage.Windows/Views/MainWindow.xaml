@@ -9,7 +9,7 @@
         MinHeight="720"
         Topmost="{Binding IsOperatorTopmost}"
         WindowStartupLocation="CenterScreen">
-    <Grid Background="{StaticResource SurfaceBrush}">
+    <Grid x:Name="RootLayout" Background="{StaticResource SurfaceBrush}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="286" />
             <ColumnDefinition Width="*" />
@@ -69,7 +69,7 @@
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
                     <Border Style="{StaticResource LiveStatusCard}" Margin="0,0,12,0">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="●" Foreground="{StaticResource SuccessBrush}" Margin="0,0,8,0" /><TextBlock Text="{Binding LiveReadinessText}" FontWeight="SemiBold" /></StackPanel>
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="●" Foreground="{StaticResource SuccessBrush}" Margin="0,0,8,0" /><TextBlock Text="{Binding LiveReadinessText}" Foreground="{StaticResource PrimaryTextBrush}" FontWeight="SemiBold" /></StackPanel>
                     </Border>
                     <ToggleButton Content="Always on top" IsChecked="{Binding IsOperatorTopmost}" Style="{StaticResource SecondaryToggle}" Margin="0,0,12,0" />
                     <Button Content="Run checks" Command="{Binding TestSetupCommand}" Style="{StaticResource SecondaryButton}" Margin="0" />
