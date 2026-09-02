@@ -30,6 +30,17 @@ public sealed class PptxSlideTextExtractorTests
         Assert.Equal("Second", slides[1][0]);
     }
 
+    [Fact]
+    public void Extract_SelectsTheLargestMainTextBlockInsteadOfFooterText()
+    {
+        const string footer = "<p:sp><p:spPr><a:xfrm><a:ext cx=\"1800000\" cy=\"250000\" /></a:xfrm></p:spPr><p:txBody><a:p><a:r><a:rPr sz=\"1200\" /><a:t>© 2014 Be Essential Songs</a:t></a:r></a:p></p:txBody></p:sp>";
+        const string main = "<p:sp><p:spPr><a:xfrm><a:ext cx=\"6000000\" cy=\"3000000\" /></a:xfrm></p:spPr><p:txBody><a:p><a:r><a:rPr sz=\"3200\" /><a:t>Unstoppable God</a:t></a:r></a:p><a:p><a:r><a:rPr sz=\"3200\" /><a:t>Let your glory go on and on</a:t></a:r></a:p></p:txBody></p:sp>";
+
+        IReadOnlyList<IReadOnlyList<string>> slides = PptxSlideTextExtractor.Extract(CreatePresentationWithSlides((1, footer + main)));
+
+        Assert.Equal(["Unstoppable God", "Let your glory go on and on"], slides[0]);
+    }
+
     private static byte[] CreatePresentationWithSlides(params (int Number, string Paragraphs)[] slides)
     {
         using var memory = new MemoryStream();

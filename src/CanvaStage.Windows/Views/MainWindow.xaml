@@ -8,6 +8,7 @@
         MinWidth="1060"
         MinHeight="720"
         Topmost="{Binding IsOperatorTopmost}"
+        WindowState="Maximized"
         WindowStartupLocation="CenterScreen">
     <Grid Background="{StaticResource SurfaceBrush}">
         <Grid.ColumnDefinitions>
@@ -158,6 +159,11 @@
                         <StackPanel><TextBlock Text="2. Choose a Canva presentation" Style="{StaticResource SectionTitle}" /><TextBlock Text="Apply retrieves page text and Canva page images. Large decks can take several minutes to export." Style="{StaticResource MutedText}" Margin="0,6,0,18" />
                             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="14" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><ComboBox Grid.Column="0" ItemsSource="{Binding CanvaPresentations}" SelectedItem="{Binding SelectedCanvaPresentation}" DisplayMemberPath="Title" /><Button Grid.Column="2" Content="Refresh" Command="{Binding RefreshCanvaCommand}" Style="{StaticResource SecondaryButton}" /><Button Grid.Column="3" Content="Apply" Command="{Binding ApplyCanvaCommand}" Style="{StaticResource PrimaryButton}" Margin="0" /></Grid>
                             <TextBlock Text="{Binding SelectedPresentationSummary}" Foreground="{StaticResource AccentHoverBrush}" FontWeight="SemiBold" Margin="0,16,0,0" /><TextBlock Text="{Binding LastCanvaContentRefreshText}" Style="{StaticResource MutedText}" Margin="0,4,0,0" /><TextBlock Text="{Binding CanvaPresentationStatus}" Style="{StaticResource MutedText}" Margin="0,10,0,0" TextWrapping="Wrap" />
+                            <StackPanel Margin="0,12,0,0">
+                                <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsCanvaDownloadProgressVisible}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                                <TextBlock Text="{Binding CanvaDownloadDescription}" Style="{StaticResource MutedText}" Margin="0,0,0,7" />
+                                <ProgressBar Height="10" Minimum="0" Maximum="100" Value="{Binding CanvaDownloadProgressPercent}" IsIndeterminate="{Binding IsCanvaDownloadProgressIndeterminate}" />
+                            </StackPanel>
                             <Button Content="Use local demo deck" Command="{Binding UseDemoDeckCommand}" Style="{StaticResource TextButton}" HorizontalAlignment="Left" Margin="0,12,0,0" />
                         </StackPanel>
                     </Border>

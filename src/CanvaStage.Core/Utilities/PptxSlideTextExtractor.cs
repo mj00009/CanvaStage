@@ -10,6 +10,7 @@ namespace CanvaStage.Core.Utilities;
 public static class PptxSlideTextExtractor
 {
     private static readonly XNamespace Drawing = "http://schemas.openxmlformats.org/drawingml/2006/main";
+    private static readonly XNamespace Presentation = "http://schemas.openxmlformats.org/presentationml/2006/main";
 
     public static IReadOnlyList<IReadOnlyList<string>> Extract(byte[] presentationFile)
     {
@@ -28,15 +29,64 @@ public static class PptxSlideTextExtractor
         using Stream entryStream = entry.Open();
         XDocument document = XDocument.Load(entryStream);
 
-        return document
-            .Descendants(Drawing + "p")
-            .Select(ExtractParagraphText)
-            .Where(text => !string.IsNullOrWhiteSpace(text))
+        var candidates = document
+            .Descendants(Presentation + "sp")
+            .Select(ExtractTextBlock)
+            .Where(static block => block.Paragraphs.Count > 0)
             .ToList();
+
+        if (candidates.Count == 0)
+        {
+            return document
+                .Descendants(Drawing + "p")
+                .Select(ExtractParagraphText)
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .ToList();
+        }
+
+        double largestFontSize = candidates.Max(static block => block.FontSize);
+        double largestArea = candidates.Max(static block => block.Area);
+        return candidates
+            .OrderByDescending(block => GetMainTextScore(block, largestFontSize, largestArea))
+            .ThenByDescending(static block => block.FontSize)
+            .ThenByDescending(static block => block.Area)
+            .First()
+            .Paragraphs;
     }
 
     private static string ExtractParagraphText(XElement paragraph) => string.Concat(
         paragraph.Descendants(Drawing + "t").Select(text => text.Value)).Trim();
+
+    private static SlideTextBlock ExtractTextBlock(XElement shape)
+    {
+        XElement textBody = shape.Element(Presentation + "txBody") ?? shape;
+        IReadOnlyList<string> paragraphs = textBody
+            .Descendants(Drawing + "p")
+            .Select(ExtractParagraphText)
+            .Where(text => !string.IsNullOrWhiteSpace(text))
+            .ToList();
+
+        double fontSize = textBody
+            .Descendants()
+            .Where(element => element.Name == Drawing + "rPr" || element.Name == Drawing + "defRPr")
+            .Select(element => double.TryParse(element.Attribute("sz")?.Value, out double size) ? size / 100d : 0d)
+            .Where(static size => size > 0d)
+            .DefaultIfEmpty(18d)
+            .Max();
+        XElement? extent = shape.Element(Presentation + "spPr")?.Descendants(Drawing + "ext").FirstOrDefault();
+        double width = double.TryParse(extent?.Attribute("cx")?.Value, out double parsedWidth) ? parsedWidth : 0d;
+        double height = double.TryParse(extent?.Attribute("cy")?.Value, out double parsedHeight) ? parsedHeight : 0d;
+        double area = width > 0d && height > 0d ? width * height : paragraphs.Sum(static text => text.Length) * fontSize;
+
+        return new SlideTextBlock(paragraphs, fontSize, area);
+    }
+
+    private static double GetMainTextScore(SlideTextBlock block, double largestFontSize, double largestArea)
+    {
+        double fontScore = largestFontSize > 0d ? block.FontSize / largestFontSize : 0d;
+        double areaScore = largestArea > 0d ? block.Area / largestArea : 0d;
+        return (fontScore * 0.65d) + (areaScore * 0.35d);
+    }
 
     private static bool IsSlideXml(ZipArchiveEntry entry) =>
         entry.FullName.StartsWith("ppt/slides/slide", StringComparison.OrdinalIgnoreCase) &&
@@ -47,4 +97,6 @@ public static class PptxSlideTextExtractor
         string filename = Path.GetFileNameWithoutExtension(path);
         return int.TryParse(filename["slide".Length..], out int number) ? number : int.MaxValue;
     }
+
+    private sealed record SlideTextBlock(IReadOnlyList<string> Paragraphs, double FontSize, double Area);
 }

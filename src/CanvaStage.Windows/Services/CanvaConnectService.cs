@@ -23,6 +23,8 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
     private readonly HttpClient _httpClient;
     private string? _lastPresentationId;
 
+    public event EventHandler<CanvaLoadProgress>? LoadProgressChanged;
+
     public CanvaConnectService(CanvaCredentialsStore credentialsStore)
     {
         _credentialsStore = credentialsStore;
@@ -190,6 +192,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
             throw new CanvaConnectException("The selected Canva design is not a presentation.");
         }
 
+        ReportLoadProgress("Reading Canva page details…", null);
         IReadOnlyList<PageResponse> pageMetadata = await GetPageMetadataAsync(presentationId, cancellationToken).ConfigureAwait(false);
         byte[] presentationFile = await ExportPptxAsync(presentationId, cancellationToken).ConfigureAwait(false);
         IReadOnlyList<IReadOnlyList<string>> slideTexts = PptxSlideTextExtractor.Extract(presentationFile);
@@ -198,6 +201,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         for (int index = 0; index < Math.Max(slideTexts.Count, pageMetadata.Count); index++)
         {
             int pageNumber = index + 1;
+            ReportLoadProgress($"Caching Canva page images ({pageNumber} of {Math.Max(slideTexts.Count, pageMetadata.Count)})…", null);
             IReadOnlyList<string> textBlocks = index < slideTexts.Count ? slideTexts[index] : [];
             PageResponse? metadata = pageMetadata.FirstOrDefault(page => page.PageNumber == pageNumber);
             string? fallbackImagePath = metadata?.Thumbnail?.Url is not null
@@ -212,6 +216,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
             throw new CanvaConnectException("Canva returned a presentation with no pages.");
         }
 
+        ReportLoadProgress("Presentation is ready.", 1d);
         return new PresentationDocument(presentationId, design.Title ?? "Untitled presentation", pages, DateTimeOffset.UtcNow);
     }
 
@@ -287,6 +292,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         using HttpResponseMessage createResponse = await _httpClient.SendAsync(createRequest, cancellationToken).ConfigureAwait(false);
         ExportResponse export = await ReadJsonResponseAsync<ExportResponse>(createResponse, cancellationToken).ConfigureAwait(false);
         ExportJobResponse job = export.Job ?? throw new CanvaConnectException("Canva did not return an export job.");
+        ReportLoadProgress("Canva is preparing the PowerPoint export…", null);
 
         DateTimeOffset deadline = DateTimeOffset.UtcNow.Add(ExportPreparationTimeout);
         TimeSpan pollDelay = TimeSpan.FromSeconds(1);
@@ -295,7 +301,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         {
             if (string.Equals(job.Status, "success", StringComparison.OrdinalIgnoreCase) && job.Urls is { Count: > 0 })
             {
-                return await _httpClient.GetByteArrayAsync(job.Urls[0], cancellationToken).ConfigureAwait(false);
+                return await DownloadExportAsync(job.Urls[0], cancellationToken).ConfigureAwait(false);
             }
 
             if (string.Equals(job.Status, "failed", StringComparison.OrdinalIgnoreCase))
@@ -313,6 +319,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
             ExportResponse poll = await GetJsonAsync<ExportResponse>($"exports/{Uri.EscapeDataString(job.Id)}", cancellationToken).ConfigureAwait(false);
             job = poll.Job ?? throw new CanvaConnectException("Canva returned an invalid export job response.");
             pollDelay = TimeSpan.FromTicks(Math.Min(pollDelay.Ticks * 2, MaximumExportPollDelay.Ticks));
+            ReportLoadProgress("Canva is still preparing the PowerPoint export…", null);
         }
 
         throw new CanvaConnectException("Canva is still preparing this presentation after five minutes. The selected presentation was not changed; try Apply again.");
@@ -335,6 +342,48 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
             return null;
         }
     }
+
+    private async Task<byte[]> DownloadExportAsync(string url, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        long? totalBytes = response.Content.Headers.ContentLength;
+        await using Stream input = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var output = totalBytes is > 0 and <= int.MaxValue ? new MemoryStream((int)totalBytes.Value) : new MemoryStream();
+        byte[] buffer = new byte[81920];
+        long receivedBytes = 0;
+        ReportLoadProgress(CreateDownloadMessage(receivedBytes, totalBytes), totalBytes is > 0 ? 0d : null, receivedBytes, totalBytes);
+
+        while (true)
+        {
+            int bytesRead = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            if (bytesRead == 0)
+            {
+                break;
+            }
+
+            await output.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
+            receivedBytes += bytesRead;
+            double? fraction = totalBytes is > 0 ? Math.Clamp((double)receivedBytes / totalBytes.Value, 0d, 1d) : null;
+            ReportLoadProgress(CreateDownloadMessage(receivedBytes, totalBytes), fraction, receivedBytes, totalBytes);
+        }
+
+        return output.ToArray();
+    }
+
+    private void ReportLoadProgress(string message, double? fraction, long? bytesReceived = null, long? totalBytes = null) =>
+        LoadProgressChanged?.Invoke(this, new CanvaLoadProgress(message, fraction, bytesReceived, totalBytes));
+
+    private static string CreateDownloadMessage(long bytesReceived, long? totalBytes) => totalBytes is > 0
+        ? $"Downloading presentation: {FormatFileSize(bytesReceived)} of {FormatFileSize(totalBytes.Value)} ({Math.Round((double)bytesReceived / totalBytes.Value * 100d):0}%)"
+        : $"Downloading presentation: {FormatFileSize(bytesReceived)} received…";
+
+    private static string FormatFileSize(long bytes) => bytes switch
+    {
+        < 1024 => $"{bytes} B",
+        < 1024 * 1024 => $"{bytes / 1024d:0.0} KB",
+        _ => $"{bytes / 1024d / 1024d:0.0} MB"
+    };
 
     private async Task<AuthorizationResponse> ReceiveAuthorizationResponseAsync(HttpListener listener, string expectedState, CancellationToken cancellationToken)
     {
@@ -463,3 +512,5 @@ public sealed class CanvaConnectException : Exception
     {
     }
 }
+
+public sealed record CanvaLoadProgress(string Message, double? Fraction, long? BytesReceived = null, long? TotalBytes = null);

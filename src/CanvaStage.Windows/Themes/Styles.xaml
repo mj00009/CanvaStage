@@ -4,6 +4,11 @@
         <Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI" />
         <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
         <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
+        <Setter Property="TextOptions.TextHintingMode" Value="Fixed" />
     </Style>
 
     <Style x:Key="PageTitle" TargetType="TextBlock">
@@ -119,7 +124,7 @@
         </Setter>
         <Style.Triggers><Trigger Property="IsChecked" Value="True"><Setter Property="Background" Value="#251A4B" /><Setter Property="Foreground" Value="White" /><Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" /></Trigger></Style.Triggers>
     </Style>
-    <Style x:Key="SegmentButton" TargetType="ToggleButton" BasedOn="{StaticResource SecondaryToggle}"><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="FontSize" Value="15" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Padding" Value="15,12" /></Style>
+    <Style x:Key="SegmentButton" TargetType="ToggleButton" BasedOn="{StaticResource SecondaryToggle}" />
     <Style x:Key="SideNavButton" TargetType="RadioButton">
         <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="12,10" /><Setter Property="Margin" Value="0,2" /><Setter Property="HorizontalContentAlignment" Value="Left" /><Setter Property="Cursor" Value="Hand" /><Setter Property="FontSize" Value="15" /><Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Template">
@@ -274,6 +279,24 @@
                         <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="CheckBorder" Property="BorderBrush" Value="{StaticResource AccentHoverBrush}" /></Trigger>
                         <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.48" /></Trigger>
                     </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="ProgressBar">
+        <Setter Property="Background" Value="#0A0D13" />
+        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ProgressBar}">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="1" SnapsToDevicePixels="True">
+                        <Grid ClipToBounds="True">
+                            <Border x:Name="PART_Track" Background="#161C27" CornerRadius="3" />
+                            <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}" HorizontalAlignment="Left" CornerRadius="3" />
+                        </Grid>
+                    </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

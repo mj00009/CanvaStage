@@ -19,6 +19,7 @@ public sealed class MainViewModel : ViewModelBase
     private readonly OutputWindowManager _outputWindowManager;
     private readonly DisplayService _displayService;
     private readonly JsonPreferencesStore _preferencesStore;
+    private readonly PresentationCacheStore _presentationCacheStore;
     private readonly CanvaConnectService _canva;
     private OutputSnapshot _snapshot;
     private DisplayOption? _selectedDisplay;
@@ -34,13 +35,17 @@ public sealed class MainViewModel : ViewModelBase
     private string? _savedCanvaPresentationTitle;
     private OperatorSection _activeSection = OperatorSection.LiveControl;
     private DateTimeOffset? _lastCanvaContentRefresh;
+    private bool _isCanvaDownloadProgressVisible;
+    private double? _canvaDownloadProgress;
+    private string _canvaDownloadDescription = string.Empty;
 
-    public MainViewModel(IOutputCoordinator coordinator, OutputWindowManager outputWindowManager, DisplayService displayService, JsonPreferencesStore preferencesStore, CanvaConnectService canva, AppPreferences preferences)
+    public MainViewModel(IOutputCoordinator coordinator, OutputWindowManager outputWindowManager, DisplayService displayService, JsonPreferencesStore preferencesStore, PresentationCacheStore presentationCacheStore, CanvaConnectService canva, AppPreferences preferences)
     {
         _coordinator = coordinator;
         _outputWindowManager = outputWindowManager;
         _displayService = displayService;
         _preferencesStore = preferencesStore;
+        _presentationCacheStore = presentationCacheStore;
         _canva = canva;
         _snapshot = coordinator.Snapshot;
         _isOperatorTopmost = preferences.IsOperatorTopmost;
@@ -53,7 +58,9 @@ public sealed class MainViewModel : ViewModelBase
             : canva.HasSavedConfiguration
                 ? "Canva is configured for this Windows user. Select Connect to authorize it."
                 : "Not configured. Add the credentials from your Canva Developer Portal integration.";
-        _canvaPresentationStatus = "Refresh the connected account's presentation list, then select one and Apply.";
+        _canvaPresentationStatus = _snapshot.Document.Id == "demo-sunday"
+            ? "Refresh the connected account's presentation list, then select one and Apply."
+            : $"Cached {_snapshot.Document.Title} is ready for manual page selection.";
 
         Displays = new ObservableCollection<DisplayOption>(_displayService.GetDisplays());
         CanvaPresentations = [];
@@ -78,6 +85,7 @@ public sealed class MainViewModel : ViewModelBase
 
         SelectedDisplay = Displays.FirstOrDefault(display => display.Id == preferences.SelectedDisplayId) ?? Displays.FirstOrDefault();
         _coordinator.SnapshotChanged += OnSnapshotChanged;
+        _canva.LoadProgressChanged += OnCanvaLoadProgressChanged;
     }
 
     public ObservableCollection<DisplayOption> Displays { get; }
@@ -266,6 +274,18 @@ public sealed class MainViewModel : ViewModelBase
             if (SetProperty(ref _canvaPresentationStatus, value)) NotifyReadinessChanged();
         }
     }
+    public bool IsCanvaDownloadProgressVisible
+    {
+        get => _isCanvaDownloadProgressVisible;
+        private set => SetProperty(ref _isCanvaDownloadProgressVisible, value);
+    }
+    public bool IsCanvaDownloadProgressIndeterminate => _canvaDownloadProgress is null;
+    public double CanvaDownloadProgressPercent => (_canvaDownloadProgress ?? 0d) * 100d;
+    public string CanvaDownloadDescription
+    {
+        get => _canvaDownloadDescription;
+        private set => SetProperty(ref _canvaDownloadDescription, value);
+    }
     public string SelectedPresentationSummary => SelectedCanvaPresentation is not null
         ? $"{SelectedCanvaPresentation.Title} · {SelectedCanvaPresentation.PageCount} pages"
             : string.IsNullOrWhiteSpace(_savedCanvaPresentationId)
@@ -315,7 +335,12 @@ public sealed class MainViewModel : ViewModelBase
     }
 
     public void SetCanvaClientSecret(string value) => _canvaClientSecret = value;
-    public void PrepareToClose() { _coordinator.SnapshotChanged -= OnSnapshotChanged; Persist(); }
+    public void PrepareToClose()
+    {
+        _coordinator.SnapshotChanged -= OnSnapshotChanged;
+        _canva.LoadProgressChanged -= OnCanvaLoadProgressChanged;
+        Persist();
+    }
     private void ShowPreview() => _outputWindowManager.ShowPreview();
     private bool CanStartOutput() => SelectedDisplay is not null;
 
@@ -393,16 +418,29 @@ public sealed class MainViewModel : ViewModelBase
     {
         CanvaPresentation? presentation = SelectedCanvaPresentation;
         if (presentation is null) return;
-        await RunCanvaActionAsync(async () =>
+        IsCanvaDownloadProgressVisible = true;
+        _canvaDownloadProgress = null;
+        CanvaDownloadDescription = "Preparing Canva presentation…";
+        OnPropertyChanged(nameof(IsCanvaDownloadProgressIndeterminate));
+        OnPropertyChanged(nameof(CanvaDownloadProgressPercent));
+        try
         {
-            CanvaPresentationStatus = $"Preparing and reading {presentation.Title}. Large presentations can take up to five minutes.";
-            PresentationDocument document = await _canva.LoadAsync(presentation.Id);
-            _coordinator.SetDocument(document, Snapshot.SelectedPageNumber);
-            _lastCanvaContentRefresh = document.RefreshedAt;
-            OnPropertyChanged(nameof(LastCanvaContentRefreshText));
-            CanvaPresentationStatus = $"{document.Title} is ready. Output remains blank until you open Preview or Start output.";
-            Persist();
-        }, message => CanvaPresentationStatus = message);
+            await RunCanvaActionAsync(async () =>
+            {
+                CanvaPresentationStatus = $"Preparing and reading {presentation.Title}. Large presentations can take up to five minutes.";
+                PresentationDocument document = await _canva.LoadAsync(presentation.Id);
+                _coordinator.SetDocument(document, Snapshot.SelectedPageNumber);
+                _presentationCacheStore.Save(document);
+                _lastCanvaContentRefresh = document.RefreshedAt;
+                OnPropertyChanged(nameof(LastCanvaContentRefreshText));
+                CanvaPresentationStatus = $"{document.Title} is ready and cached locally. Output remains blank until you open Preview or Start output.";
+                Persist();
+            }, message => CanvaPresentationStatus = message);
+        }
+        finally
+        {
+            IsCanvaDownloadProgressVisible = false;
+        }
     }
 
     private void UseDemoDeck()
@@ -448,6 +486,26 @@ public sealed class MainViewModel : ViewModelBase
         {
             return fallback;
         }
+    }
+
+    private void OnCanvaLoadProgressChanged(object? sender, CanvaLoadProgress progress)
+    {
+        if (System.Windows.Application.Current.Dispatcher.CheckAccess())
+        {
+            ApplyCanvaLoadProgress(progress);
+            return;
+        }
+
+        _ = System.Windows.Application.Current.Dispatcher.InvokeAsync(() => ApplyCanvaLoadProgress(progress));
+    }
+
+    private void ApplyCanvaLoadProgress(CanvaLoadProgress progress)
+    {
+        _canvaDownloadProgress = progress.Fraction;
+        CanvaDownloadDescription = progress.Message;
+        CanvaPresentationStatus = progress.Message;
+        OnPropertyChanged(nameof(IsCanvaDownloadProgressIndeterminate));
+        OnPropertyChanged(nameof(CanvaDownloadProgressPercent));
     }
 
     private void SetAppearance(MonitorAppearance appearance) => _coordinator.SetAppearance(appearance);

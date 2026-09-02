@@ -111,15 +111,16 @@
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
-                <TextBlock Grid.Row="1"
-                           Text="{Binding PrimaryText}"
-                           Foreground="{Binding TextBrush}"
-                           FontFamily="{Binding Snapshot.Appearance.FontFamily}"
-                           FontSize="{Binding EffectiveFontSize}"
-                           FontWeight="SemiBold"
-                           TextWrapping="Wrap"
-                           VerticalAlignment="Center"
-                           TextAlignment="Center" />
+                <Grid x:Name="PrimaryTextHost" Grid.Row="1">
+                    <TextBlock Text="{Binding PrimaryText}"
+                               Foreground="{Binding TextBrush}"
+                               FontFamily="{Binding Snapshot.Appearance.FontFamily}"
+                               FontSize="{Binding FittedFontSize}"
+                               FontWeight="SemiBold"
+                               TextWrapping="Wrap"
+                               VerticalAlignment="Center"
+                               TextAlignment="Center" />
+                </Grid>
                 <Image Grid.Row="1"
                        Source="{Binding FallbackImage}"
                        Stretch="Uniform"

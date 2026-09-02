@@ -33,12 +33,14 @@ public partial class App : System.Windows.Application
             AppPreferences preferences = preferencesStore.Load();
             PrivacySafeLog.Write("Startup: preferences loaded.");
 
-            var coordinator = new OutputCoordinator(DemoPresentationProvider.Create(), preferences);
+            var presentationCacheStore = new PresentationCacheStore();
+            PresentationDocument initialDocument = presentationCacheStore.Load() ?? DemoPresentationProvider.Create();
+            var coordinator = new OutputCoordinator(initialDocument, preferences);
             _outputWindowManager = new OutputWindowManager(coordinator);
             var displayService = new DisplayService();
             var credentialsStore = new CanvaCredentialsStore();
             var canva = new CanvaConnectService(credentialsStore);
-            var viewModel = new MainViewModel(coordinator, _outputWindowManager, displayService, preferencesStore, canva, preferences);
+            var viewModel = new MainViewModel(coordinator, _outputWindowManager, displayService, preferencesStore, presentationCacheStore, canva, preferences);
             PrivacySafeLog.Write("Startup: services created.");
 
             var mainWindow = new MainWindow(viewModel);
