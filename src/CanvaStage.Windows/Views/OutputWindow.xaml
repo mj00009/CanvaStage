@@ -129,7 +129,7 @@
                         <Style TargetType="Image">
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasFallbackImage}" Value="True">
+                                <DataTrigger Binding="{Binding ShowFallbackImage}" Value="True">
                                     <Setter Property="Visibility" Value="Visible" />
                                 </DataTrigger>
                             </Style.Triggers>

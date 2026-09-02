@@ -1,7 +1,7 @@
 using CanvaStage.Core.Models;
 using CanvaStage.Core.Services;
+using CanvaStage.Core.Utilities;
 using System.Diagnostics;
-using System.IO.Compression;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -10,7 +10,6 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Xml.Linq;
 
 namespace CanvaStage.Windows.Services;
 
@@ -193,7 +192,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
 
         IReadOnlyList<PageResponse> pageMetadata = await GetPageMetadataAsync(presentationId, cancellationToken).ConfigureAwait(false);
         byte[] presentationFile = await ExportPptxAsync(presentationId, cancellationToken).ConfigureAwait(false);
-        IReadOnlyList<IReadOnlyList<string>> slideTexts = ExtractSlideText(presentationFile);
+        IReadOnlyList<IReadOnlyList<string>> slideTexts = PptxSlideTextExtractor.Extract(presentationFile);
         var pages = new List<PresentationPage>();
 
         for (int index = 0; index < Math.Max(slideTexts.Count, pageMetadata.Count); index++)
@@ -422,33 +421,6 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
             ["redirect_uri"] = RedirectUrl
         };
         return "https://www.canva.com/api/oauth/authorize?" + string.Join("&", query.Select(pair => $"{Uri.EscapeDataString(pair.Key)}={Uri.EscapeDataString(pair.Value)}"));
-    }
-
-    private static IReadOnlyList<IReadOnlyList<string>> ExtractSlideText(byte[] presentationFile)
-    {
-        using var stream = new MemoryStream(presentationFile);
-        using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
-        XNamespace drawing = "http://schemas.openxmlformats.org/drawingml/2006/main";
-        XNamespace presentation = "http://schemas.openxmlformats.org/presentationml/2006/main";
-        return archive.Entries
-            .Where(entry => entry.FullName.StartsWith("ppt/slides/slide", StringComparison.OrdinalIgnoreCase) && entry.FullName.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
-            .OrderBy(entry => SlideNumber(entry.FullName))
-            .Select(entry =>
-            {
-                using Stream entryStream = entry.Open();
-                XDocument document = XDocument.Load(entryStream);
-                return (IReadOnlyList<string>)document.Descendants(presentation + "sp")
-                    .Select(shape => string.Join(" ", shape.Descendants(drawing + "t").Select(text => text.Value).Where(text => !string.IsNullOrWhiteSpace(text))).Trim())
-                    .Where(text => !string.IsNullOrWhiteSpace(text))
-                    .ToList();
-            })
-            .ToList();
-    }
-
-    private static int SlideNumber(string path)
-    {
-        string filename = Path.GetFileNameWithoutExtension(path);
-        return int.TryParse(filename["slide".Length..], out int number) ? number : int.MaxValue;
     }
 
     private static async Task WriteCallbackResponseAsync(HttpListenerResponse response, string message)

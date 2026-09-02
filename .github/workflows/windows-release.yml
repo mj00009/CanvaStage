@@ -77,20 +77,24 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true
           --output publish/CanvaStage-win-x64
 
-      - name: Smoke test published WPF application
+      - name: Render UI demo and smoke test published WPF application
         shell: pwsh
         run: |
           $application = Join-Path $PWD 'publish/CanvaStage-win-x64/CanvaStage.Windows.exe'
+          $screenshot = Join-Path $PWD 'ci-diagnostics/ui-demo.png'
           if (-not (Test-Path $application)) {
             throw "Published application was not found: $application"
           }
-          $process = Start-Process -FilePath $application -ArgumentList '--smoke-test' -PassThru
+          $process = Start-Process -FilePath $application -ArgumentList "--ui-demo-screenshot=$screenshot" -PassThru
           if (-not $process.WaitForExit(30000)) {
             Stop-Process -Id $process.Id -Force
-            throw 'The published WPF application did not exit from smoke-test mode within 30 seconds.'
+            throw 'The published WPF application did not exit from UI demo screenshot mode within 30 seconds.'
           }
           if ($process.ExitCode -ne 0) {
-            throw "The published WPF application smoke test failed with exit code $($process.ExitCode)."
+            throw "The published WPF application UI demo smoke test failed with exit code $($process.ExitCode)."
+          }
+          if (-not (Test-Path $screenshot)) {
+            throw 'The published WPF application did not produce the expected UI demo screenshot.'
           }
 
       - name: Collect application diagnostics
@@ -125,6 +129,14 @@ jobs:
             publish/CanvaStage-win-x64.zip
             publish/CanvaStage-win-x64.zip.sha256
           if-no-files-found: error
+
+      - name: Upload UI demo preview
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ui-demo-preview
+          path: ci-diagnostics/ui-demo.png
+          if-no-files-found: ignore
 
       - name: Upload build diagnostics on failure
         if: failure()

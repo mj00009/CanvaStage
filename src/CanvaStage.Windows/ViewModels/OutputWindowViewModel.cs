@@ -50,6 +50,7 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(EffectiveFontSize));
             OnPropertyChanged(nameof(FallbackImage));
             OnPropertyChanged(nameof(HasFallbackImage));
+            OnPropertyChanged(nameof(ShowFallbackImage));
         }
     }
 
@@ -77,6 +78,7 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
     public Brush AccentBrush => BrushFrom(Snapshot.Appearance.AccentColor);
     public BitmapImage? FallbackImage => _fallbackImage;
     public bool HasFallbackImage => _fallbackImage is not null;
+    public bool ShowFallbackImage => IsMonitor && HasFallbackImage && Page is { HasFormattedText: false };
 
     public void UpdateClock() => CurrentTime = DateTime.Now.ToString("h:mm tt");
 

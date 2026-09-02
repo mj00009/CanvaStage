@@ -3,7 +3,10 @@ using CanvaStage.Core.Services;
 using CanvaStage.Windows.Services;
 using CanvaStage.Windows.ViewModels;
 using CanvaStage.Windows.Views;
+using System.IO;
 using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
 namespace CanvaStage.Windows;
@@ -43,7 +46,15 @@ public partial class App : System.Windows.Application
             mainWindow.Show();
             PrivacySafeLog.Write("Startup: main window shown.");
 
-            if (eventArgs.Args.Contains("--smoke-test", StringComparer.Ordinal))
+            string? screenshotPath = GetUiDemoScreenshotPath(eventArgs.Args);
+            if (screenshotPath is not null)
+            {
+                PrivacySafeLog.Write("Startup: UI demo screenshot mode started.");
+                Dispatcher.BeginInvoke(
+                    () => CaptureUiDemoScreenshot(mainWindow, screenshotPath),
+                    DispatcherPriority.ApplicationIdle);
+            }
+            else if (eventArgs.Args.Contains("--smoke-test", StringComparer.Ordinal))
             {
                 PrivacySafeLog.Write("Startup: smoke-test mode passed; closing application.");
                 Dispatcher.BeginInvoke(Shutdown, DispatcherPriority.ApplicationIdle);
@@ -88,5 +99,42 @@ public partial class App : System.Windows.Application
     {
         PrivacySafeLog.WriteException("Unobserved task exception", eventArgs.Exception);
         eventArgs.SetObserved();
+    }
+
+    private static string? GetUiDemoScreenshotPath(IEnumerable<string> arguments)
+    {
+        const string argumentPrefix = "--ui-demo-screenshot=";
+        string? argument = arguments.FirstOrDefault(value => value.StartsWith(argumentPrefix, StringComparison.OrdinalIgnoreCase));
+        return argument is null ? null : argument[argumentPrefix.Length..];
+    }
+
+    private void CaptureUiDemoScreenshot(Window mainWindow, string screenshotPath)
+    {
+        try
+        {
+            mainWindow.UpdateLayout();
+            int width = Math.Max(1, (int)Math.Ceiling(mainWindow.ActualWidth));
+            int height = Math.Max(1, (int)Math.Ceiling(mainWindow.ActualHeight));
+            var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(mainWindow);
+
+            string? directory = Path.GetDirectoryName(screenshotPath);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            using var output = File.Create(screenshotPath);
+            encoder.Save(output);
+            PrivacySafeLog.Write("Startup: UI demo screenshot was created.");
+            Shutdown();
+        }
+        catch (Exception exception)
+        {
+            PrivacySafeLog.WriteException("UI demo screenshot failure", exception);
+            Shutdown(-1);
+        }
     }
 }

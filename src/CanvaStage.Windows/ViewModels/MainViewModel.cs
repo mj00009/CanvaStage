@@ -7,6 +7,9 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.Windows;
 using System.Windows.Input;
+using Brush = System.Windows.Media.Brush;
+using Brushes = System.Windows.Media.Brushes;
+using BrushConverter = System.Windows.Media.BrushConverter;
 
 namespace CanvaStage.Windows.ViewModels;
 
@@ -153,6 +156,9 @@ public sealed class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(FontSize));
             OnPropertyChanged(nameof(ShowClock));
             OnPropertyChanged(nameof(ContrastMessage));
+            OnPropertyChanged(nameof(PreviewBackgroundBrush));
+            OnPropertyChanged(nameof(PreviewTextBrush));
+            OnPropertyChanged(nameof(PreviewAccentBrush));
             OnPropertyChanged(nameof(SelectedPage));
             OnPropertyChanged(nameof(SelectedPageTitle));
             OnPropertyChanged(nameof(PreviewPrimaryText));
@@ -240,6 +246,9 @@ public sealed class MainViewModel : ViewModelBase
     public string FontFamily { get => Snapshot.Appearance.FontFamily; set => SetAppearance(Snapshot.Appearance with { FontFamily = value }); }
     public double FontSize { get => Snapshot.Appearance.FontSize; set => SetAppearance(Snapshot.Appearance with { FontSize = Math.Clamp(value, 32, 160) }); }
     public bool ShowClock { get => Snapshot.Appearance.ShowClock; set => SetAppearance(Snapshot.Appearance with { ShowClock = value }); }
+    public Brush PreviewBackgroundBrush => BrushFrom(BackgroundColor, Brushes.Black);
+    public Brush PreviewTextBrush => BrushFrom(TextColor, Brushes.White);
+    public Brush PreviewAccentBrush => BrushFrom(AccentColor, Brushes.MediumPurple);
     public string CanvaClientId { get => _canvaClientId; set => SetProperty(ref _canvaClientId, value); }
     public string CanvaConnectionStatus
     {
@@ -427,6 +436,18 @@ public sealed class MainViewModel : ViewModelBase
         catch (HttpRequestException) { PrivacySafeLog.Write("Canva request could not reach the service."); setFailureStatus("Canva could not be reached. Check the internet connection and try again."); }
         catch (OperationCanceledException) { PrivacySafeLog.Write("Canva action was cancelled."); setFailureStatus("The Canva action was cancelled."); }
         finally { IsCanvaBusy = false; }
+    }
+
+    private static Brush BrushFrom(string value, Brush fallback)
+    {
+        try
+        {
+            return (Brush)new BrushConverter().ConvertFromString(value)!;
+        }
+        catch (FormatException)
+        {
+            return fallback;
+        }
     }
 
     private void SetAppearance(MonitorAppearance appearance) => _coordinator.SetAppearance(appearance);
