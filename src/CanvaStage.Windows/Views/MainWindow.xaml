@@ -72,7 +72,7 @@
                                 <Button Content="Connect Canva" Command="{Binding ConnectCanvaCommand}" Style="{StaticResource PrimaryButton}" />
                                 <Button Content="Disconnect" Command="{Binding DisconnectCanvaCommand}" Style="{StaticResource DangerButton}" />
                             </WrapPanel>
-                            <TextBlock Text="{Binding CanvaStatus}" Style="{StaticResource MutedText}" Margin="0,14,0,0" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding CanvaConnectionStatus}" Style="{StaticResource MutedText}" Margin="0,14,0,0" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
 
@@ -91,6 +91,7 @@
                                 <Button Grid.Column="2" Content="Refresh" Command="{Binding RefreshCanvaCommand}" Style="{StaticResource SecondaryButton}" />
                                 <Button Grid.Column="3" Content="Apply" Command="{Binding ApplyCanvaCommand}" Style="{StaticResource PrimaryButton}" />
                             </Grid>
+                            <TextBlock Text="{Binding CanvaPresentationStatus}" Style="{StaticResource MutedText}" Margin="0,14,0,0" TextWrapping="Wrap" />
                             <Button Content="Use local demo deck" Command="{Binding UseDemoDeckCommand}" Style="{StaticResource TextButton}" HorizontalAlignment="Left" Margin="0,12,0,0" />
                         </StackPanel>
                     </Border>

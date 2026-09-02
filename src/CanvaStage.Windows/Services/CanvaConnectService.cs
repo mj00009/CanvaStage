@@ -18,6 +18,8 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
 {
     public const string RedirectUrl = "http://127.0.0.1:27843/callback/";
     private const string ApiBaseUrl = "https://api.canva.com/rest/v1/";
+    private static readonly TimeSpan ExportPreparationTimeout = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan MaximumExportPollDelay = TimeSpan.FromSeconds(5);
     private readonly CanvaCredentialsStore _credentialsStore;
     private readonly HttpClient _httpClient;
     private string? _lastPresentationId;
@@ -287,7 +289,10 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         ExportResponse export = await ReadJsonResponseAsync<ExportResponse>(createResponse, cancellationToken).ConfigureAwait(false);
         ExportJobResponse job = export.Job ?? throw new CanvaConnectException("Canva did not return an export job.");
 
-        for (int attempt = 0; attempt < 30; attempt++)
+        DateTimeOffset deadline = DateTimeOffset.UtcNow.Add(ExportPreparationTimeout);
+        TimeSpan pollDelay = TimeSpan.FromSeconds(1);
+
+        while (true)
         {
             if (string.Equals(job.Status, "success", StringComparison.OrdinalIgnoreCase) && job.Urls is { Count: > 0 })
             {
@@ -299,12 +304,19 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
                 throw new CanvaConnectException("Canva could not export this presentation. Check that it can be exported as PowerPoint and try again.");
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
+            TimeSpan remaining = deadline - DateTimeOffset.UtcNow;
+            if (remaining <= TimeSpan.Zero)
+            {
+                break;
+            }
+
+            await Task.Delay(pollDelay <= remaining ? pollDelay : remaining, cancellationToken).ConfigureAwait(false);
             ExportResponse poll = await GetJsonAsync<ExportResponse>($"exports/{Uri.EscapeDataString(job.Id)}", cancellationToken).ConfigureAwait(false);
             job = poll.Job ?? throw new CanvaConnectException("Canva returned an invalid export job response.");
+            pollDelay = TimeSpan.FromTicks(Math.Min(pollDelay.Ticks * 2, MaximumExportPollDelay.Ticks));
         }
 
-        throw new CanvaConnectException("Canva took too long to prepare the presentation export. Try Refresh again.");
+        throw new CanvaConnectException("Canva is still preparing this presentation after five minutes. The selected presentation was not changed; try Apply again.");
     }
 
     private async Task<string?> DownloadFallbackImageAsync(string presentationId, int pageNumber, string url, CancellationToken cancellationToken)

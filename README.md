@@ -2,7 +2,7 @@
 
 Canva Stage is a Windows desktop confidence-monitor app for churches using Canva presentations. It gives people on stage a separate, readable output while the congregation continues to see the regular Canva presentation.
 
-> **Project status:** `v0.2.1` adds startup diagnostics and a release-build launch check to the Canva connection workflow and Phase 1 confidence-output foundation. A church still needs to configure and authorize its own Canva integration before live Canva content can be used.
+> **Project status:** `v0.2.2` adds resilient large-presentation Canva export handling, startup diagnostics, and a release-build launch check to the Canva connection workflow and Phase 1 confidence-output foundation. A church still needs to configure and authorize its own Canva integration before live Canva content can be used.
 
 ## What it will do
 

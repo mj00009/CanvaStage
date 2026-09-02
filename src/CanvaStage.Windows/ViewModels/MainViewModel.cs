@@ -23,7 +23,8 @@ public sealed class MainViewModel : ViewModelBase
     private bool _isSaving;
     private string _canvaClientId;
     private string _canvaClientSecret = string.Empty;
-    private string _canvaStatus;
+    private string _canvaConnectionStatus;
+    private string _canvaPresentationStatus;
     private bool _isCanvaBusy;
     private string? _savedCanvaPresentationId;
 
@@ -38,11 +39,12 @@ public sealed class MainViewModel : ViewModelBase
         _isOperatorTopmost = preferences.IsOperatorTopmost;
         _canvaClientId = canva.ConfiguredClientId ?? string.Empty;
         _savedCanvaPresentationId = preferences.SelectedPresentationId;
-        _canvaStatus = canva.IsConnected
+        _canvaConnectionStatus = canva.IsConnected
             ? "Connected locally. Refresh presentations when you are ready."
             : canva.HasSavedConfiguration
                 ? "Canva is configured for this Windows user. Select Connect to authorize it."
                 : "Not configured. Add the credentials from your Canva Developer Portal integration.";
+        _canvaPresentationStatus = "Refresh the connected account's presentation list, then select one and Apply.";
 
         Displays = new ObservableCollection<DisplayOption>(_displayService.GetDisplays());
         CanvaPresentations = [];
@@ -156,7 +158,8 @@ public sealed class MainViewModel : ViewModelBase
     public double FontSize { get => Snapshot.Appearance.FontSize; set => SetAppearance(Snapshot.Appearance with { FontSize = Math.Clamp(value, 32, 160) }); }
     public bool ShowClock { get => Snapshot.Appearance.ShowClock; set => SetAppearance(Snapshot.Appearance with { ShowClock = value }); }
     public string CanvaClientId { get => _canvaClientId; set => SetProperty(ref _canvaClientId, value); }
-    public string CanvaStatus { get => _canvaStatus; private set => SetProperty(ref _canvaStatus, value); }
+    public string CanvaConnectionStatus { get => _canvaConnectionStatus; private set => SetProperty(ref _canvaConnectionStatus, value); }
+    public string CanvaPresentationStatus { get => _canvaPresentationStatus; private set => SetProperty(ref _canvaPresentationStatus, value); }
     public bool IsCanvaBusy
     {
         get => _isCanvaBusy;
@@ -211,47 +214,48 @@ public sealed class MainViewModel : ViewModelBase
 
     private async Task ConnectCanvaAsync() => await RunCanvaActionAsync(async () =>
     {
-        CanvaStatus = "Opening Canva authorization in your browser…";
+        CanvaConnectionStatus = "Opening Canva authorization in your browser…";
         _canva.SaveConfiguration(CanvaClientId, _canvaClientSecret);
         await _canva.ConnectAsync();
         _canvaClientSecret = string.Empty;
-        CanvaStatus = "Connected. Refreshing presentations…";
+        CanvaConnectionStatus = "Connected. Refreshing presentations…";
         await RefreshCanvaCoreAsync();
-    });
+    }, message => CanvaConnectionStatus = message);
 
     private async Task TestCanvaAsync() => await RunCanvaActionAsync(async () =>
     {
         _canva.SaveConfiguration(CanvaClientId, _canvaClientSecret);
-        CanvaStatus = "Testing the Canva connection…";
+        CanvaConnectionStatus = "Testing the Canva connection…";
         await _canva.TestAsync();
         _canvaClientSecret = string.Empty;
-        CanvaStatus = "Connection test passed. Refresh presentations to choose one.";
-    });
+        CanvaConnectionStatus = "Connection test passed. Refresh presentations to choose one.";
+    }, message => CanvaConnectionStatus = message);
 
     private async Task DisconnectCanvaAsync() => await RunCanvaActionAsync(async () =>
     {
-        CanvaStatus = "Disconnecting Canva and removing local protected credentials…";
+        CanvaConnectionStatus = "Disconnecting Canva and removing local protected credentials…";
         await _canva.DisconnectAsync();
         _canvaClientId = string.Empty;
         _canvaClientSecret = string.Empty;
         OnPropertyChanged(nameof(CanvaClientId));
         CanvaPresentations.Clear();
         SelectedCanvaPresentation = null;
-        CanvaStatus = "Disconnected. Local Canva credentials were removed.";
-    });
+        CanvaConnectionStatus = "Disconnected. Local Canva credentials were removed.";
+        CanvaPresentationStatus = "Canva presentations are no longer available. You can continue with the local demo deck.";
+    }, message => CanvaConnectionStatus = message);
 
-    private async Task RefreshCanvaAsync() => await RunCanvaActionAsync(RefreshCanvaCoreAsync);
+    private async Task RefreshCanvaAsync() => await RunCanvaActionAsync(RefreshCanvaCoreAsync, message => CanvaPresentationStatus = message);
 
     private async Task RefreshCanvaCoreAsync()
     {
-        CanvaStatus = "Refreshing Canva presentations…";
+        CanvaPresentationStatus = "Refreshing Canva presentations…";
         IReadOnlyList<CanvaPresentation> presentations = await _canva.ListPresentationsAsync();
         CanvaPresentations.Clear();
         foreach (CanvaPresentation presentation in presentations) CanvaPresentations.Add(presentation);
         SelectedCanvaPresentation = CanvaPresentations.FirstOrDefault(presentation => presentation.Id == _savedCanvaPresentationId)
             ?? CanvaPresentations.FirstOrDefault(presentation => presentation.Id == Snapshot.Document.Id)
             ?? CanvaPresentations.FirstOrDefault();
-        CanvaStatus = presentations.Count == 0 ? "Canva is connected, but no presentations were found for this account." : $"Found {presentations.Count} Canva presentation{(presentations.Count == 1 ? string.Empty : "s")}. Select one and Apply.";
+        CanvaPresentationStatus = presentations.Count == 0 ? "Canva is connected, but no presentations were found for this account." : $"Found {presentations.Count} Canva presentation{(presentations.Count == 1 ? string.Empty : "s")}. Select one and Apply.";
     }
 
     private async Task ApplyCanvaAsync()
@@ -260,25 +264,25 @@ public sealed class MainViewModel : ViewModelBase
         if (presentation is null) return;
         await RunCanvaActionAsync(async () =>
         {
-            CanvaStatus = $"Exporting and reading {presentation.Title}…";
+            CanvaPresentationStatus = $"Preparing and reading {presentation.Title}. Large presentations can take up to five minutes.";
             PresentationDocument document = await _canva.LoadAsync(presentation.Id);
             _coordinator.SetDocument(document, Snapshot.SelectedPageNumber);
-            CanvaStatus = $"{document.Title} is ready. Output remains blank until you open Preview or Start output.";
+            CanvaPresentationStatus = $"{document.Title} is ready. Output remains blank until you open Preview or Start output.";
             Persist();
-        });
+        }, message => CanvaPresentationStatus = message);
     }
 
-    private void UseDemoDeck() { _coordinator.SetDocument(DemoPresentationProvider.Create()); CanvaStatus = "The local demo deck is ready. Canva remains connected."; Persist(); }
-    private void CopyRedirectUrl() { System.Windows.Clipboard.SetText(RedirectUrl); CanvaStatus = "The redirect URL was copied. Add it under Authorized redirects in your Canva Developer Portal integration."; }
+    private void UseDemoDeck() { _coordinator.SetDocument(DemoPresentationProvider.Create()); CanvaPresentationStatus = "The local demo deck is ready. Canva remains connected."; Persist(); }
+    private void CopyRedirectUrl() { System.Windows.Clipboard.SetText(RedirectUrl); CanvaConnectionStatus = "The redirect URL was copied. Add it under Authorized redirects in your Canva Developer Portal integration."; }
 
-    private async Task RunCanvaActionAsync(Func<Task> action)
+    private async Task RunCanvaActionAsync(Func<Task> action, Action<string> setFailureStatus)
     {
         if (IsCanvaBusy) return;
         IsCanvaBusy = true;
         try { await action(); }
-        catch (CanvaConnectException exception) { PrivacySafeLog.Write($"Canva action failed: {exception.Message}"); CanvaStatus = exception.Message; }
-        catch (HttpRequestException) { PrivacySafeLog.Write("Canva request could not reach the service."); CanvaStatus = "Canva could not be reached. Check the internet connection and try again."; }
-        catch (OperationCanceledException) { PrivacySafeLog.Write("Canva action was cancelled."); CanvaStatus = "The Canva action was cancelled."; }
+        catch (CanvaConnectException exception) { PrivacySafeLog.Write($"Canva action failed: {exception.Message}"); setFailureStatus(exception.Message); }
+        catch (HttpRequestException) { PrivacySafeLog.Write("Canva request could not reach the service."); setFailureStatus("Canva could not be reached. Check the internet connection and try again."); }
+        catch (OperationCanceledException) { PrivacySafeLog.Write("Canva action was cancelled."); setFailureStatus("The Canva action was cancelled."); }
         finally { IsCanvaBusy = false; }
     }
 
