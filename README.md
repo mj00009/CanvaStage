@@ -2,7 +2,7 @@
 
 Canva Stage is a Windows desktop confidence-monitor app for churches using Canva presentations. It gives people on stage a separate, readable output while the congregation continues to see the regular Canva presentation.
 
-> **Project status:** Planning and design assets are in place. The Windows application has not yet been implemented.
+> **Project status:** Phase 1 implementation is underway. The app currently includes the local demo deck, manual page control, Mirror/Monitor output, Preview, display targeting, and safe output recovery. Canva OAuth and content retrieval are the next implementation slice.
 
 ## What it will do
 
@@ -10,7 +10,7 @@ Canva Stage is a Windows desktop confidence-monitor app for churches using Canva
 - Open a separate confidence-output window, including a laptop-friendly Preview mode.
 - Send the output to a selected confidence display when a second screen is available.
 - Switch immediately between **Mirror** mode (the Canva page image) and **Monitor** mode (a simplified, high-visibility view of slide text).
-- Show tracking status honestly and provide manual slide controls when live slide recognition is uncertain.
+- Provide manual page controls in Phases 1–2. Assisted live-slide recognition is deferred to a later phase.
 
 ## Who it is for
 
@@ -25,7 +25,7 @@ You can set up and test the app with one display. For an independent on-stage di
 
 ## How the planned app works
 
-The first release will be a native Windows 11 WPF app. It will retrieve the selected Canva presentation, then optionally compare the live Canva display with known presentation pages to infer the current slide. That inference is not a guaranteed Canva live-slide feed, so the app will report **Tracking**, **Uncertain**, or **Not tracking**, and always offer manual controls.
+The first release is a native Windows 11 WPF app. Phases 1–2 use explicit manual page control; display capture and slide inference are intentionally deferred. The app never claims automatic knowledge of Canva's current page.
 
 ### Output modes
 
@@ -42,18 +42,18 @@ The app’s client-only model is a deliberate church-managed approach. Canva rec
 
 The implementation target is a self-contained Windows x64 release, so volunteers should not need a separately installed .NET runtime.
 
-Once the WPF solution is added, use:
+On Windows, double-click `Build Windows App.cmd`, or use:
 
 ```powershell
 dotnet restore
 dotnet build -c Release
 dotnet test -c Release --no-build
-dotnet publish src/CanvaStage/CanvaStage.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
+dotnet publish src/CanvaStage.Windows/CanvaStage.Windows.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
 ```
 
 The GitHub Actions workflow automatically discovers the solution and WPF application project. It builds and tests pull requests and `main`, uploads a self-contained Windows x64 artifact, and attaches that artifact to a GitHub Release for version tags such as `v0.1.0`.
 
-Until the solution exists, the workflow completes its setup check and reports that there is nothing to build; it does not create an empty release.
+The portable release ZIP includes a SHA-256 checksum. The app runs without requiring administrator elevation and stores mutable state under the shared Windows operator's local app-data directory.
 
 ## Repository contents
 

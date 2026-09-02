@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CanvaStage.Core", "src\CanvaStage.Core\CanvaStage.Core.csproj", "{1F2D8B27-1BC7-4895-B0C3-8B75C982D8A0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CanvaStage.Windows", "src\CanvaStage.Windows\CanvaStage.Windows.csproj", "{940AE8A8-99FB-4F55-925F-5E61D8BCEB31}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CanvaStage.Tests", "tests\CanvaStage.Tests\CanvaStage.Tests.csproj", "{3691CC39-15D3-4120-BE78-2D10E6ACF7D4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1F2D8B27-1BC7-4895-B0C3-8B75C982D8A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F2D8B27-1BC7-4895-B0C3-8B75C982D8A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F2D8B27-1BC7-4895-B0C3-8B75C982D8A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F2D8B27-1BC7-4895-B0C3-8B75C982D8A0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{940AE8A8-99FB-4F55-925F-5E61D8BCEB31}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{940AE8A8-99FB-4F55-925F-5E61D8BCEB31}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{940AE8A8-99FB-4F55-925F-5E61D8BCEB31}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{940AE8A8-99FB-4F55-925F-5E61D8BCEB31}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3691CC39-15D3-4120-BE78-2D10E6ACF7D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3691CC39-15D3-4120-BE78-2D10E6ACF7D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3691CC39-15D3-4120-BE78-2D10E6ACF7D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3691CC39-15D3-4120-BE78-2D10E6ACF7D4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

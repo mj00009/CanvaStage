@@ -6,6 +6,7 @@
 [Oo]bj/
 TestResults/
 publish/
+artifacts/
 
 # Local environment and diagnostic files
 .vs/
