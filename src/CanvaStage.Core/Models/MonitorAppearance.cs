@@ -8,5 +8,5 @@ public sealed record MonitorAppearance(
     double FontSize,
     bool ShowClock)
 {
-    public static MonitorAppearance Default { get; } = new("#101113", "#F7F8FA", "#75E6C8", "Aptos", 72, true);
+    public static MonitorAppearance Default { get; } = new("#080B11", "#F8F8FC", "#8454F4", "Aptos", 72, true);
 }

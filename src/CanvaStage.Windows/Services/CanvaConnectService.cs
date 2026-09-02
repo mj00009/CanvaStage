@@ -28,7 +28,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
     {
         _credentialsStore = credentialsStore;
         _httpClient = new HttpClient { BaseAddress = new Uri(ApiBaseUrl), Timeout = TimeSpan.FromSeconds(30) };
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("CanvaStage/0.2");
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("CanvaStage/0.3");
     }
 
     public bool HasSavedConfiguration => _credentialsStore.Load() is not null;
@@ -201,8 +201,8 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
             int pageNumber = index + 1;
             IReadOnlyList<string> textBlocks = index < slideTexts.Count ? slideTexts[index] : [];
             PageResponse? metadata = pageMetadata.FirstOrDefault(page => page.PageNumber == pageNumber);
-            string? fallbackImagePath = textBlocks.Count == 0 && metadata?.Thumbnail?.Url is not null
-                ? await DownloadFallbackImageAsync(presentationId, pageNumber, metadata.Thumbnail.Url, cancellationToken).ConfigureAwait(false)
+            string? fallbackImagePath = metadata?.Thumbnail?.Url is not null
+                ? await DownloadPageImageAsync(presentationId, pageNumber, metadata.Thumbnail.Url, cancellationToken).ConfigureAwait(false)
                 : null;
             string title = textBlocks.FirstOrDefault() ?? $"Page {pageNumber}";
             pages.Add(new PresentationPage(pageNumber, title, textBlocks, "#0D0E10", "#75E6C8", textBlocks.Count > 0, fallbackImagePath));
@@ -319,7 +319,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         throw new CanvaConnectException("Canva is still preparing this presentation after five minutes. The selected presentation was not changed; try Apply again.");
     }
 
-    private async Task<string?> DownloadFallbackImageAsync(string presentationId, int pageNumber, string url, CancellationToken cancellationToken)
+    private async Task<string?> DownloadPageImageAsync(string presentationId, int pageNumber, string url, CancellationToken cancellationToken)
     {
         try
         {

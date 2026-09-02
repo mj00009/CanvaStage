@@ -9,7 +9,8 @@ public sealed record AppPreferences(
     MonitorAppearance Appearance,
     bool IsOperatorTopmost,
     string? SelectedPresentationId = null,
-    string? SelectedPresentationTitle = null)
+    string? SelectedPresentationTitle = null,
+    DateTimeOffset? SelectedPresentationRefreshedAt = null)
 {
     public static AppPreferences Default { get; } = new(null, 1, OutputMode.Monitor, MonitorLayout.CurrentAndNext, NextLineOption.FirstNonEmptyLine, MonitorAppearance.Default, false);
 }

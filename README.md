@@ -2,14 +2,14 @@
 
 Canva Stage is a Windows desktop confidence-monitor app for churches using Canva presentations. It gives people on stage a separate, readable output while the congregation continues to see the regular Canva presentation.
 
-> **Project status:** `v0.2.2` adds resilient large-presentation Canva export handling, startup diagnostics, and a release-build launch check to the Canva connection workflow and Phase 1 confidence-output foundation. A church still needs to configure and authorize its own Canva integration before live Canva content can be used.
+> **Project status:** `v0.3.0` completes the Windows Phase 2 Canva workflow with page-image mirror output, persistent presentation status, independent setup checks, and a production-style operator interface. Current-page selection remains deliberately manual until Phase 3 live tracking is built.
 
 ## What it will do
 
 - Connect to a church-managed Canva integration and choose a presentation.
 - Open a separate confidence-output window, including a laptop-friendly Preview mode.
 - Send the output to a selected confidence display when a second screen is available.
-- Switch immediately between **Mirror** mode (the Canva page image) and **Monitor** mode (a simplified, high-visibility view of slide text).
+- Switch immediately between **Mirror** mode (the retrieved Canva page image) and **Monitor** mode (a simplified, high-visibility view of slide text).
 - Provide manual page controls in Phases 1–2. Assisted live-slide recognition is deferred to a later phase.
 
 ## Who it is for
@@ -46,7 +46,7 @@ The app’s client-only model is a deliberate church-managed approach. Canva rec
 4. Enter the Client ID and Client Secret in CanvaStage, then select **Connect Canva** and finish authorization in the browser.
 5. Refresh presentations, select one, and choose **Apply**. CanvaStage exports a temporary PPTX to read native text. It downloads a page thumbnail only when a page has no usable text.
 
-CanvaStage does not capture the primary display or infer the current slide. The operator always advances its selected page manually. Canva export URLs are short-lived, and the downloaded export is retained only in memory.
+CanvaStage does not capture the primary display or infer the current slide. The operator always advances its selected page manually. Canva exports and page images are retrieved only as needed for the selected presentation; export URLs are short-lived.
 
 ### Closing the output window
 

@@ -13,4 +13,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CanvaStage.Core\CanvaStage.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="..\..\assets\canva-stage-logo-full-option-2.png" Link="Assets\canva-stage-logo-full-option-2.png" />
+  </ItemGroup>
 </Project>

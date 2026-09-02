@@ -46,8 +46,32 @@
                     </Style.Triggers>
                 </Style>
             </Grid.Style>
-            <Border Background="{Binding MirrorAccent}" Height="16" VerticalAlignment="Top" />
+            <Image Source="{Binding FallbackImage}"
+                   Stretch="Uniform"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center">
+                <Image.Style>
+                    <Style TargetType="Image">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasFallbackImage}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Image.Style>
+            </Image>
             <StackPanel Margin="72" VerticalAlignment="Center">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasFallbackImage}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+                <Border Background="{Binding MirrorAccent}" Height="16" Margin="0,0,0,28" />
                 <TextBlock Text="{Binding Page.Title}" FontSize="58" FontWeight="Bold" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding PrimaryText}" FontSize="30" Margin="0,26,0,0" TextWrapping="Wrap" />
             </StackPanel>
