@@ -197,11 +197,12 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         byte[] presentationFile = await ExportPptxAsync(presentationId, cancellationToken).ConfigureAwait(false);
         IReadOnlyList<IReadOnlyList<string>> slideTexts = PptxSlideTextExtractor.Extract(presentationFile);
         var pages = new List<PresentationPage>();
+        int totalPageCount = Math.Max(slideTexts.Count, pageMetadata.Count);
+        ReportLoadProgress($"Caching Canva page images (0 of {totalPageCount})…", 0d);
 
-        for (int index = 0; index < Math.Max(slideTexts.Count, pageMetadata.Count); index++)
+        for (int index = 0; index < totalPageCount; index++)
         {
             int pageNumber = index + 1;
-            ReportLoadProgress($"Caching Canva page images ({pageNumber} of {Math.Max(slideTexts.Count, pageMetadata.Count)})…", null);
             IReadOnlyList<string> textBlocks = index < slideTexts.Count ? slideTexts[index] : [];
             PageResponse? metadata = pageMetadata.FirstOrDefault(page => page.PageNumber == pageNumber);
             string? fallbackImagePath = metadata?.Thumbnail?.Url is not null
@@ -209,6 +210,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
                 : null;
             string title = textBlocks.FirstOrDefault() ?? $"Page {pageNumber}";
             pages.Add(new PresentationPage(pageNumber, title, textBlocks, "#0D0E10", "#75E6C8", textBlocks.Count > 0, fallbackImagePath));
+            ReportLoadProgress($"Caching Canva page images ({pageNumber} of {totalPageCount})…", (double)pageNumber / totalPageCount);
         }
 
         if (pages.Count == 0)

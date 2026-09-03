@@ -110,7 +110,7 @@
                             <StackPanel><TextBlock Text="Sunday controls" Style="{StaticResource SectionTitle}" /><TextBlock Text="Select the active page manually. This remains available even when Canva is disconnected." Style="{StaticResource MutedText}" Margin="0,6,0,18" TextWrapping="Wrap" />
                                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <Button Grid.Column="0" Content="‹" Command="{Binding PreviousPageCommand}" Style="{StaticResource IconButton}" />
-                                    <StackPanel Grid.Column="1" HorizontalAlignment="Center"><TextBlock Text="{Binding CurrentPageNumber}" FontSize="30" FontWeight="SemiBold" HorizontalAlignment="Center" /><TextBlock Text="{Binding PageLabel}" Style="{StaticResource MutedText}" HorizontalAlignment="Center" /></StackPanel>
+                                    <StackPanel Grid.Column="1" HorizontalAlignment="Center"><TextBlock Text="{Binding CurrentPageNumber}" Foreground="{StaticResource PrimaryTextBrush}" FontSize="30" FontWeight="SemiBold" HorizontalAlignment="Center" /><TextBlock Text="{Binding PageLabel}" Style="{StaticResource MutedText}" HorizontalAlignment="Center" /></StackPanel>
                                     <Button Grid.Column="2" Content="›" Command="{Binding NextPageCommand}" Style="{StaticResource IconButton}" />
                                 </Grid>
                                 <TextBlock Text="{Binding SelectedPageTitle}" Foreground="{StaticResource AccentHoverBrush}" FontWeight="SemiBold" Margin="0,18,0,0" TextWrapping="Wrap" />

@@ -503,7 +503,6 @@ public sealed class MainViewModel : ViewModelBase
     {
         _canvaDownloadProgress = progress.Fraction;
         CanvaDownloadDescription = progress.Message;
-        CanvaPresentationStatus = progress.Message;
         OnPropertyChanged(nameof(IsCanvaDownloadProgressIndeterminate));
         OnPropertyChanged(nameof(CanvaDownloadProgressPercent));
     }
