@@ -10,7 +10,7 @@ public sealed class CanvaPageSyncListener : IDisposable
 {
     public const string EndpointUrl = "http://127.0.0.1:17334/sync/page";
 
-    private static readonly HashSet<string> AllowedOrigins = new(StringComparer.Ordinal)
+    private static readonly HashSet<string> LocalDevelopmentOrigins = new(StringComparer.Ordinal)
     {
         "http://localhost:8080",
         "http://127.0.0.1:8080"
@@ -127,7 +127,7 @@ public sealed class CanvaPageSyncListener : IDisposable
             }
 
             string? origin = context.Request.Headers["Origin"];
-            if (!string.IsNullOrWhiteSpace(origin) && !AllowedOrigins.Contains(origin))
+            if (!IsAllowedOrigin(origin))
             {
                 await WriteResponseAsync(context.Response, HttpStatusCode.Forbidden, "Unapproved browser origin.", cancellationToken).ConfigureAwait(false);
                 return;
@@ -189,6 +189,23 @@ public sealed class CanvaPageSyncListener : IDisposable
         return !string.IsNullOrWhiteSpace(pairingCode)
             && !string.IsNullOrWhiteSpace(expectedCode)
             && CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(pairingCode), Encoding.UTF8.GetBytes(expectedCode));
+    }
+
+    private static bool IsAllowedOrigin(string? origin)
+    {
+        if (string.IsNullOrWhiteSpace(origin))
+        {
+            return true;
+        }
+
+        if (LocalDevelopmentOrigins.Contains(origin))
+        {
+            return true;
+        }
+
+        return Uri.TryCreate(origin, UriKind.Absolute, out Uri? uri)
+            && string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+            && uri.Host.EndsWith(".canva-apps.com", StringComparison.OrdinalIgnoreCase);
     }
 
     private static async Task WriteResponseAsync(HttpListenerResponse response, HttpStatusCode statusCode, string message, CancellationToken cancellationToken)

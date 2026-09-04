@@ -67,7 +67,11 @@ export const App = (): React.JSX.Element => {
       setStatus("Current Canva editor page sent to CanvaStage.");
     } catch (error: unknown) {
       setSyncState("error");
-      setStatus(error instanceof Error ? `CanvaStage was not reached: ${error.message}` : "CanvaStage was not reached.");
+      setStatus(
+        error instanceof Error
+          ? `CanvaStage's listener at 127.0.0.1:17334 was not reached: ${error.message}. The companion itself runs separately at localhost:8080.`
+          : "CanvaStage's listener at 127.0.0.1:17334 was not reached. The companion itself runs separately at localhost:8080.",
+      );
     }
   }, [pairingCode]);
 

@@ -116,7 +116,7 @@ It does **not** prove that it can see page changes during Canva's full-screen **
 
 - **No Development URL field:** make sure you are in the companion app under **Your apps** > _your app_ > **Code upload**, not the OAuth integration under **Your integrations**.
 - **Preview does not load:** verify `npm start` is still running and the Development URL is exactly `http://localhost:8080`.
-- **Chrome blocks access:** allow local network access from the address-bar permission prompt. This permission is remembered only for the current Chrome session.
+- **Chrome blocks access or the panel reports `127.0.0.1:17334`:** these are two different local addresses. `localhost:8080` is the companion's development server; `127.0.0.1:17334` is CanvaStage's receiver. Keep both CanvaStage and `npm start` running, then allow Chrome local-network access from the address-bar permission prompt. This permission is remembered only for the current Chrome session.
 - **The companion says the page has no stable ID:** use a regular Canva presentation, not a Doc or Whiteboard.
 - **CanvaStage says “different Canva design”:** the app is open on a different Canva design than the one selected in CanvaStage. Open the correct presentation in Edit design mode and retry.
 - **CanvaStage says it cannot match the page:** click **Apply** for that presentation in CanvaStage again, then restart watching.
