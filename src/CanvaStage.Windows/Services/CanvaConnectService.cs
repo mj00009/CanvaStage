@@ -209,7 +209,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
                 ? await DownloadPageImageAsync(presentationId, pageNumber, metadata.Thumbnail.Url, cancellationToken).ConfigureAwait(false)
                 : null;
             string title = textBlocks.FirstOrDefault() ?? $"Page {pageNumber}";
-            pages.Add(new PresentationPage(pageNumber, title, textBlocks, "#0D0E10", "#75E6C8", textBlocks.Count > 0, fallbackImagePath));
+            pages.Add(new PresentationPage(pageNumber, title, textBlocks, "#0D0E10", "#75E6C8", textBlocks.Count > 0, fallbackImagePath, metadata?.Id));
             ReportLoadProgress($"Caching Canva page images ({pageNumber} of {totalPageCount})…", (double)pageNumber / totalPageCount);
         }
 
@@ -493,7 +493,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
     private sealed record DesignResponse(string Id, string? Title, IReadOnlyList<string>? DesignTypes, int? PageCount, ThumbnailResponse? Thumbnail);
     private sealed record GetDesignResponse(DesignResponse? Design);
     private sealed record PageListResponse(IReadOnlyList<PageResponse> Items);
-    private sealed record PageResponse(int PageNumber, ThumbnailResponse? Thumbnail);
+    private sealed record PageResponse(int PageNumber, string? Id, ThumbnailResponse? Thumbnail);
     private sealed record ThumbnailResponse(string Url);
     private sealed record ExportResponse(ExportJobResponse? Job);
     private sealed record ExportJobResponse(string Id, string Status, IReadOnlyList<string>? Urls);

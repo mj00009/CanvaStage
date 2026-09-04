@@ -40,7 +40,8 @@ public partial class App : System.Windows.Application
             var displayService = new DisplayService();
             var credentialsStore = new CanvaCredentialsStore();
             var canva = new CanvaConnectService(credentialsStore);
-            var viewModel = new MainViewModel(coordinator, _outputWindowManager, displayService, preferencesStore, presentationCacheStore, canva, preferences);
+            var canvaPageSyncListener = new CanvaPageSyncListener();
+            var viewModel = new MainViewModel(coordinator, _outputWindowManager, displayService, preferencesStore, presentationCacheStore, canva, canvaPageSyncListener, preferences);
             PrivacySafeLog.Write("Startup: services created.");
 
             var mainWindow = new MainWindow(viewModel);

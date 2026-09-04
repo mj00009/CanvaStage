@@ -4,6 +4,7 @@ using CanvaStage.Core.Utilities;
 using CanvaStage.Windows.Services;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Net;
 using System.Net.Http;
 using System.Windows;
 using System.Windows.Input;
@@ -21,6 +22,7 @@ public sealed class MainViewModel : ViewModelBase
     private readonly JsonPreferencesStore _preferencesStore;
     private readonly PresentationCacheStore _presentationCacheStore;
     private readonly CanvaConnectService _canva;
+    private readonly CanvaPageSyncListener _canvaPageSyncListener;
     private OutputSnapshot _snapshot;
     private DisplayOption? _selectedDisplay;
     private CanvaPresentation? _selectedCanvaPresentation;
@@ -38,8 +40,9 @@ public sealed class MainViewModel : ViewModelBase
     private bool _isCanvaDownloadProgressVisible;
     private double? _canvaDownloadProgress;
     private string _canvaDownloadDescription = string.Empty;
+    private string _canvaPageSyncStatus = "Start the local listener, then pair the Canva companion app with this computer.";
 
-    public MainViewModel(IOutputCoordinator coordinator, OutputWindowManager outputWindowManager, DisplayService displayService, JsonPreferencesStore preferencesStore, PresentationCacheStore presentationCacheStore, CanvaConnectService canva, AppPreferences preferences)
+    public MainViewModel(IOutputCoordinator coordinator, OutputWindowManager outputWindowManager, DisplayService displayService, JsonPreferencesStore preferencesStore, PresentationCacheStore presentationCacheStore, CanvaConnectService canva, CanvaPageSyncListener canvaPageSyncListener, AppPreferences preferences)
     {
         _coordinator = coordinator;
         _outputWindowManager = outputWindowManager;
@@ -47,6 +50,7 @@ public sealed class MainViewModel : ViewModelBase
         _preferencesStore = preferencesStore;
         _presentationCacheStore = presentationCacheStore;
         _canva = canva;
+        _canvaPageSyncListener = canvaPageSyncListener;
         _snapshot = coordinator.Snapshot;
         _isOperatorTopmost = preferences.IsOperatorTopmost;
         _canvaClientId = canva.ConfiguredClientId ?? string.Empty;
@@ -82,10 +86,13 @@ public sealed class MainViewModel : ViewModelBase
         UseDemoDeckCommand = new RelayCommand(UseDemoDeck);
         CopyRedirectUrlCommand = new RelayCommand(CopyRedirectUrl);
         OpenCanvaDeveloperPortalCommand = new RelayCommand(OpenCanvaDeveloperPortal);
+        StartCanvaPageSyncCommand = new RelayCommand(StartCanvaPageSync, () => !IsCanvaPageSyncListening);
+        StopCanvaPageSyncCommand = new RelayCommand(StopCanvaPageSync, () => IsCanvaPageSyncListening);
 
         SelectedDisplay = Displays.FirstOrDefault(display => display.Id == preferences.SelectedDisplayId) ?? Displays.FirstOrDefault();
         _coordinator.SnapshotChanged += OnSnapshotChanged;
         _canva.LoadProgressChanged += OnCanvaLoadProgressChanged;
+        _canvaPageSyncListener.PageReceived += OnCanvaPageSyncReceived;
     }
 
     public ObservableCollection<DisplayOption> Displays { get; }
@@ -107,7 +114,17 @@ public sealed class MainViewModel : ViewModelBase
     public ICommand UseDemoDeckCommand { get; }
     public ICommand CopyRedirectUrlCommand { get; }
     public ICommand OpenCanvaDeveloperPortalCommand { get; }
+    public RelayCommand StartCanvaPageSyncCommand { get; }
+    public RelayCommand StopCanvaPageSyncCommand { get; }
     public string RedirectUrl => CanvaConnectService.RedirectUrl;
+    public bool IsCanvaPageSyncListening => _canvaPageSyncListener.IsListening;
+    public string CanvaPageSyncPairingCode => _canvaPageSyncListener.PairingCode ?? "Not listening";
+    public string CanvaPageSyncEndpoint => CanvaPageSyncListener.EndpointUrl;
+    public string CanvaPageSyncStatus
+    {
+        get => _canvaPageSyncStatus;
+        private set => SetProperty(ref _canvaPageSyncStatus, value);
+    }
 
     public OperatorSection ActiveSection
     {
@@ -339,6 +356,8 @@ public sealed class MainViewModel : ViewModelBase
     {
         _coordinator.SnapshotChanged -= OnSnapshotChanged;
         _canva.LoadProgressChanged -= OnCanvaLoadProgressChanged;
+        _canvaPageSyncListener.PageReceived -= OnCanvaPageSyncReceived;
+        _canvaPageSyncListener.Dispose();
         Persist();
     }
     private void ShowPreview() => _outputWindowManager.ShowPreview();
@@ -351,6 +370,35 @@ public sealed class MainViewModel : ViewModelBase
     }
 
     private void StopOutput() => _outputWindowManager.StopOutput();
+
+    private void StartCanvaPageSync()
+    {
+        try
+        {
+            _canvaPageSyncListener.Start();
+            CanvaPageSyncStatus = "Listening on this computer. Enter the pairing code in the Canva companion app, then select pages in the Canva editor.";
+        }
+        catch (HttpListenerException exception)
+        {
+            PrivacySafeLog.WriteException("Canva page-sync listener could not start", exception);
+            CanvaPageSyncStatus = "CanvaStage could not open its local sync listener. Close another app using port 17334 and try again.";
+        }
+
+        OnPropertyChanged(nameof(IsCanvaPageSyncListening));
+        OnPropertyChanged(nameof(CanvaPageSyncPairingCode));
+        StartCanvaPageSyncCommand.RaiseCanExecuteChanged();
+        StopCanvaPageSyncCommand.RaiseCanExecuteChanged();
+    }
+
+    private void StopCanvaPageSync()
+    {
+        _canvaPageSyncListener.Stop();
+        CanvaPageSyncStatus = "The local Canva page-sync listener is stopped. Manual page controls remain available.";
+        OnPropertyChanged(nameof(IsCanvaPageSyncListening));
+        OnPropertyChanged(nameof(CanvaPageSyncPairingCode));
+        StartCanvaPageSyncCommand.RaiseCanExecuteChanged();
+        StopCanvaPageSyncCommand.RaiseCanExecuteChanged();
+    }
     private void RefreshDisplays()
     {
         string? selectedId = SelectedDisplay?.Id;
@@ -505,6 +553,37 @@ public sealed class MainViewModel : ViewModelBase
         CanvaDownloadDescription = progress.Message;
         OnPropertyChanged(nameof(IsCanvaDownloadProgressIndeterminate));
         OnPropertyChanged(nameof(CanvaDownloadProgressPercent));
+    }
+
+    private async void OnCanvaPageSyncReceived(object? sender, CanvaPageSyncUpdate update)
+    {
+        try
+        {
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() => ApplyCanvaPageSyncUpdate(update));
+        }
+        catch (Exception exception)
+        {
+            PrivacySafeLog.WriteException("Canva page-sync update could not be applied", exception);
+        }
+    }
+
+    private void ApplyCanvaPageSyncUpdate(CanvaPageSyncUpdate update)
+    {
+        if (!string.Equals(update.DesignId, Snapshot.Document.Id, StringComparison.Ordinal))
+        {
+            CanvaPageSyncStatus = "A page update arrived from a different Canva design. Apply that presentation in CanvaStage before enabling sync.";
+            return;
+        }
+
+        PresentationPage? page = Snapshot.Document.FindPageByExternalId(update.PageId);
+        if (page is null)
+        {
+            CanvaPageSyncStatus = "CanvaStage could not match that Canva page. Apply the presentation again to refresh its page IDs.";
+            return;
+        }
+
+        _coordinator.SelectPage(page.Number);
+        CanvaPageSyncStatus = $"Synced to Canva page {page.Number} at {update.ReceivedAt.ToLocalTime():h:mm:ss tt}.";
     }
 
     private void SetAppearance(MonitorAppearance appearance) => _coordinator.SetAppearance(appearance);

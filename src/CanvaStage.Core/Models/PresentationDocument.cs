@@ -7,4 +7,7 @@ public sealed record PresentationDocument(
     DateTimeOffset RefreshedAt)
 {
     public PresentationPage? FindPage(int pageNumber) => Pages.FirstOrDefault(page => page.Number == pageNumber);
+
+    public PresentationPage? FindPageByExternalId(string pageId) =>
+        Pages.FirstOrDefault(page => string.Equals(page.ExternalPageId, pageId, StringComparison.Ordinal));
 }

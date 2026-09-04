@@ -6,7 +6,7 @@ namespace CanvaStage.Windows.Services;
 
 public sealed class PresentationCacheStore
 {
-    private const int CurrentCacheVersion = 2;
+    private const int CurrentCacheVersion = 3;
     private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
     private readonly string _cachePath;
 
