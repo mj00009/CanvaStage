@@ -23,6 +23,7 @@ public sealed class MainViewModel : ViewModelBase
     private readonly PresentationCacheStore _presentationCacheStore;
     private readonly CanvaConnectService _canva;
     private readonly CanvaPageSyncListener _canvaPageSyncListener;
+    private readonly CanvaPresenterAccessibilityTracker _canvaPresenterAccessibilityTracker;
     private OutputSnapshot _snapshot;
     private DisplayOption? _selectedDisplay;
     private CanvaPresentation? _selectedCanvaPresentation;
@@ -41,8 +42,9 @@ public sealed class MainViewModel : ViewModelBase
     private double? _canvaDownloadProgress;
     private string _canvaDownloadDescription = string.Empty;
     private string _canvaPageSyncStatus = "Start the local listener, then pair the Canva companion app with this computer.";
+    private string _canvaPresenterTrackingStatus = "Start the accessibility scan, then open Canva Presenter View on this computer.";
 
-    public MainViewModel(IOutputCoordinator coordinator, OutputWindowManager outputWindowManager, DisplayService displayService, JsonPreferencesStore preferencesStore, PresentationCacheStore presentationCacheStore, CanvaConnectService canva, CanvaPageSyncListener canvaPageSyncListener, AppPreferences preferences)
+    public MainViewModel(IOutputCoordinator coordinator, OutputWindowManager outputWindowManager, DisplayService displayService, JsonPreferencesStore preferencesStore, PresentationCacheStore presentationCacheStore, CanvaConnectService canva, CanvaPageSyncListener canvaPageSyncListener, CanvaPresenterAccessibilityTracker canvaPresenterAccessibilityTracker, AppPreferences preferences)
     {
         _coordinator = coordinator;
         _outputWindowManager = outputWindowManager;
@@ -51,6 +53,7 @@ public sealed class MainViewModel : ViewModelBase
         _presentationCacheStore = presentationCacheStore;
         _canva = canva;
         _canvaPageSyncListener = canvaPageSyncListener;
+        _canvaPresenterAccessibilityTracker = canvaPresenterAccessibilityTracker;
         _snapshot = coordinator.Snapshot;
         _isOperatorTopmost = preferences.IsOperatorTopmost;
         _canvaClientId = canva.ConfiguredClientId ?? string.Empty;
@@ -88,11 +91,14 @@ public sealed class MainViewModel : ViewModelBase
         OpenCanvaDeveloperPortalCommand = new RelayCommand(OpenCanvaDeveloperPortal);
         StartCanvaPageSyncCommand = new RelayCommand(StartCanvaPageSync, () => !IsCanvaPageSyncListening);
         StopCanvaPageSyncCommand = new RelayCommand(StopCanvaPageSync, () => IsCanvaPageSyncListening);
+        StartCanvaPresenterTrackingCommand = new RelayCommand(StartCanvaPresenterTracking, () => !IsCanvaPresenterTracking);
+        StopCanvaPresenterTrackingCommand = new RelayCommand(StopCanvaPresenterTracking, () => IsCanvaPresenterTracking);
 
         SelectedDisplay = Displays.FirstOrDefault(display => display.Id == preferences.SelectedDisplayId) ?? Displays.FirstOrDefault();
         _coordinator.SnapshotChanged += OnSnapshotChanged;
         _canva.LoadProgressChanged += OnCanvaLoadProgressChanged;
         _canvaPageSyncListener.PageReceived += OnCanvaPageSyncReceived;
+        _canvaPresenterAccessibilityTracker.TrackingUpdated += OnCanvaPresenterTrackingUpdated;
     }
 
     public ObservableCollection<DisplayOption> Displays { get; }
@@ -116,6 +122,8 @@ public sealed class MainViewModel : ViewModelBase
     public ICommand OpenCanvaDeveloperPortalCommand { get; }
     public RelayCommand StartCanvaPageSyncCommand { get; }
     public RelayCommand StopCanvaPageSyncCommand { get; }
+    public RelayCommand StartCanvaPresenterTrackingCommand { get; }
+    public RelayCommand StopCanvaPresenterTrackingCommand { get; }
     public string RedirectUrl => CanvaConnectService.RedirectUrl;
     public bool IsCanvaPageSyncListening => _canvaPageSyncListener.IsListening;
     public string CanvaPageSyncPairingCode => _canvaPageSyncListener.PairingCode ?? "Not listening";
@@ -124,6 +132,13 @@ public sealed class MainViewModel : ViewModelBase
     {
         get => _canvaPageSyncStatus;
         private set => SetProperty(ref _canvaPageSyncStatus, value);
+    }
+
+    public bool IsCanvaPresenterTracking => _canvaPresenterAccessibilityTracker.IsTracking;
+    public string CanvaPresenterTrackingStatus
+    {
+        get => _canvaPresenterTrackingStatus;
+        private set => SetProperty(ref _canvaPresenterTrackingStatus, value);
     }
 
     public OperatorSection ActiveSection
@@ -358,6 +373,8 @@ public sealed class MainViewModel : ViewModelBase
         _canva.LoadProgressChanged -= OnCanvaLoadProgressChanged;
         _canvaPageSyncListener.PageReceived -= OnCanvaPageSyncReceived;
         _canvaPageSyncListener.Dispose();
+        _canvaPresenterAccessibilityTracker.TrackingUpdated -= OnCanvaPresenterTrackingUpdated;
+        _canvaPresenterAccessibilityTracker.Dispose();
         Persist();
     }
     private void ShowPreview() => _outputWindowManager.ShowPreview();
@@ -398,6 +415,27 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanvaPageSyncPairingCode));
         StartCanvaPageSyncCommand.RaiseCanExecuteChanged();
         StopCanvaPageSyncCommand.RaiseCanExecuteChanged();
+    }
+
+    private void StartCanvaPresenterTracking()
+    {
+        _canvaPresenterAccessibilityTracker.Start();
+        CanvaPresenterTrackingStatus = "Watching Windows accessibility data for a Canva presenter page counter…";
+        UpdateCanvaPresenterTrackingCommands();
+    }
+
+    private void StopCanvaPresenterTracking()
+    {
+        _canvaPresenterAccessibilityTracker.Stop();
+        CanvaPresenterTrackingStatus = "The Canva Presenter accessibility scan is stopped. Manual page controls remain available.";
+        UpdateCanvaPresenterTrackingCommands();
+    }
+
+    private void UpdateCanvaPresenterTrackingCommands()
+    {
+        OnPropertyChanged(nameof(IsCanvaPresenterTracking));
+        StartCanvaPresenterTrackingCommand.RaiseCanExecuteChanged();
+        StopCanvaPresenterTrackingCommand.RaiseCanExecuteChanged();
     }
     private void RefreshDisplays()
     {
@@ -584,6 +622,46 @@ public sealed class MainViewModel : ViewModelBase
 
         _coordinator.SelectPage(page.Number);
         CanvaPageSyncStatus = $"Synced to Canva page {page.Number} at {update.ReceivedAt.ToLocalTime():h:mm:ss tt}.";
+    }
+
+    private async void OnCanvaPresenterTrackingUpdated(object? sender, CanvaPresenterTrackingUpdate update)
+    {
+        try
+        {
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() => ApplyCanvaPresenterTrackingUpdate(update));
+        }
+        catch (Exception exception)
+        {
+            PrivacySafeLog.WriteException("Canva presenter accessibility update could not be applied", exception);
+        }
+    }
+
+    private void ApplyCanvaPresenterTrackingUpdate(CanvaPresenterTrackingUpdate update)
+    {
+        UpdateCanvaPresenterTrackingCommands();
+        if (update.State != CanvaPresenterTrackingState.PageDetected
+            || update.CurrentPage is null
+            || update.TotalPages is null)
+        {
+            CanvaPresenterTrackingStatus = update.Message;
+            return;
+        }
+
+        int loadedPageCount = Snapshot.Document.Pages.Count;
+        if (update.TotalPages.Value != loadedPageCount)
+        {
+            CanvaPresenterTrackingStatus = $"The presenter reports {update.TotalPages.Value} pages, but the applied CanvaStage presentation has {loadedPageCount}. Apply the matching presentation before using this scan.";
+            return;
+        }
+
+        if (Snapshot.Document.FindPage(update.CurrentPage.Value) is null)
+        {
+            CanvaPresenterTrackingStatus = $"Presenter page {update.CurrentPage.Value} is not available in the applied CanvaStage presentation.";
+            return;
+        }
+
+        _coordinator.SelectPage(update.CurrentPage.Value);
+        CanvaPresenterTrackingStatus = $"Synced to presenter page {update.CurrentPage.Value} at {update.ObservedAt.ToLocalTime():h:mm:ss tt}.";
     }
 
     private void SetAppearance(MonitorAppearance appearance) => _coordinator.SetAppearance(appearance);
