@@ -195,22 +195,27 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         ReportLoadProgress("Reading Canva page details…", null);
         IReadOnlyList<PageResponse> pageMetadata = await GetPageMetadataAsync(presentationId, cancellationToken).ConfigureAwait(false);
         byte[] presentationFile = await ExportPptxAsync(presentationId, cancellationToken).ConfigureAwait(false);
-        IReadOnlyList<IReadOnlyList<string>> slideTexts = PptxSlideTextExtractor.Extract(presentationFile);
+        IReadOnlyList<PptxSlideContent> extractedSlides = PptxSlideTextExtractor.ExtractSlides(presentationFile);
+        IReadOnlyList<PptxSlideContent> visibleSlides = extractedSlides.Where(static slide => !slide.IsHidden).ToList();
+        int hiddenSlideCount = extractedSlides.Count - visibleSlides.Count;
         var pages = new List<PresentationPage>();
-        int totalPageCount = Math.Max(slideTexts.Count, pageMetadata.Count);
-        ReportLoadProgress($"Caching Canva page images (0 of {totalPageCount})…", 0d);
+        int totalPageCount = hiddenSlideCount > 0 ? visibleSlides.Count : Math.Max(extractedSlides.Count, pageMetadata.Count);
+        string hiddenSlideProgress = hiddenSlideCount > 0 ? $"; {hiddenSlideCount} hidden skipped" : string.Empty;
+        ReportLoadProgress($"Caching Canva page images (0 of {totalPageCount}{hiddenSlideProgress})…", 0d);
 
         for (int index = 0; index < totalPageCount; index++)
         {
             int pageNumber = index + 1;
-            IReadOnlyList<string> textBlocks = index < slideTexts.Count ? slideTexts[index] : [];
-            PageResponse? metadata = pageMetadata.FirstOrDefault(page => page.PageNumber == pageNumber);
+            PptxSlideContent? slide = index < visibleSlides.Count ? visibleSlides[index] : null;
+            int sourcePageNumber = slide?.SourcePageNumber ?? pageNumber;
+            IReadOnlyList<string> textBlocks = slide?.TextBlocks ?? [];
+            PageResponse? metadata = pageMetadata.FirstOrDefault(page => page.PageNumber == sourcePageNumber);
             string? fallbackImagePath = metadata?.Thumbnail?.Url is not null
-                ? await DownloadPageImageAsync(presentationId, pageNumber, metadata.Thumbnail.Url, cancellationToken).ConfigureAwait(false)
+                ? await DownloadPageImageAsync(presentationId, sourcePageNumber, metadata.Thumbnail.Url, cancellationToken).ConfigureAwait(false)
                 : null;
             string title = textBlocks.FirstOrDefault() ?? $"Page {pageNumber}";
             pages.Add(new PresentationPage(pageNumber, title, textBlocks, "#0D0E10", "#75E6C8", textBlocks.Count > 0, fallbackImagePath, metadata?.Id));
-            ReportLoadProgress($"Caching Canva page images ({pageNumber} of {totalPageCount})…", (double)pageNumber / totalPageCount);
+            ReportLoadProgress($"Caching Canva page images ({pageNumber} of {totalPageCount}{hiddenSlideProgress})…", (double)pageNumber / totalPageCount);
         }
 
         if (pages.Count == 0)

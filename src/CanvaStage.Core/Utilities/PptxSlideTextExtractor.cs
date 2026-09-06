@@ -13,6 +13,9 @@ public static class PptxSlideTextExtractor
     private static readonly XNamespace Presentation = "http://schemas.openxmlformats.org/presentationml/2006/main";
 
     public static IReadOnlyList<IReadOnlyList<string>> Extract(byte[] presentationFile)
+        => ExtractSlides(presentationFile).Select(static slide => slide.TextBlocks).ToList();
+
+    public static IReadOnlyList<PptxSlideContent> ExtractSlides(byte[] presentationFile)
     {
         using var stream = new MemoryStream(presentationFile);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
@@ -20,15 +23,21 @@ public static class PptxSlideTextExtractor
         return archive.Entries
             .Where(IsSlideXml)
             .OrderBy(entry => GetSlideNumber(entry.FullName))
-            .Select(ExtractSlideParagraphs)
+            .Select(ExtractSlide)
             .ToList();
     }
 
-    private static IReadOnlyList<string> ExtractSlideParagraphs(ZipArchiveEntry entry)
+    private static PptxSlideContent ExtractSlide(ZipArchiveEntry entry)
     {
         using Stream entryStream = entry.Open();
         XDocument document = XDocument.Load(entryStream);
+        IReadOnlyList<string> textBlocks = ExtractSlideParagraphs(document);
+        bool isHidden = IsHidden(document.Root);
+        return new PptxSlideContent(GetSlideNumber(entry.FullName), isHidden, textBlocks);
+    }
 
+    private static IReadOnlyList<string> ExtractSlideParagraphs(XDocument document)
+    {
         var candidates = document
             .Descendants(Presentation + "sp")
             .Select(ExtractTextBlock)
@@ -52,6 +61,13 @@ public static class PptxSlideTextExtractor
             .ThenByDescending(static block => block.Area)
             .First()
             .Paragraphs;
+    }
+
+    private static bool IsHidden(XElement? slide)
+    {
+        string? showValue = slide?.Attribute("show")?.Value;
+        return string.Equals(showValue, "0", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(showValue, "false", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string ExtractParagraphText(XElement paragraph) => string.Concat(
@@ -100,3 +116,5 @@ public static class PptxSlideTextExtractor
 
     private sealed record SlideTextBlock(IReadOnlyList<string> Paragraphs, double FontSize, double Area);
 }
+
+public sealed record PptxSlideContent(int SourcePageNumber, bool IsHidden, IReadOnlyList<string> TextBlocks);

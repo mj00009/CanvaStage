@@ -41,16 +41,61 @@ public sealed class PptxSlideTextExtractorTests
         Assert.Equal(["Unstoppable God", "Let your glory go on and on"], slides[0]);
     }
 
-    private static byte[] CreatePresentationWithSlides(params (int Number, string Paragraphs)[] slides)
+    [Theory]
+    [InlineData("0")]
+    [InlineData("false")]
+    public void ExtractSlides_IdentifiesHiddenSlides(string showValue)
+    {
+        byte[] presentation = CreatePresentationWithSlides(
+            (1, "<a:p><a:r><a:t>Visible</a:t></a:r></a:p>", null),
+            (2, "<a:p><a:r><a:t>Hidden</a:t></a:r></a:p>", showValue));
+
+        IReadOnlyList<PptxSlideContent> slides = PptxSlideTextExtractor.ExtractSlides(presentation);
+
+        Assert.False(slides[0].IsHidden);
+        Assert.True(slides[1].IsHidden);
+        Assert.Equal(2, slides[1].SourcePageNumber);
+    }
+
+    [Fact]
+    public void ExtractSlides_TreatsMissingShowAttributeAsVisible()
+    {
+        IReadOnlyList<PptxSlideContent> slides = PptxSlideTextExtractor.ExtractSlides(
+            CreatePresentationWithSlides((1, "<a:p><a:r><a:t>Visible</a:t></a:r></a:p>", null)));
+
+        Assert.False(slides[0].IsHidden);
+    }
+
+    [Fact]
+    public void VisibleSlides_PreserveTheirOriginalPageNumbers()
+    {
+        IReadOnlyList<PptxSlideContent> slides = PptxSlideTextExtractor.ExtractSlides(CreatePresentationWithSlides(
+            (1, "<a:p><a:r><a:t>First</a:t></a:r></a:p>", null),
+            (2, "<a:p><a:r><a:t>Hidden</a:t></a:r></a:p>", "0"),
+            (3, "<a:p><a:r><a:t>Third</a:t></a:r></a:p>", null)));
+
+        int[] visibleSourcePageNumbers = slides
+            .Where(static slide => !slide.IsHidden)
+            .Select(static slide => slide.SourcePageNumber)
+            .ToArray();
+
+        Assert.Equal([1, 3], visibleSourcePageNumbers);
+    }
+
+    private static byte[] CreatePresentationWithSlides(params (int Number, string Paragraphs)[] slides) =>
+        CreatePresentationWithSlides(slides.Select(static slide => (slide.Number, slide.Paragraphs, (string?)null)).ToArray());
+
+    private static byte[] CreatePresentationWithSlides(params (int Number, string Paragraphs, string? ShowValue)[] slides)
     {
         using var memory = new MemoryStream();
         using (var archive = new ZipArchive(memory, ZipArchiveMode.Create, leaveOpen: true))
         {
-            foreach ((int number, string paragraphs) in slides)
+            foreach ((int number, string paragraphs, string? showValue) in slides)
             {
                 ZipArchiveEntry entry = archive.CreateEntry($"ppt/slides/slide{number}.xml");
                 using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
-                writer.Write($"<p:sld xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><p:cSld><p:spTree>{paragraphs}</p:spTree></p:cSld></p:sld>");
+                string showAttribute = showValue is null ? string.Empty : $" show=\"{showValue}\"";
+                writer.Write($"<p:sld xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"{showAttribute}><p:cSld><p:spTree>{paragraphs}</p:spTree></p:cSld></p:sld>");
             }
         }
 
