@@ -6,7 +6,7 @@
         Height="650"
         MinWidth="620"
         MinHeight="650"
-        Background="{StaticResource AppBackgroundBrush}"
+        Background="{StaticResource SurfaceBrush}"
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner">
