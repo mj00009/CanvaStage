@@ -39,6 +39,7 @@ public sealed class CanvaPresenterAccessibilityTracker : IDisposable
 
     public void Start()
     {
+        CancellationToken cancellationToken;
         lock (_syncRoot)
         {
             if (_cancellationTokenSource is not null)
@@ -48,8 +49,7 @@ public sealed class CanvaPresenterAccessibilityTracker : IDisposable
 
             _lastUpdateSignature = null;
             _cancellationTokenSource = new CancellationTokenSource();
-            CancellationToken cancellationToken = _cancellationTokenSource.Token;
-            _trackingTask = Task.Run(() => TrackAsync(cancellationToken), CancellationToken.None);
+            cancellationToken = _cancellationTokenSource.Token;
         }
 
         Publish(new CanvaPresenterTrackingUpdate(
@@ -58,6 +58,14 @@ public sealed class CanvaPresenterAccessibilityTracker : IDisposable
             null,
             "Watching Windows accessibility data for a Canva presenter page counter…",
             DateTimeOffset.UtcNow));
+
+        lock (_syncRoot)
+        {
+            if (_cancellationTokenSource is not null && _cancellationTokenSource.Token == cancellationToken)
+            {
+                _trackingTask = Task.Run(() => TrackAsync(cancellationToken), CancellationToken.None);
+            }
+        }
     }
 
     public void Stop()

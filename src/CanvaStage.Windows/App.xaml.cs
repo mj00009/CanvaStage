@@ -40,9 +40,8 @@ public partial class App : System.Windows.Application
             var displayService = new DisplayService();
             var credentialsStore = new CanvaCredentialsStore();
             var canva = new CanvaConnectService(credentialsStore);
-            var canvaPageSyncListener = new CanvaPageSyncListener();
             var canvaPresenterAccessibilityTracker = new CanvaPresenterAccessibilityTracker();
-            var viewModel = new MainViewModel(coordinator, _outputWindowManager, displayService, preferencesStore, presentationCacheStore, canva, canvaPageSyncListener, canvaPresenterAccessibilityTracker, preferences);
+            var viewModel = new MainViewModel(coordinator, _outputWindowManager, displayService, preferencesStore, presentationCacheStore, canva, canvaPresenterAccessibilityTracker, preferences);
             PrivacySafeLog.Write("Startup: services created.");
 
             var mainWindow = new MainWindow(viewModel);
@@ -53,9 +52,10 @@ public partial class App : System.Windows.Application
             string? screenshotPath = GetUiDemoScreenshotPath(eventArgs.Args);
             if (screenshotPath is not null)
             {
+                string? colorPickerScreenshotPath = GetArgumentValue(eventArgs.Args, "--ui-color-picker-screenshot=");
                 PrivacySafeLog.Write("Startup: UI demo screenshot mode started.");
                 Dispatcher.BeginInvoke(
-                    () => CaptureUiDemoScreenshot(mainWindow, screenshotPath),
+                    () => CaptureUiDemoScreenshots(mainWindow, screenshotPath, colorPickerScreenshotPath),
                     DispatcherPriority.ApplicationIdle);
             }
             else if (eventArgs.Args.Contains("--smoke-test", StringComparer.Ordinal))
@@ -106,33 +106,28 @@ public partial class App : System.Windows.Application
     }
 
     private static string? GetUiDemoScreenshotPath(IEnumerable<string> arguments)
+        => GetArgumentValue(arguments, "--ui-demo-screenshot=");
+
+    private static string? GetArgumentValue(IEnumerable<string> arguments, string argumentPrefix)
     {
-        const string argumentPrefix = "--ui-demo-screenshot=";
         string? argument = arguments.FirstOrDefault(value => value.StartsWith(argumentPrefix, StringComparison.OrdinalIgnoreCase));
         return argument is null ? null : argument[argumentPrefix.Length..];
     }
 
-    private void CaptureUiDemoScreenshot(MainWindow mainWindow, string screenshotPath)
+    private void CaptureUiDemoScreenshots(MainWindow mainWindow, string screenshotPath, string? colorPickerScreenshotPath)
     {
         try
         {
-            mainWindow.UpdateLayout();
-            int width = Math.Max(1, (int)Math.Ceiling(mainWindow.ActualWidth));
-            int height = Math.Max(1, (int)Math.Ceiling(mainWindow.ActualHeight));
-            var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-            bitmap.Render(mainWindow);
-
-            string? directory = Path.GetDirectoryName(screenshotPath);
-            if (!string.IsNullOrWhiteSpace(directory))
+            SaveVisualScreenshot(mainWindow, screenshotPath);
+            if (!string.IsNullOrWhiteSpace(colorPickerScreenshotPath))
             {
-                Directory.CreateDirectory(directory);
+                var colorPicker = new ColorPickerWindow("#8454F4") { Owner = mainWindow };
+                colorPicker.Show();
+                SaveVisualScreenshot(colorPicker, colorPickerScreenshotPath);
+                colorPicker.Close();
             }
 
-            var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(bitmap));
-            using var output = File.Create(screenshotPath);
-            encoder.Save(output);
-            PrivacySafeLog.Write("Startup: UI demo screenshot was created.");
+            PrivacySafeLog.Write("Startup: UI demo screenshots were created.");
             Shutdown();
         }
         catch (Exception exception)
@@ -140,5 +135,25 @@ public partial class App : System.Windows.Application
             PrivacySafeLog.WriteException("UI demo screenshot failure", exception);
             Shutdown(-1);
         }
+    }
+
+    private static void SaveVisualScreenshot(FrameworkElement visual, string screenshotPath)
+    {
+        visual.UpdateLayout();
+        int width = Math.Max(1, (int)Math.Ceiling(visual.ActualWidth));
+        int height = Math.Max(1, (int)Math.Ceiling(visual.ActualHeight));
+        var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(visual);
+
+        string? directory = Path.GetDirectoryName(screenshotPath);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var output = File.Create(screenshotPath);
+        encoder.Save(output);
     }
 }

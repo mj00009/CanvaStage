@@ -10,7 +10,8 @@ public sealed record AppPreferences(
     bool IsOperatorTopmost,
     string? SelectedPresentationId = null,
     string? SelectedPresentationTitle = null,
-    DateTimeOffset? SelectedPresentationRefreshedAt = null)
+    DateTimeOffset? SelectedPresentationRefreshedAt = null,
+    bool IsPresenterSyncEnabled = true)
 {
-    public static AppPreferences Default { get; } = new(null, 1, OutputMode.Monitor, MonitorLayout.CurrentAndNext, NextLineOption.FirstNonEmptyLine, MonitorAppearance.Default, false);
+    public static AppPreferences Default { get; } = new(null, 1, OutputMode.Monitor, MonitorLayout.CurrentAndNext, NextLineOption.FirstNonEmptyLine, MonitorAppearance.Default, false, IsPresenterSyncEnabled: true);
 }

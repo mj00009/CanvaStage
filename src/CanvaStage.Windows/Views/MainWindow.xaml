@@ -47,8 +47,8 @@
                 </StackPanel>
                 <Border Grid.Row="3" Background="#111824" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="14" VerticalAlignment="Bottom">
                     <StackPanel>
-                        <TextBlock Text="MANUAL CONTROL" Style="{StaticResource EyebrowText}" />
-                        <TextBlock Text="CanvaStage does not infer Canva’s current page in this release." Style="{StaticResource MutedText}" Margin="0,8,0,0" TextWrapping="Wrap" />
+                        <TextBlock Text="PRESENTER SYNC" Style="{StaticResource EyebrowText}" />
+                        <TextBlock Text="CanvaStage automatically follows a matching Canva Presenter window. Manual controls remain available." Style="{StaticResource MutedText}" Margin="0,8,0,0" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -183,26 +183,9 @@
                     <StackPanel><Border Style="{StaticResource PanelCard}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Readiness checks" Style="{StaticResource SectionTitle}" /><TextBlock Text="Checks are independent: laptop-only Preview can pass even when no confidence display is attached." Style="{StaticResource MutedText}" Margin="0,6,0,0" /></StackPanel><Button Grid.Column="1" Content="Refresh checks" Command="{Binding TestSetupCommand}" Style="{StaticResource SecondaryButton}" Margin="12,0,0,0" VerticalAlignment="Top" /></Grid></Border>
                         <Border Style="{StaticResource PanelCard}">
                             <StackPanel>
-                                <TextBlock Text="Canva page-sync spike" Style="{StaticResource SectionTitle}" />
-                                <TextBlock Text="For testing only: a local Canva companion app can send the selected editor page to this computer. It sends page identifiers, never Canva text or credentials." Style="{StaticResource MutedText}" Margin="0,6,0,16" TextWrapping="Wrap" />
-                                <WrapPanel>
-                                    <Button Content="Start local listener" Command="{Binding StartCanvaPageSyncCommand}" Style="{StaticResource SecondaryButton}" />
-                                    <Button Content="Stop listener" Command="{Binding StopCanvaPageSyncCommand}" Style="{StaticResource SecondaryButton}" />
-                                </WrapPanel>
-                                <TextBlock Text="Pairing code" Style="{StaticResource FieldLabel}" Margin="0,8,0,4" />
-                                <TextBlock Text="{Binding CanvaPageSyncPairingCode}" Foreground="{StaticResource AccentHoverBrush}" FontFamily="Consolas" FontSize="20" FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding CanvaPageSyncEndpoint}" Style="{StaticResource MutedText}" Margin="0,8,0,0" />
-                                <TextBlock Text="{Binding CanvaPageSyncStatus}" Style="{StaticResource MutedText}" Margin="0,8,0,0" TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Border>
-                        <Border Style="{StaticResource PanelCard}">
-                            <StackPanel>
-                                <TextBlock Text="Canva Presenter accessibility spike" Style="{StaticResource SectionTitle}" />
-                                <TextBlock Text="For testing only: CanvaStage looks for a page counter exposed by Canva Presenter View through Windows accessibility. It does not capture the screen, read Canva text, or inspect browser traffic." Style="{StaticResource MutedText}" Margin="0,6,0,16" TextWrapping="Wrap" />
-                                <WrapPanel>
-                                    <Button Content="Start presenter scan" Command="{Binding StartCanvaPresenterTrackingCommand}" Style="{StaticResource SecondaryButton}" />
-                                    <Button Content="Stop presenter scan" Command="{Binding StopCanvaPresenterTrackingCommand}" Style="{StaticResource SecondaryButton}" />
-                                </WrapPanel>
+                                <TextBlock Text="Automatic Canva Presenter sync" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="CanvaStage watches Windows accessibility data for the page counter in Canva Presenter View. It does not capture the screen, read slide text, or inspect browser traffic." Style="{StaticResource MutedText}" Margin="0,6,0,16" TextWrapping="Wrap" />
+                                <CheckBox Content="Automatically follow Canva Presenter" IsChecked="{Binding IsPresenterSyncEnabled}" />
                                 <TextBlock Text="{Binding CanvaPresenterTrackingStatus}" Style="{StaticResource MutedText}" Margin="0,8,0,0" TextWrapping="Wrap" />
                             </StackPanel>
                         </Border>

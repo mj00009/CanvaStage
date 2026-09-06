@@ -1,6 +1,5 @@
 using CanvaStage.Windows.ViewModels;
 using System.ComponentModel;
-using System.Drawing;
 using System.Windows;
 
 namespace CanvaStage.Windows.Views;
@@ -50,29 +49,16 @@ public partial class MainWindow : Window
         }
     }
 
-    private static void PickColor(string initialValue, Action<string> apply)
+    private void PickColor(string initialValue, Action<string> apply)
     {
-        using var dialog = new System.Windows.Forms.ColorDialog
+        var dialog = new ColorPickerWindow(initialValue)
         {
-            FullOpen = true,
-            Color = TryParseColor(initialValue)
+            Owner = this
         };
 
-        if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        if (dialog.ShowDialog() == true)
         {
-            apply($"#{dialog.Color.R:X2}{dialog.Color.G:X2}{dialog.Color.B:X2}");
-        }
-    }
-
-    private static Color TryParseColor(string value)
-    {
-        try
-        {
-            return ColorTranslator.FromHtml(value);
-        }
-        catch (ArgumentException)
-        {
-            return Color.White;
+            apply(dialog.SelectedColor);
         }
     }
 }

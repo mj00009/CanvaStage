@@ -2,7 +2,7 @@
 
 Canva Stage is a Windows desktop confidence-monitor app for churches using Canva presentations. It gives people on stage a separate, readable output while the congregation continues to see the regular Canva presentation.
 
-> **Project status:** `v0.3.0` completes the Windows Phase 2 Canva workflow with page-image mirror output, persistent presentation status, independent setup checks, and a production-style operator interface. Current-page selection remains deliberately manual until Phase 3 live tracking is built.
+> **Project status:** `v0.5.0` adds automatic Canva Presenter tracking to the completed Windows Phase 2 workflow. Manual page controls remain available as a dependable fallback.
 
 ## What it will do
 
@@ -10,7 +10,7 @@ Canva Stage is a Windows desktop confidence-monitor app for churches using Canva
 - Open a separate confidence-output window, including a laptop-friendly Preview mode.
 - Send the output to a selected confidence display when a second screen is available.
 - Switch immediately between **Mirror** mode (the retrieved Canva page image) and **Monitor** mode (a simplified, high-visibility view of slide text).
-- Provide manual page controls in Phases 1–2. Assisted live-slide recognition is deferred to a later phase.
+- Automatically follow the visible page number in Canva Presenter View through Windows accessibility, with manual page controls always available.
 
 ## Who it is for
 
@@ -25,7 +25,7 @@ You can set up and test the app with one display. For an independent on-stage di
 
 ## How the planned app works
 
-The first release is a native Windows 11 WPF app. Phases 1–2 use explicit manual page control; display capture and slide inference are intentionally deferred. The app never claims automatic knowledge of Canva's current page.
+The first release is a native Windows 11 WPF app. CanvaStage watches for a Canva Presenter page counter exposed through Windows accessibility and follows it only when its total matches the applied presentation. It does not capture the screen or inspect browser traffic.
 
 ### Output modes
 
@@ -46,7 +46,7 @@ The app’s client-only model is a deliberate church-managed approach. Canva rec
 4. Enter the Client ID and Client Secret in CanvaStage, then select **Connect Canva** and finish authorization in the browser.
 5. Refresh presentations, select one, and choose **Apply**. CanvaStage exports a temporary PPTX to read native text. It downloads a page thumbnail only when a page has no usable text.
 
-CanvaStage does not capture the primary display or infer the current slide. The operator always advances its selected page manually. Canva exports and page images are retrieved only as needed for the selected presentation; export URLs are short-lived.
+CanvaStage does not capture the primary display. It follows Canva Presenter only when Windows exposes a matching page counter; otherwise the operator uses the manual page controls. Hidden slides are removed from the local presentation during import so visible-page numbering matches Presenter mode. Canva exports and page images are retrieved only as needed for the selected presentation; export URLs are short-lived.
 
 ### Closing the output window
 
