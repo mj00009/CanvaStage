@@ -83,10 +83,12 @@ jobs:
           $application = Join-Path $PWD 'publish/CanvaStage-win-x64/CanvaStage.Windows.exe'
           $screenshot = Join-Path $PWD 'ci-diagnostics/ui-demo.png'
           $colorPickerScreenshot = Join-Path $PWD 'ci-diagnostics/color-picker.png'
+          $mirrorPreviewScreenshot = Join-Path $PWD 'ci-diagnostics/mirror-preview.png'
+          $compactViewScreenshot = Join-Path $PWD 'ci-diagnostics/compact-view.png'
           if (-not (Test-Path $application)) {
             throw "Published application was not found: $application"
           }
-          $process = Start-Process -FilePath $application -ArgumentList "--ui-demo-screenshot=$screenshot", "--ui-color-picker-screenshot=$colorPickerScreenshot" -PassThru
+          $process = Start-Process -FilePath $application -ArgumentList "--ui-demo-screenshot=$screenshot", "--ui-color-picker-screenshot=$colorPickerScreenshot", "--ui-mirror-preview-screenshot=$mirrorPreviewScreenshot", "--ui-compact-view-screenshot=$compactViewScreenshot" -PassThru
           if (-not $process.WaitForExit(30000)) {
             Stop-Process -Id $process.Id -Force
             throw 'The published WPF application did not exit from UI demo screenshot mode within 30 seconds.'
@@ -99,6 +101,12 @@ jobs:
           }
           if (-not (Test-Path $colorPickerScreenshot)) {
             throw 'The published WPF application did not produce the expected color-picker screenshot.'
+          }
+          if (-not (Test-Path $mirrorPreviewScreenshot)) {
+            throw 'The published WPF application did not produce the expected Mirror-preview screenshot.'
+          }
+          if (-not (Test-Path $compactViewScreenshot)) {
+            throw 'The published WPF application did not produce the expected compact-view screenshot.'
           }
 
       - name: Collect application diagnostics

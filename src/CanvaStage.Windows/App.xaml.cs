@@ -53,9 +53,11 @@ public partial class App : System.Windows.Application
             if (screenshotPath is not null)
             {
                 string? colorPickerScreenshotPath = GetArgumentValue(eventArgs.Args, "--ui-color-picker-screenshot=");
+                string? mirrorPreviewScreenshotPath = GetArgumentValue(eventArgs.Args, "--ui-mirror-preview-screenshot=");
+                string? compactViewScreenshotPath = GetArgumentValue(eventArgs.Args, "--ui-compact-view-screenshot=");
                 PrivacySafeLog.Write("Startup: UI demo screenshot mode started.");
                 Dispatcher.BeginInvoke(
-                    () => CaptureUiDemoScreenshots(mainWindow, screenshotPath, colorPickerScreenshotPath),
+                    () => CaptureUiDemoScreenshots(mainWindow, viewModel, screenshotPath, colorPickerScreenshotPath, mirrorPreviewScreenshotPath, compactViewScreenshotPath),
                     DispatcherPriority.ApplicationIdle);
             }
             else if (eventArgs.Args.Contains("--smoke-test", StringComparer.Ordinal))
@@ -114,7 +116,13 @@ public partial class App : System.Windows.Application
         return argument is null ? null : argument[argumentPrefix.Length..];
     }
 
-    private void CaptureUiDemoScreenshots(MainWindow mainWindow, string screenshotPath, string? colorPickerScreenshotPath)
+    private void CaptureUiDemoScreenshots(
+        MainWindow mainWindow,
+        MainViewModel viewModel,
+        string screenshotPath,
+        string? colorPickerScreenshotPath,
+        string? mirrorPreviewScreenshotPath,
+        string? compactViewScreenshotPath)
     {
         try
         {
@@ -125,6 +133,18 @@ public partial class App : System.Windows.Application
                 colorPicker.Show();
                 SaveVisualScreenshot(colorPicker, colorPickerScreenshotPath);
                 colorPicker.Close();
+            }
+
+            if (!string.IsNullOrWhiteSpace(mirrorPreviewScreenshotPath))
+            {
+                viewModel.IsMirrorSelected = true;
+                SaveVisualScreenshot(mainWindow, mirrorPreviewScreenshotPath);
+            }
+
+            if (!string.IsNullOrWhiteSpace(compactViewScreenshotPath))
+            {
+                mainWindow.SetCompactViewForAutomation(true);
+                SaveVisualScreenshot(mainWindow, compactViewScreenshotPath);
             }
 
             PrivacySafeLog.Write("Startup: UI demo screenshots were created.");

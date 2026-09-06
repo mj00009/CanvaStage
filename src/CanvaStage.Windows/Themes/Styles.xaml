@@ -320,6 +320,58 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <Style x:Key="DarkScrollPageButton" TargetType="RepeatButton">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton"><Border Background="Transparent" /></ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="DarkScrollThumb" TargetType="Thumb">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border x:Name="ThumbSurface" Background="#4A556B" CornerRadius="4" Margin="2" />
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ThumbSurface" Property="Background" Value="#65718A" /></Trigger>
+                        <Trigger Property="IsDragging" Value="True"><Setter TargetName="ThumbSurface" Property="Background" Value="{StaticResource AccentBrush}" /></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <ControlTemplate x:Key="VerticalDarkScrollBar" TargetType="ScrollBar">
+        <Grid Width="10" Background="#0A0D13">
+            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                <Track.DecreaseRepeatButton><RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Style="{StaticResource DarkScrollPageButton}" /></Track.DecreaseRepeatButton>
+                <Track.Thumb><Thumb MinHeight="34" Style="{StaticResource DarkScrollThumb}" /></Track.Thumb>
+                <Track.IncreaseRepeatButton><RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Style="{StaticResource DarkScrollPageButton}" /></Track.IncreaseRepeatButton>
+            </Track>
+        </Grid>
+    </ControlTemplate>
+    <ControlTemplate x:Key="HorizontalDarkScrollBar" TargetType="ScrollBar">
+        <Grid Height="10" Background="#0A0D13">
+            <Track x:Name="PART_Track">
+                <Track.DecreaseRepeatButton><RepeatButton Command="{x:Static ScrollBar.PageLeftCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Style="{StaticResource DarkScrollPageButton}" /></Track.DecreaseRepeatButton>
+                <Track.Thumb><Thumb MinWidth="34" Style="{StaticResource DarkScrollThumb}" /></Track.Thumb>
+                <Track.IncreaseRepeatButton><RepeatButton Command="{x:Static ScrollBar.PageRightCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Style="{StaticResource DarkScrollPageButton}" /></Track.IncreaseRepeatButton>
+            </Track>
+        </Grid>
+    </ControlTemplate>
+    <Style TargetType="ScrollBar">
+        <Setter Property="Background" Value="#0A0D13" />
+        <Setter Property="Width" Value="10" />
+        <Setter Property="Template" Value="{StaticResource VerticalDarkScrollBar}" />
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Width" Value="Auto" />
+                <Setter Property="Height" Value="10" />
+                <Setter Property="Template" Value="{StaticResource HorizontalDarkScrollBar}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
     <Style TargetType="ProgressBar">
         <Setter Property="Background" Value="#0A0D13" />
         <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />

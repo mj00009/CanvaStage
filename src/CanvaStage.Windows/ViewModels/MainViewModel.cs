@@ -194,6 +194,11 @@ public sealed class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(PreviewBackgroundBrush));
             OnPropertyChanged(nameof(PreviewTextBrush));
             OnPropertyChanged(nameof(PreviewAccentBrush));
+            OnPropertyChanged(nameof(PreviewMirrorBackgroundBrush));
+            OnPropertyChanged(nameof(PreviewMirrorAccentBrush));
+            OnPropertyChanged(nameof(PreviewImagePath));
+            OnPropertyChanged(nameof(HasPreviewImage));
+            OnPropertyChanged(nameof(ShowMonitorPreviewImage));
             OnPropertyChanged(nameof(SelectedPage));
             OnPropertyChanged(nameof(SelectedPageTitle));
             OnPropertyChanged(nameof(PreviewPrimaryText));
@@ -236,6 +241,11 @@ public sealed class MainViewModel : ViewModelBase
             return nextPage?.PrimaryText ?? "No next page";
         }
     }
+    public string? PreviewImagePath => SelectedPage?.FallbackImagePath;
+    public bool HasPreviewImage => !string.IsNullOrWhiteSpace(PreviewImagePath);
+    public bool ShowMonitorPreviewImage => HasPreviewImage && SelectedPage is { HasFormattedText: false };
+    public Brush PreviewMirrorBackgroundBrush => BrushFrom(SelectedPage?.MirrorBackground ?? "#0D0E10", Brushes.Black);
+    public Brush PreviewMirrorAccentBrush => BrushFrom(SelectedPage?.MirrorAccent ?? "#75E6C8", Brushes.MediumPurple);
     public bool IsMirrorSelected { get => OutputMode == OutputMode.Mirror; set { if (value) OutputMode = OutputMode.Mirror; } }
     public bool IsMonitorSelected { get => OutputMode == OutputMode.Monitor; set { if (value) OutputMode = OutputMode.Monitor; } }
 
