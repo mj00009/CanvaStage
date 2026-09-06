@@ -332,10 +332,10 @@ public sealed class MainViewModel : ViewModelBase
         ? "No Canva presentation content loaded this session."
         : $"Content last loaded {_lastCanvaContentRefresh.Value.ToLocalTime():h:mm tt}.";
     public string LiveReadinessText => IsLive
-        ? "Live confidence output is active"
+        ? "Confidence output is live"
         : _canva.IsConnected && SelectedCanvaPresentation is not null
-            ? "Ready for manual confidence output"
-            : "Manual control is ready; connect Canva when you are ready.";
+            ? "Ready — Presenter sync available"
+            : "Ready — connect Canva when you are ready";
     public string CanvaDiagnostic => _canva.IsConnected ? "PASS · Canva connected" : _canva.HasSavedConfiguration ? "WARNING · Canva needs authorization" : "WARNING · Canva not configured";
     public string CanvaDiagnosticDetail => _canva.IsConnected ? "The shared Windows operator account has valid local Canva authorization." : "Open Presentation to configure or reconnect the church Canva integration.";
     public string PresentationDiagnostic => Snapshot.Document.Id == "demo-sunday" ? "WARNING · Demo deck loaded" : "PASS · Canva presentation loaded";
