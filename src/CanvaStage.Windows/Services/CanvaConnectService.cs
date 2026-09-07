@@ -160,7 +160,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
                     continue;
                 }
 
-                results.Add(new CanvaPresentation(design.Id, design.Title ?? "Untitled presentation", design.PageCount ?? 0, design.Thumbnail?.Url));
+                results.Add(ToPresentation(design));
             }
 
             continuation = response.Continuation;
@@ -168,6 +168,14 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         while (!string.IsNullOrWhiteSpace(continuation) && results.Count < 500);
 
         return results;
+    }
+
+    public async Task<CanvaPresentation> GetPresentationAsync(string presentationId, CancellationToken cancellationToken = default)
+    {
+        GetDesignResponse response = await GetJsonAsync<GetDesignResponse>($"designs/{Uri.EscapeDataString(presentationId)}", cancellationToken).ConfigureAwait(false);
+        DesignResponse design = response.Design ?? throw new CanvaConnectException("Canva returned an unreadable presentation response.");
+        if (!IsPresentation(design)) throw new CanvaConnectException("The selected Canva design is not a presentation.");
+        return ToPresentation(design);
     }
 
     public async Task<PresentationDocument> LoadAsync(CancellationToken cancellationToken = default)
@@ -231,7 +239,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         }
 
         ReportLoadProgress("Presentation is ready.", 1d);
-        return new PresentationDocument(presentationId, design.Title ?? "Untitled presentation", pages, DateTimeOffset.UtcNow);
+        return new PresentationDocument(presentationId, design.Title ?? "Untitled presentation", pages, DateTimeOffset.UtcNow, ToDateTimeOffset(design.UpdatedAt));
     }
 
     private CanvaCredentials RequireCredentials() => _credentialsStore.Load() ?? throw new CanvaConnectException("Configure your Canva Client ID and Client Secret first.");
@@ -507,11 +515,18 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
     private static string CreateRandomUrlSafeValue() => Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
     private static string Base64UrlEncode(byte[] value) => Convert.ToBase64String(value).TrimEnd('=').Replace('+', '-').Replace('/', '_');
     private static bool IsPresentation(DesignResponse design) => design.DesignTypes?.Any(type => string.Equals(type, "presentation", StringComparison.OrdinalIgnoreCase)) == true;
+    private static CanvaPresentation ToPresentation(DesignResponse design) => new(
+        design.Id,
+        design.Title ?? "Untitled presentation",
+        design.PageCount ?? 0,
+        design.Thumbnail?.Url,
+        ToDateTimeOffset(design.UpdatedAt));
+    private static DateTimeOffset? ToDateTimeOffset(long? unixSeconds) => unixSeconds is > 0 ? DateTimeOffset.FromUnixTimeSeconds(unixSeconds.Value) : null;
 
     private sealed record AuthorizationResponse(string Code);
     private sealed record TokenResponse(string AccessToken, string RefreshToken, int ExpiresIn);
     private sealed record DesignListResponse(IReadOnlyList<DesignResponse> Items, string? Continuation);
-    private sealed record DesignResponse(string Id, string? Title, IReadOnlyList<string>? DesignTypes, int? PageCount, ThumbnailResponse? Thumbnail);
+    private sealed record DesignResponse(string Id, string? Title, IReadOnlyList<string>? DesignTypes, int? PageCount, ThumbnailResponse? Thumbnail, long? UpdatedAt);
     private sealed record GetDesignResponse(DesignResponse? Design);
     private sealed record PageListResponse(IReadOnlyList<PageResponse> Items);
     private sealed record PageResponse(int PageNumber, string? Id, ThumbnailResponse? Thumbnail);

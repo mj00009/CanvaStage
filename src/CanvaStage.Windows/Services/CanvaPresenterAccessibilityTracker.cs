@@ -90,7 +90,7 @@ public sealed class CanvaPresenterAccessibilityTracker : ICanvaPresenterTracker
     private async Task TrackAsync(CancellationToken cancellationToken)
     {
         long generation = Generation;
-        await ResilientPollingLoop.RunAsync(token => Task.FromResult(ScanAccessibilityTree(token) with { Generation = generation }), update =>
+        await ResilientPollingLoop.RunAsync(token => Task.FromResult(ScanAccessibilityTreeTimed(token) with { Generation = generation }), update =>
         {
             if (!cancellationToken.IsCancellationRequested) Publish(update);
         }, (exception, delay) =>
@@ -103,6 +103,14 @@ public sealed class CanvaPresenterAccessibilityTracker : ICanvaPresenterTracker
                 $"Presenter scanning was interrupted. Retrying automatically in {delay.TotalSeconds:0} seconds. Manual controls remain available.",
                 DateTimeOffset.UtcNow, Generation: generation));
         }, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static CanvaPresenterTrackingUpdate ScanAccessibilityTreeTimed(CancellationToken cancellationToken)
+    {
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        CanvaPresenterTrackingUpdate update = ScanAccessibilityTree(cancellationToken);
+        stopwatch.Stop();
+        return update with { ScanDuration = stopwatch.Elapsed };
     }
 
     private static CanvaPresenterTrackingUpdate ScanAccessibilityTree(CancellationToken cancellationToken)
@@ -359,4 +367,5 @@ public sealed record CanvaPresenterTrackingUpdate(
     int? TotalPages,
     string Message,
     DateTimeOffset ObservedAt,
-    long Generation = 0);
+    long Generation = 0,
+    TimeSpan? ScanDuration = null);

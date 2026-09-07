@@ -62,6 +62,13 @@ internal static class WindowsReleaseVerification
         Require(viewModel.PresenterSyncSummary == "Following Canva", "Recovered scan resumes following");
         checks.Add("Direct Presenter counter following, page-count guard, manual pause, resume, disabled updates and recovery");
 
+        coordinator.StartOutput();
+        viewModel.BlankOutputCommand.Execute(null);
+        Require(coordinator.Snapshot is { IsLive: true, IsBlanked: true }, "Blank action keeps the output session live while hiding content");
+        viewModel.BlankOutputCommand.Execute(null);
+        Require(!coordinator.Snapshot.IsBlanked, "Restore action returns live content");
+        checks.Add("Prominent blank and restore output action");
+
         viewModel.NextLineFontSize = 48;
         viewModel.IsNextLineBold = true;
         viewModel.NextLineColor = "#75E6C8";
@@ -176,13 +183,19 @@ internal static class WindowsReleaseVerification
         Require(reopened.Load() == credentials, "Blank input reuses saved secret without clearing tokens");
         PresentationDocument first = await service.LoadAsync("verification-design");
         string originalPath = first.Pages[0].FallbackImagePath!;
-        using FileStream lockedImage = new(originalPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        PresentationDocument second = await service.LoadAsync("verification-design");
+        PresentationDocument second;
+        using (FileStream lockedImage = new(originalPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            second = await service.LoadAsync("verification-design");
+        }
         Require(second.Pages[0].FallbackImagePath != originalPath && File.Exists(originalPath), "Refresh uses new image paths while old images remain open");
         PresentationCacheStore cache = new(Path.Combine(storage, "cache"));
         cache.Save(second);
         Require(new PresentationCacheStore(Path.Combine(storage, "cache")).Load()?.Pages[0].FallbackImagePath == second.Pages[0].FallbackImagePath,
             "Refreshed cache restores across restart");
+        Require(cache.GetStatus().SizeBytes > 0, "Cache size and timestamp are available");
+        Require(cache.RemoveObsoleteGenerations(second) == 1 && !File.Exists(originalPath) && File.Exists(second.Pages[0].FallbackImagePath),
+            "Cache cleanup removes an old immutable generation and retains the active generation");
     }
 
     private sealed class SyntheticCanvaHandler : HttpMessageHandler
@@ -209,7 +222,7 @@ internal static class WindowsReleaseVerification
                     ? "{\"items\":[{\"page_number\":1,\"id\":\"page1\",\"thumbnail\":{\"url\":\"https://test.invalid/page.png\"}}]}"
                     : path.EndsWith("/exports", StringComparison.Ordinal)
                         ? "{\"job\":{\"id\":\"export1\",\"status\":\"success\",\"urls\":[\"https://test.invalid/deck.pptx\"]}}"
-                        : "{\"design\":{\"id\":\"verification-design\",\"title\":\"Sunday verification\",\"design_types\":[\"presentation\"],\"page_count\":1}}";
+                        : "{\"design\":{\"id\":\"verification-design\",\"title\":\"Sunday verification\",\"design_types\":[\"presentation\"],\"page_count\":1,\"updated_at\":1893456000}}";
                 content = new StringContent(json, Encoding.UTF8, "application/json");
             }
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = content });

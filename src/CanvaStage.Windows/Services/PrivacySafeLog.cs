@@ -7,6 +7,7 @@ public static class PrivacySafeLog
 {
     private static readonly object SyncRoot = new();
     private static readonly string LogPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CanvaStage", "canvastage.log");
+    public static string FilePath => LogPath;
 
     public static void Write(string message)
     {

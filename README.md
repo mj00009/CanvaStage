@@ -2,7 +2,7 @@
 
 Canva Stage is a Windows desktop confidence-monitor app for churches using Canva presentations. It gives people on stage a separate, readable output while the congregation continues to see the regular Canva presentation.
 
-> **Project status:** `v0.7.1` restores the proven `v0.5.1` accessibility-spike tracking path after later identity matching proved unreliable. It retains the output styling and application icon added in `v0.7.0`. Releases remain unsigned.
+> **Project status:** `v0.8.0` prepares the next operator-focused release with named and numbered display identification, output blanking, tracking health details, cache management, sanitized diagnostic export, and Canva modification checks. Releases remain unsigned.
 
 ## What it will do
 
@@ -12,6 +12,8 @@ Canva Stage is a Windows desktop confidence-monitor app for churches using Canva
 - Switch immediately between **Mirror** mode (the retrieved Canva page image) and **Monitor** mode (a simplified, high-visibility view of slide text).
 - Automatically follow the visible page number in Canva Presenter View through Windows accessibility, with sticky window selection and manual page controls always available.
 - Collapse to a compact, pinnable operator view with a live mode-accurate preview for single-screen operation.
+- Identify screens with friendly names, resolution, Primary/Extended status, and temporary numbered overlays.
+- Blank and restore the confidence output without stopping the live session.
 
 ## Who it is for
 
@@ -47,7 +49,7 @@ The app’s client-only model is a deliberate church-managed approach. Canva rec
 2. Enable only `design:meta:read` and `design:content:read`.
 3. Copy CanvaStage’s displayed loopback redirect URL into Canva’s **Authorized redirects**. The current value is `http://127.0.0.1:27843/callback/`; Canva permits `127.0.0.1` for local development, not `localhost`.
 4. Enter the Client ID and Client Secret in CanvaStage and select **Save configuration**, then **Connect Canva** and finish authorization in the browser. On later launches, **Saved securely** confirms that the secret is already stored and reused. The masked indicator is not the secret itself. Use **Replace saved secret** only when changing credentials.
-5. Refresh presentations, select one, and choose **Apply**. CanvaStage exports a temporary PPTX to read native text and downloads visible-page thumbnails for Mirror and image fallback. Each refresh uses a separate local cache folder so images currently on screen are never overwritten. Previous cache generations are retained; cache cleanup controls are future work.
+5. Refresh presentations, select one, and choose **Apply**. CanvaStage exports a temporary PPTX to read native text and downloads visible-page thumbnails for Mirror and image fallback. Each refresh uses a separate local cache folder so images currently on screen are never overwritten. The Presentation page shows cache size and provides safe cleanup, clear, re-download, and modification-check controls.
 
 CanvaStage does not capture the primary display. It follows Canva Presenter only when Windows exposes a matching page counter; otherwise the operator uses the manual page controls. Hidden slides are removed from the local presentation during import so visible-page numbering matches Presenter mode. Canva exports and page images are retrieved only as needed for the selected presentation; export URLs are short-lived.
 
@@ -55,9 +57,11 @@ CanvaStage does not capture the primary display. It follows Canva Presenter only
 
 Press `Escape`, or hover over the top-right corner of the confidence-output window to reveal the close button. Closing the output blanks it and returns to the operator controls.
 
+During operation, `Ctrl+Left` and `Ctrl+Right` select the previous or next page, `Ctrl+Space` pauses or resumes Presenter sync, `Ctrl+B` blanks or restores output, and `Ctrl+1` / `Ctrl+2` select Mirror or Monitor mode.
+
 ### If the app does not open
 
-CanvaStage records startup and unexpected-error details in `%LOCALAPPDATA%\CanvaStage\canvastage.log`. The log deliberately redacts Canva credentials, tokens, authorization codes, and authorization headers. Send that log with the Windows version and the release version when reporting a problem; do not send screenshots of Canva setup fields.
+CanvaStage records startup and unexpected-error details in `%LOCALAPPDATA%\CanvaStage\canvastage.log`. The log deliberately redacts Canva credentials, tokens, authorization codes, and authorization headers. **Setup & diagnostics** can create a sanitized support ZIP on the desktop without presentation content. Send that bundle with the release version when reporting a problem; do not send screenshots of Canva setup fields.
 
 ## Development
 

@@ -39,6 +39,7 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
             _fallbackImage = CreateFallbackImage(value.CurrentPage?.FallbackImagePath);
             _fittedFontSize = EffectiveFontSize;
             OnPropertyChanged(nameof(IsBlank));
+            OnPropertyChanged(nameof(IsOutputBlanked));
             OnPropertyChanged(nameof(IsMirror));
             OnPropertyChanged(nameof(IsMonitor));
             OnPropertyChanged(nameof(Page));
@@ -63,6 +64,7 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
     }
 
     public bool IsBlank => !Snapshot.IsLive || Snapshot.CurrentPage is null;
+    public bool IsOutputBlanked => Snapshot.IsLive && Snapshot.IsBlanked;
     public bool IsMirror => !IsBlank && Snapshot.Mode == OutputMode.Mirror;
     public bool IsMonitor => !IsBlank && Snapshot.Mode == OutputMode.Monitor;
     public PresentationPage? Page => Snapshot.CurrentPage;

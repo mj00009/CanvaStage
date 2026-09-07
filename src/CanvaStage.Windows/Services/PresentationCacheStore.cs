@@ -8,12 +8,60 @@ public sealed class PresentationCacheStore
 {
     private const int CurrentCacheVersion = 3;
     private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
+    private readonly string _cacheDirectory;
     private readonly string _cachePath;
 
     public PresentationCacheStore(string? directory = null)
     {
         directory ??= Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CanvaStage", "cache");
+        _cacheDirectory = directory;
         _cachePath = Path.Combine(directory, "presentation.json");
+    }
+
+    public CacheStatus GetStatus()
+    {
+        try
+        {
+            if (!Directory.Exists(_cacheDirectory)) return new CacheStatus(0, null, 0);
+            FileInfo[] files = new DirectoryInfo(_cacheDirectory).EnumerateFiles("*", SearchOption.AllDirectories).ToArray();
+            return new CacheStatus(files.Sum(file => file.Length), files.Length == 0 ? null : files.Max(file => (DateTimeOffset)file.LastWriteTimeUtc), files.Length);
+        }
+        catch (IOException)
+        {
+            return new CacheStatus(0, null, 0);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return new CacheStatus(0, null, 0);
+        }
+    }
+
+    public int RemoveObsoleteGenerations(PresentationDocument activeDocument)
+    {
+        var activeDirectories = activeDocument.Pages
+            .Select(page => page.FallbackImagePath)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(path => Path.GetDirectoryName(Path.GetFullPath(path!)))
+            .Where(path => path is not null)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        int removed = 0;
+        if (!Directory.Exists(_cacheDirectory)) return removed;
+        foreach (string presentationDirectory in Directory.EnumerateDirectories(_cacheDirectory))
+        {
+            foreach (string generationDirectory in Directory.EnumerateDirectories(presentationDirectory))
+            {
+                if (activeDirectories.Contains(Path.GetFullPath(generationDirectory))) continue;
+                Directory.Delete(generationDirectory, true);
+                removed++;
+            }
+            if (!Directory.EnumerateFileSystemEntries(presentationDirectory).Any()) Directory.Delete(presentationDirectory);
+        }
+        return removed;
+    }
+
+    public void Clear()
+    {
+        if (Directory.Exists(_cacheDirectory)) Directory.Delete(_cacheDirectory, true);
     }
 
     public PresentationDocument? Load()
@@ -60,4 +108,15 @@ public sealed class PresentationCacheStore
     }
 
     private sealed record CachedPresentation(int Version, PresentationDocument Document);
+}
+
+public sealed record CacheStatus(long SizeBytes, DateTimeOffset? LastUpdatedAt, int FileCount)
+{
+    public string SizeText => SizeBytes switch
+    {
+        < 1024 => $"{SizeBytes} B",
+        < 1024 * 1024 => $"{SizeBytes / 1024d:0.0} KB",
+        < 1024L * 1024 * 1024 => $"{SizeBytes / 1024d / 1024d:0.0} MB",
+        _ => $"{SizeBytes / 1024d / 1024d / 1024d:0.0} GB"
+    };
 }

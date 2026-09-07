@@ -9,6 +9,7 @@ public interface IOutputCoordinator
     OutputSnapshot Snapshot { get; }
     void StartOutput();
     void StopOutput();
+    void SetBlanked(bool isBlanked);
     void SelectPage(int pageNumber);
     void GoPrevious();
     void GoNext();

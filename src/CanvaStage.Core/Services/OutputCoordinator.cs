@@ -7,6 +7,7 @@ public sealed class OutputCoordinator : IOutputCoordinator
     private PresentationDocument _document;
     private int _selectedPage;
     private bool _isLive;
+    private bool _isBlanked;
     private OutputMode _mode;
     private MonitorLayout _layout;
     private NextLineOption _nextLineOption;
@@ -29,12 +30,25 @@ public sealed class OutputCoordinator : IOutputCoordinator
     public void StartOutput()
     {
         _isLive = true;
+        _isBlanked = false;
         Publish();
     }
 
     public void StopOutput()
     {
         _isLive = false;
+        _isBlanked = false;
+        Publish();
+    }
+
+    public void SetBlanked(bool isBlanked)
+    {
+        if (!_isLive || _isBlanked == isBlanked)
+        {
+            return;
+        }
+
+        _isBlanked = isBlanked;
         Publish();
     }
 
@@ -100,6 +114,7 @@ public sealed class OutputCoordinator : IOutputCoordinator
 
         return new OutputSnapshot(
             _isLive,
+            _isBlanked,
             _document,
             _selectedPage,
             page,

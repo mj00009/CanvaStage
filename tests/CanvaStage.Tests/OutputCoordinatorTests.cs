@@ -55,6 +55,22 @@ public sealed class OutputCoordinatorTests
     }
 
     [Fact]
+    public void BlankOutputHidesContentWithoutStoppingTheLiveSession()
+    {
+        var coordinator = CreateCoordinator();
+        coordinator.StartOutput();
+
+        coordinator.SetBlanked(true);
+
+        Assert.True(coordinator.Snapshot.IsLive);
+        Assert.True(coordinator.Snapshot.IsBlanked);
+        Assert.Equal(1, coordinator.Snapshot.CurrentPage?.Number);
+
+        coordinator.SetBlanked(false);
+        Assert.False(coordinator.Snapshot.IsBlanked);
+    }
+
+    [Fact]
     public void ReplacingTheDocumentKeepsAValidPageAndPublishesTheNewContent()
     {
         var coordinator = CreateCoordinator(selectedPage: 3);

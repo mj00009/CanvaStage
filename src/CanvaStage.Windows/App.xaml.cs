@@ -41,11 +41,13 @@ public partial class App : System.Windows.Application
             var coordinator = new OutputCoordinator(initialDocument, preferences);
             _outputWindowManager = new OutputWindowManager(coordinator);
             var displayService = new DisplayService();
+            var displayIdentificationService = new DisplayIdentificationService(displayService);
+            var diagnosticsExportService = new DiagnosticsExportService();
             var credentialsStore = new CanvaCredentialsStore(isolatedDirectory);
             var canva = new CanvaConnectService(credentialsStore);
             ICanvaPresenterTracker canvaPresenterAccessibilityTracker = screenshotPath is null
                 ? new CanvaPresenterAccessibilityTracker() : new WindowsReleaseVerification.DemoTracker();
-            var viewModel = new MainViewModel(coordinator, _outputWindowManager, displayService, preferencesStore, presentationCacheStore, canva, canvaPresenterAccessibilityTracker, preferences);
+            var viewModel = new MainViewModel(coordinator, _outputWindowManager, displayService, displayIdentificationService, diagnosticsExportService, preferencesStore, presentationCacheStore, canva, canvaPresenterAccessibilityTracker, preferences);
             PrivacySafeLog.Write("Startup: services created.");
 
             var mainWindow = new MainWindow(viewModel);

@@ -2,6 +2,7 @@ namespace CanvaStage.Core.Models;
 
 public sealed record OutputSnapshot(
     bool IsLive,
+    bool IsBlanked,
     PresentationDocument Document,
     int SelectedPageNumber,
     PresentationPage? CurrentPage,

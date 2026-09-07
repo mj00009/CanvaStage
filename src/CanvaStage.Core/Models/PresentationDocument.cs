@@ -4,7 +4,8 @@ public sealed record PresentationDocument(
     string Id,
     string Title,
     IReadOnlyList<PresentationPage> Pages,
-    DateTimeOffset RefreshedAt)
+    DateTimeOffset RefreshedAt,
+    DateTimeOffset? SourceModifiedAt = null)
 {
     public PresentationPage? FindPage(int pageNumber) => Pages.FirstOrDefault(page => page.Number == pageNumber);
 
