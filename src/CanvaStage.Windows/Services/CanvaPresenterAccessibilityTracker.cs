@@ -1,4 +1,5 @@
 using CanvaStage.Core.Utilities;
+using CanvaStage.Core.Services;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -6,10 +7,9 @@ using System.Windows.Automation;
 
 namespace CanvaStage.Windows.Services;
 
-public sealed class CanvaPresenterAccessibilityTracker : IDisposable
+public sealed class CanvaPresenterAccessibilityTracker : ICanvaPresenterTracker
 {
     private const int MaximumElementsPerWindow = 3000;
-    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(750);
     private static readonly HashSet<string> BrowserProcessNames = new(StringComparer.OrdinalIgnoreCase)
     {
         "brave",
@@ -22,7 +22,10 @@ public sealed class CanvaPresenterAccessibilityTracker : IDisposable
     private readonly object _syncRoot = new();
     private CancellationTokenSource? _cancellationTokenSource;
     private Task? _trackingTask;
-    private string? _lastUpdateSignature;
+    private readonly SemaphoreSlim _scanGate = new(1, 1);
+    private long _generation;
+
+    public long Generation => Interlocked.Read(ref _generation);
 
     public event EventHandler<CanvaPresenterTrackingUpdate>? TrackingUpdated;
 
@@ -47,7 +50,7 @@ public sealed class CanvaPresenterAccessibilityTracker : IDisposable
                 return;
             }
 
-            _lastUpdateSignature = null;
+            Interlocked.Increment(ref _generation);
             _cancellationTokenSource = new CancellationTokenSource();
             cancellationToken = _cancellationTokenSource.Token;
         }
@@ -57,7 +60,7 @@ public sealed class CanvaPresenterAccessibilityTracker : IDisposable
             null,
             null,
             "Watching Windows accessibility data for a Canva presenter page counter…",
-            DateTimeOffset.UtcNow));
+            DateTimeOffset.UtcNow, Generation: Generation));
 
         lock (_syncRoot)
         {
@@ -76,7 +79,7 @@ public sealed class CanvaPresenterAccessibilityTracker : IDisposable
             cancellationTokenSource = _cancellationTokenSource;
             _cancellationTokenSource = null;
             _trackingTask = null;
-            _lastUpdateSignature = null;
+            Interlocked.Increment(ref _generation);
         }
 
         cancellationTokenSource?.Cancel();
@@ -87,55 +90,41 @@ public sealed class CanvaPresenterAccessibilityTracker : IDisposable
 
     private async Task TrackAsync(CancellationToken cancellationToken)
     {
-        try
+        long generation = Generation;
+        await ResilientPollingLoop.RunAsync(async token =>
         {
-            while (!cancellationToken.IsCancellationRequested)
+            await _scanGate.WaitAsync(token).ConfigureAwait(false);
+            try
             {
-                CanvaPresenterTrackingUpdate update = ScanAccessibilityTree();
-                PublishIfChanged(update);
-                await Task.Delay(PollInterval, cancellationToken).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
+                return ScanAccessibilityTree(token) with { Generation = generation };
             }
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            finally { _scanGate.Release(); }
+        }, update =>
         {
-        }
-        catch (Exception exception)
+            if (!cancellationToken.IsCancellationRequested) Publish(update);
+        }, (exception, delay) =>
         {
             PrivacySafeLog.WriteException("Canva presenter accessibility tracker failed", exception);
-            MarkStoppedAfterFailure(cancellationToken);
             Publish(new CanvaPresenterTrackingUpdate(
                 CanvaPresenterTrackingState.Error,
                 null,
                 null,
-                "Windows accessibility scanning stopped unexpectedly. Review the CanvaStage log, then try again.",
-                DateTimeOffset.UtcNow));
-        }
+                $"Presenter scanning was interrupted. Retrying automatically in {delay.TotalSeconds:0} seconds. Manual controls remain available.",
+                DateTimeOffset.UtcNow, Generation: generation));
+        }, cancellationToken).ConfigureAwait(false);
     }
 
-    private void MarkStoppedAfterFailure(CancellationToken cancellationToken)
-    {
-        CancellationTokenSource? cancellationTokenSource = null;
-        lock (_syncRoot)
-        {
-            if (_cancellationTokenSource is not null && _cancellationTokenSource.Token == cancellationToken)
-            {
-                cancellationTokenSource = _cancellationTokenSource;
-                _cancellationTokenSource = null;
-                _trackingTask = null;
-            }
-        }
-
-        cancellationTokenSource?.Dispose();
-    }
-
-    private static CanvaPresenterTrackingUpdate ScanAccessibilityTree()
+    private static CanvaPresenterTrackingUpdate ScanAccessibilityTree(CancellationToken cancellationToken)
     {
         try
         {
             AutomationElementCollection windows = AutomationElement.RootElement.FindAll(TreeScope.Children, Condition.TrueCondition);
             int candidateCount = 0;
+            List<PresenterSource> sources = [];
             for (int index = 0; index < windows.Count; index++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 AutomationElement window = windows[index];
                 if (!TryGetCandidateApplication(window, out string applicationName))
                 {
@@ -143,17 +132,18 @@ public sealed class CanvaPresenterAccessibilityTracker : IDisposable
                 }
 
                 candidateCount++;
-                IReadOnlyList<string> accessibleText = ReadAccessibleText(window);
+                IReadOnlyList<string> accessibleText = ReadAccessibleText(window, cancellationToken, out string? designId);
                 if (PresenterPageCounterParser.TryParse(accessibleText, out int currentPage, out int totalPages))
                 {
-                    return new CanvaPresenterTrackingUpdate(
-                        CanvaPresenterTrackingState.PageDetected,
-                        currentPage,
-                        totalPages,
-                        $"Detected presenter page {currentPage} of {totalPages} from {applicationName}.",
-                        DateTimeOffset.UtcNow);
+                    string title = window.Current.Name ?? string.Empty;
+                    using Process process = Process.GetProcessById(window.Current.ProcessId);
+                    string key = $"{process.Id}:{process.StartTime.ToUniversalTime().Ticks}:{window.Current.NativeWindowHandle}:{title}:{designId}";
+                    sources.Add(new PresenterSource(key, title, applicationName, designId, currentPage, totalPages));
                 }
             }
+
+            if (sources.Count > 0)
+                return new(CanvaPresenterTrackingState.PageDetected, null, null, "Presenter windows found.", DateTimeOffset.UtcNow, sources);
 
             return candidateCount == 0
                 ? new CanvaPresenterTrackingUpdate(
@@ -166,7 +156,7 @@ public sealed class CanvaPresenterAccessibilityTracker : IDisposable
                     CanvaPresenterTrackingState.CounterUnavailable,
                     null,
                     null,
-                    "A possible Canva presenter window was found, but Windows did not expose a page counter. This result means the image-matching fallback may be needed.",
+                    "Canva is open, but its Presenter page counter is unavailable. Open Presenter View or use manual controls; CanvaStage will keep checking.",
                     DateTimeOffset.UtcNow);
         }
         catch (UnauthorizedAccessException)
@@ -248,8 +238,9 @@ public sealed class CanvaPresenterAccessibilityTracker : IDisposable
         }
     }
 
-    private static IReadOnlyList<string> ReadAccessibleText(AutomationElement window)
+    private static IReadOnlyList<string> ReadAccessibleText(AutomationElement window, CancellationToken cancellationToken, out string? designId)
     {
+        designId = null;
         var values = new List<string>();
         var pending = new Queue<AutomationElement>();
         TreeWalker walker = TreeWalker.ControlViewWalker;
@@ -262,6 +253,7 @@ public sealed class CanvaPresenterAccessibilityTracker : IDisposable
         int visited = 0;
         while (pending.Count > 0 && visited < MaximumElementsPerWindow)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             AutomationElement element = pending.Dequeue();
             visited++;
 
@@ -271,6 +263,14 @@ public sealed class CanvaPresenterAccessibilityTracker : IDisposable
                 if (!string.IsNullOrWhiteSpace(name))
                 {
                     values.Add(name);
+                }
+                // Only the document's URL value is used for identity. Never inspect input fields,
+                // authorization URLs, browser traffic, or store the raw accessibility tree.
+                if (element.Current.ControlType == ControlType.Document
+                    && element.TryGetCurrentPattern(ValuePattern.Pattern, out object pattern))
+                {
+                    string? candidateId = PresenterSourceResolver.GetDesignId(((ValuePattern)pattern).Current.Value);
+                    if (candidateId is not null) designId = candidateId;
                 }
             }
             catch (ElementNotAvailableException)
@@ -339,22 +339,6 @@ public sealed class CanvaPresenterAccessibilityTracker : IDisposable
         }
     }
 
-    private void PublishIfChanged(CanvaPresenterTrackingUpdate update)
-    {
-        string signature = $"{update.State}|{update.CurrentPage}|{update.TotalPages}|{update.Message}";
-        lock (_syncRoot)
-        {
-            if (signature == _lastUpdateSignature)
-            {
-                return;
-            }
-
-            _lastUpdateSignature = signature;
-        }
-
-        Publish(update);
-    }
-
     private void Publish(CanvaPresenterTrackingUpdate update)
     {
         try
@@ -393,4 +377,6 @@ public sealed record CanvaPresenterTrackingUpdate(
     int? CurrentPage,
     int? TotalPages,
     string Message,
-    DateTimeOffset ObservedAt);
+    DateTimeOffset ObservedAt,
+    IReadOnlyList<PresenterSource>? Sources = null,
+    long Generation = 0);

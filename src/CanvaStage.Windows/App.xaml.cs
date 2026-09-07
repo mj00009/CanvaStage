@@ -29,18 +29,22 @@ public partial class App : System.Windows.Application
         {
             base.OnStartup(eventArgs);
 
-            var preferencesStore = new JsonPreferencesStore();
+            string? screenshotPath = GetUiDemoScreenshotPath(eventArgs.Args);
+            string? isolatedDirectory = screenshotPath is not null
+                ? Path.Combine(Path.GetTempPath(), "CanvaStage-verification-" + Guid.NewGuid().ToString("N")) : null;
+            var preferencesStore = new JsonPreferencesStore(isolatedDirectory);
             AppPreferences preferences = preferencesStore.Load();
             PrivacySafeLog.Write("Startup: preferences loaded.");
 
-            var presentationCacheStore = new PresentationCacheStore();
+            var presentationCacheStore = new PresentationCacheStore(isolatedDirectory is null ? null : Path.Combine(isolatedDirectory, "cache"));
             PresentationDocument initialDocument = presentationCacheStore.Load() ?? DemoPresentationProvider.Create();
             var coordinator = new OutputCoordinator(initialDocument, preferences);
             _outputWindowManager = new OutputWindowManager(coordinator);
             var displayService = new DisplayService();
-            var credentialsStore = new CanvaCredentialsStore();
+            var credentialsStore = new CanvaCredentialsStore(isolatedDirectory);
             var canva = new CanvaConnectService(credentialsStore);
-            var canvaPresenterAccessibilityTracker = new CanvaPresenterAccessibilityTracker();
+            ICanvaPresenterTracker canvaPresenterAccessibilityTracker = screenshotPath is null
+                ? new CanvaPresenterAccessibilityTracker() : new WindowsReleaseVerification.DemoTracker();
             var viewModel = new MainViewModel(coordinator, _outputWindowManager, displayService, preferencesStore, presentationCacheStore, canva, canvaPresenterAccessibilityTracker, preferences);
             PrivacySafeLog.Write("Startup: services created.");
 
@@ -49,15 +53,15 @@ public partial class App : System.Windows.Application
             mainWindow.Show();
             PrivacySafeLog.Write("Startup: main window shown.");
 
-            string? screenshotPath = GetUiDemoScreenshotPath(eventArgs.Args);
             if (screenshotPath is not null)
             {
                 string? colorPickerScreenshotPath = GetArgumentValue(eventArgs.Args, "--ui-color-picker-screenshot=");
                 string? mirrorPreviewScreenshotPath = GetArgumentValue(eventArgs.Args, "--ui-mirror-preview-screenshot=");
                 string? compactViewScreenshotPath = GetArgumentValue(eventArgs.Args, "--ui-compact-view-screenshot=");
+                string? verificationDirectory = GetArgumentValue(eventArgs.Args, "--ui-verification-directory=");
                 PrivacySafeLog.Write("Startup: UI demo screenshot mode started.");
                 Dispatcher.BeginInvoke(
-                    () => CaptureUiDemoScreenshots(mainWindow, viewModel, screenshotPath, colorPickerScreenshotPath, mirrorPreviewScreenshotPath, compactViewScreenshotPath),
+                    () => CaptureUiDemoScreenshots(mainWindow, viewModel, coordinator, screenshotPath, colorPickerScreenshotPath, mirrorPreviewScreenshotPath, compactViewScreenshotPath, verificationDirectory),
                     DispatcherPriority.ApplicationIdle);
             }
             else if (eventArgs.Args.Contains("--smoke-test", StringComparer.Ordinal))
@@ -116,13 +120,15 @@ public partial class App : System.Windows.Application
         return argument is null ? null : argument[argumentPrefix.Length..];
     }
 
-    private void CaptureUiDemoScreenshots(
+    private async void CaptureUiDemoScreenshots(
         MainWindow mainWindow,
         MainViewModel viewModel,
+        IOutputCoordinator coordinator,
         string screenshotPath,
         string? colorPickerScreenshotPath,
         string? mirrorPreviewScreenshotPath,
-        string? compactViewScreenshotPath)
+        string? compactViewScreenshotPath,
+        string? verificationDirectory)
     {
         try
         {
@@ -147,6 +153,12 @@ public partial class App : System.Windows.Application
                 SaveVisualScreenshot(mainWindow, compactViewScreenshotPath);
             }
 
+            if (!string.IsNullOrWhiteSpace(verificationDirectory))
+            {
+                viewModel.IsMonitorSelected = true;
+                await WindowsReleaseVerification.RunAsync(mainWindow, viewModel, coordinator, verificationDirectory, SaveVisualScreenshot);
+            }
+
             PrivacySafeLog.Write("Startup: UI demo screenshots were created.");
             Shutdown();
         }
@@ -157,12 +169,12 @@ public partial class App : System.Windows.Application
         }
     }
 
-    private static void SaveVisualScreenshot(FrameworkElement visual, string screenshotPath)
+    private static void SaveVisualScreenshot(FrameworkElement visual, string screenshotPath, double scale = 1d)
     {
         visual.UpdateLayout();
-        int width = Math.Max(1, (int)Math.Ceiling(visual.ActualWidth));
-        int height = Math.Max(1, (int)Math.Ceiling(visual.ActualHeight));
-        var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+        int width = Math.Max(1, (int)Math.Ceiling(visual.ActualWidth * scale));
+        int height = Math.Max(1, (int)Math.Ceiling(visual.ActualHeight * scale));
+        var bitmap = new RenderTargetBitmap(width, height, 96 * scale, 96 * scale, PixelFormats.Pbgra32);
         bitmap.Render(visual);
 
         string? directory = Path.GetDirectoryName(screenshotPath);

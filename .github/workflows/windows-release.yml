@@ -85,13 +85,14 @@ jobs:
           $colorPickerScreenshot = Join-Path $PWD 'ci-diagnostics/color-picker.png'
           $mirrorPreviewScreenshot = Join-Path $PWD 'ci-diagnostics/mirror-preview.png'
           $compactViewScreenshot = Join-Path $PWD 'ci-diagnostics/compact-view.png'
+          $verificationDirectory = Join-Path $PWD 'ci-diagnostics/verification'
           if (-not (Test-Path $application)) {
             throw "Published application was not found: $application"
           }
-          $process = Start-Process -FilePath $application -ArgumentList "--ui-demo-screenshot=$screenshot", "--ui-color-picker-screenshot=$colorPickerScreenshot", "--ui-mirror-preview-screenshot=$mirrorPreviewScreenshot", "--ui-compact-view-screenshot=$compactViewScreenshot" -PassThru
-          if (-not $process.WaitForExit(30000)) {
+          $process = Start-Process -FilePath $application -ArgumentList "--ui-demo-screenshot=$screenshot", "--ui-color-picker-screenshot=$colorPickerScreenshot", "--ui-mirror-preview-screenshot=$mirrorPreviewScreenshot", "--ui-compact-view-screenshot=$compactViewScreenshot", "--ui-verification-directory=$verificationDirectory" -PassThru
+          if (-not $process.WaitForExit(120000)) {
             Stop-Process -Id $process.Id -Force
-            throw 'The published WPF application did not exit from UI demo screenshot mode within 30 seconds.'
+            throw 'The published WPF application did not finish Windows verification within two minutes.'
           }
           if ($process.ExitCode -ne 0) {
             throw "The published WPF application UI demo smoke test failed with exit code $($process.ExitCode)."
@@ -107,6 +108,10 @@ jobs:
           }
           if (-not (Test-Path $compactViewScreenshot)) {
             throw 'The published WPF application did not produce the expected compact-view screenshot.'
+          }
+          $report = Get-Content (Join-Path $verificationDirectory 'verification.json') -Raw | ConvertFrom-Json
+          if (-not $report.Passed -or $report.Checks.Count -lt 6) {
+            throw 'Windows functional and UI verification did not pass.'
           }
 
       - name: Collect application diagnostics
@@ -147,7 +152,11 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ui-demo-preview
-          path: ci-diagnostics/*.png
+          path: |
+            ci-diagnostics/**/*.png
+            ci-diagnostics/verification/verification.json
+            !ci-diagnostics/verification/isolated-storage/**
+          # Do not upload the isolated synthetic credential/cache fixtures.
           if-no-files-found: ignore
 
       - name: Upload build diagnostics on failure

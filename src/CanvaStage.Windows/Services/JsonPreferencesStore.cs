@@ -9,9 +9,9 @@ public sealed class JsonPreferencesStore
     private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
     private readonly string _settingsPath;
 
-    public JsonPreferencesStore()
+    public JsonPreferencesStore(string? directory = null)
     {
-        string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CanvaStage");
+        directory ??= Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CanvaStage");
         _settingsPath = Path.Combine(directory, "preferences.json");
     }
 

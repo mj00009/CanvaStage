@@ -9,9 +9,9 @@ public sealed class CanvaCredentialsStore
 {
     private readonly string _credentialsPath;
 
-    public CanvaCredentialsStore()
+    public CanvaCredentialsStore(string? directory = null)
     {
-        string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CanvaStage");
+        directory ??= Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CanvaStage");
         _credentialsPath = Path.Combine(directory, "canva.credentials.protected");
     }
 

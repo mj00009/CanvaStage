@@ -58,6 +58,16 @@ public partial class OutputWindow : Window
         Activate();
     }
 
+    internal void VerifyTextFit(double pixelsPerDip)
+    {
+        UpdateLayout();
+        _viewModel.FitPrimaryText(PrimaryTextHost.ActualWidth, PrimaryTextHost.ActualHeight, pixelsPerDip);
+        UpdateLayout();
+        if (_viewModel.IsMonitor && !_viewModel.ShowFallbackImage
+            && !_viewModel.PrimaryTextFits(PrimaryTextHost.ActualWidth, PrimaryTextHost.ActualHeight, pixelsPerDip))
+            throw new InvalidOperationException("Confidence output text is clipped in the verification scenario.");
+    }
+
     protected override void OnClosed(EventArgs eventArgs)
     {
         SizeChanged -= OnOutputSizeChanged;

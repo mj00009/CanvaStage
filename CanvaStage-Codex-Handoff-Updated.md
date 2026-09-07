@@ -1,5 +1,11 @@
 # Canva Stage: Codex Development Handoff (Updated)
 
+## Current delivery status — v0.6.0
+
+Phases 1–2 are implemented. Assisted tracking now uses Windows accessibility, replacing the original image-matching implementation plan. v0.6.0 adds design-ID/title matching, explicit Presenter-window confirmation, visible sync states, temporary pause/resume, automatic retry recovery, and expanded Windows verification. Page count alone never authorizes following. Original acceptance checkboxes below are historical hardware/real-account sign-off items, not an unimplemented-feature list; use `docs/v0.6.0-acceptance.md` for the current checklist.
+
+Saved presentation content and DPAPI-protected Canva credentials survive ordinary app closure. Disconnect deliberately removes credentials. Presentation imports use immutable image-cache generations so a refresh cannot overwrite an image being displayed. Smaller header/footer text blocks are excluded by selecting the dominant text block. These decisions supersede any earlier all-text or clear-on-close assumptions.
+
 ## Product summary
 
 **Canva Stage** is a Windows desktop application for church operators using Canva presentations. It provides an independently controlled confidence-monitor output for people on stage, while the congregation continues to see the regular Canva presentation.
@@ -25,7 +31,7 @@ The first release is **Windows-first**. It is a native desktop app, not a web da
 - A main operator window and an independent confidence-output window.
 - Display selection, maximize-to-selected-display behavior, Preview in a window, and recovery from display changes.
 - Mirror and Monitor output modes.
-- Image-based live-slide inference from the chosen Canva presentation display, with clear confidence status and manual fallback.
+- Accessibility-based Presenter following with explicit identity checks, sync status, and manual fallback. Display capture/image matching is an optional future fallback.
 - GitHub Actions builds for self-contained Windows x64 releases.
 
 ### Out of scope for the first release
@@ -133,24 +139,26 @@ Toggling Mirror/Monitor must update the confidence-output window immediately wit
 
 ## Slide source and live tracking
 
-The app retrieves Canva presentation/page information and page renderings after the user authorizes Canva access. It uses the selected Canva presentation display as an optional live signal to infer the currently presented page.
+The app retrieves Canva presentation/page information and page renderings after the user authorizes Canva access. It reads the page counter and available document identity from Canva Presenter through Windows accessibility.
 
 ### Tracking model
 
-1. Retrieve ordered Canva page metadata, renderings/thumbnails, and eligible text content.
-2. Capture the selected Windows display that is showing the live Canva presentation.
-3. Compare the captured image with the known page renderings to infer the current page.
-4. Use the following page in the selected Canva order as the next page.
+1. Retrieve ordered Canva pages, thumbnails, and dominant text content; remove hidden slides from local numbering.
+2. Discover Presenter windows and their accessible page counters and document identity.
+3. Match a Canva design ID when exposed, otherwise match the exact normalized presentation title. If matching is ambiguous or unavailable, require an operator-confirmed window. A known wrong design or visible-page count blocks following.
+4. Follow only accepted pages; keep the last selected page when the source becomes unavailable. Use the following visible page as the next page.
+5. Pause following on manual page navigation. Resume uses a fresh reading; disabled updates and previous scan generations cannot change the page. Retry scan exceptions with bounded backoff.
 
-This is an inference, not a guaranteed Canva live-slide event feed. Always present an honest state:
+This is not a guaranteed Canva live-slide event feed. Present honest states in Live control and compact mode:
 
-- **Tracking** — a current page has been recognized above the configured confidence threshold.
-- **Uncertain** — a likely page exists but is not reliable enough to present as certain.
-- **Not tracking** — no recognizable Canva page is found, capture is unavailable, or no source display is selected.
+- **Following Canva** — the selected source passed identity/confirmation and page-count checks.
+- **Choose Presenter window / Presentation mismatch** — identity is ambiguous, unavailable, or incompatible.
+- **Waiting for Presenter / Reconnecting to Presenter** — no current acceptable signal or a retry is pending.
+- **Paused — manual control / Manual control** — the operator has paused following or disabled automatic sync.
 
-Provide a manual fallback that lets the operator select the current page and step backward/forward. The manual selection must keep the output useful if tracking is Uncertain or Not tracking.
+Provide a manual fallback that lets the operator select the current page and step backward/forward. Manual navigation pauses following so it cannot be immediately overwritten.
 
-Before release, define and test measurable behavior for tracking latency, confidence threshold, animations/transitions, video pages, blank pages, overlays, and the supported Canva Present-mode/display setup.
+Real-machine acceptance must cover latency, browser/desktop provider support, wrong decks with equal page counts, multiple windows, restart recovery, and mixed-DPI displays. Image confidence thresholds and screen-content recognition belong to a future optional image-matching fallback.
 
 ## Styles and visual design
 
@@ -225,10 +233,10 @@ For local Windows development/release packages, include an easy `Build Windows A
 
 ### Phase 3 — Assisted live tracking
 
-- Selected-display capture and page-image matching.
-- Tracking/Uncertain/Not tracking status.
-- Manual current-page selection and forward/back controls.
-- Tested behavior for the supported Canva presentation scenario.
+- Implemented: automatic accessibility discovery, design-ID/title matching, explicit source confirmation, manual pause/resume, and retry recovery.
+- Implemented: visible Following/Waiting/Manual/Paused/Mismatch/Recovering states and deterministic regression checks.
+- Remaining acceptance: real Canva/provider and physical display testing as documented in `docs/v0.6.0-acceptance.md`.
+- Deferred alternative: selected-display capture and page-image matching if a required Presenter setup lacks accessible counters.
 
 ### Phase 4 — Production refinement and future macOS work
 

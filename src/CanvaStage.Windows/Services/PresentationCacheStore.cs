@@ -10,9 +10,9 @@ public sealed class PresentationCacheStore
     private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
     private readonly string _cachePath;
 
-    public PresentationCacheStore()
+    public PresentationCacheStore(string? directory = null)
     {
-        string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CanvaStage", "cache");
+        directory ??= Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CanvaStage", "cache");
         _cachePath = Path.Combine(directory, "presentation.json");
     }
 

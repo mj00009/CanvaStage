@@ -123,6 +123,8 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
     }
 
     public void Dispose() => _coordinator.SnapshotChanged -= OnSnapshotChanged;
+    internal bool PrimaryTextFits(double width, double height, double pixelsPerDip)
+        => FitsPrimaryText(FittedFontSize, width, height, pixelsPerDip);
 
     private static Brush BrushFrom(string value)
     {

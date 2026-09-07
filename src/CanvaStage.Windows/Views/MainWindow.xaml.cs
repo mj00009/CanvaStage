@@ -15,6 +15,8 @@ public partial class MainWindow : Window
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = viewModel;
+        viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        SizeChanged += (_, _) => UpdateResponsiveLayout();
     }
 
     protected override void OnClosing(CancelEventArgs eventArgs)
@@ -34,6 +36,7 @@ public partial class MainWindow : Window
         }
 
         _viewModel.PrepareToClose();
+        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         base.OnClosing(eventArgs);
     }
 
@@ -55,6 +58,12 @@ public partial class MainWindow : Window
         {
             _viewModel.SetCanvaClientSecret(passwordBox.Password);
         }
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    {
+        if (eventArgs.PropertyName == nameof(MainViewModel.ShowSecretInput) && !_viewModel.ShowSecretInput)
+            CanvaSecretInput.Clear();
     }
 
     private void PickColor(string initialValue, Action<string> apply)
@@ -83,11 +92,11 @@ public partial class MainWindow : Window
             _fullViewBounds = RestoreBounds;
             WindowState = WindowState.Normal;
             MinWidth = 320;
-            MinHeight = 240;
+            MinHeight = 300;
 
             Rect workArea = SystemParameters.WorkArea;
             Width = Math.Clamp(workArea.Width * 0.20d, 320d, 400d);
-            Height = Math.Clamp(workArea.Height * 0.20d, 240d, 280d);
+            Height = Math.Clamp(workArea.Height * 0.25d, 300d, 340d);
             Left = Math.Max(workArea.Left, workArea.Right - Width - 16d);
             Top = workArea.Top + 16d;
             FullViewRoot.Visibility = Visibility.Collapsed;
@@ -102,8 +111,8 @@ public partial class MainWindow : Window
 
         CompactViewRoot.Visibility = Visibility.Collapsed;
         FullViewRoot.Visibility = Visibility.Visible;
-        MinWidth = 1060;
-        MinHeight = 720;
+        MinWidth = 600;
+        MinHeight = 420;
         if (_fullViewWindowState == WindowState.Maximized)
         {
             WindowState = WindowState.Maximized;
@@ -119,5 +128,18 @@ public partial class MainWindow : Window
         }
 
         WindowState = _fullViewWindowState;
+    }
+
+    private void UpdateResponsiveLayout()
+    {
+        bool narrow = ActualWidth < 900;
+        SidebarColumn.Width = new GridLength(narrow ? 0 : ActualWidth < 1250 ? 230 : 286);
+        Sidebar.Visibility = narrow ? Visibility.Collapsed : Visibility.Visible;
+        NarrowNavigation.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
+        MainContent.Margin = new Thickness(ActualWidth < 1250 ? 16 : 30, 20, 16, 20);
+        bool stacked = ActualWidth < 1250;
+        LiveOptionsColumn.Width = new GridLength(stacked ? 0 : 300);
+        System.Windows.Controls.Grid.SetRow(LiveOptionsPanel, stacked ? 1 : 0);
+        System.Windows.Controls.Grid.SetColumn(LiveOptionsPanel, stacked ? 0 : 1);
     }
 }

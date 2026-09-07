@@ -22,14 +22,17 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
     private readonly CanvaCredentialsStore _credentialsStore;
     private readonly HttpClient _httpClient;
     private string? _lastPresentationId;
+    private readonly string _cacheRoot;
 
     public event EventHandler<CanvaLoadProgress>? LoadProgressChanged;
 
-    public CanvaConnectService(CanvaCredentialsStore credentialsStore)
+    public CanvaConnectService(CanvaCredentialsStore credentialsStore, HttpClient? httpClient = null, string? cacheRoot = null)
     {
         _credentialsStore = credentialsStore;
-        _httpClient = new HttpClient { BaseAddress = new Uri(ApiBaseUrl), Timeout = TimeSpan.FromSeconds(30) };
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("CanvaStage/0.3");
+        _httpClient = httpClient ?? new HttpClient { BaseAddress = new Uri(ApiBaseUrl), Timeout = TimeSpan.FromSeconds(30) };
+        _httpClient.BaseAddress ??= new Uri(ApiBaseUrl);
+        _cacheRoot = cacheRoot ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CanvaStage", "cache");
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("CanvaStage/0.6");
     }
 
     public bool HasSavedConfiguration => _credentialsStore.Load() is not null;
@@ -199,6 +202,10 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         IReadOnlyList<PptxSlideContent> visibleSlides = extractedSlides.Where(static slide => !slide.IsHidden).ToList();
         int hiddenSlideCount = extractedSlides.Count - visibleSlides.Count;
         var pages = new List<PresentationPage>();
+        // Each import is immutable. A preview or another app instance may still hold the
+        // previous generation open; never overwrite images belonging to a working deck.
+        string safePresentationId = string.Concat(presentationId.Where(char.IsLetterOrDigit));
+        string imageDirectory = Path.Combine(_cacheRoot, safePresentationId, Guid.NewGuid().ToString("N"));
         int totalPageCount = hiddenSlideCount > 0 ? visibleSlides.Count : Math.Max(extractedSlides.Count, pageMetadata.Count);
         string hiddenSlideProgress = hiddenSlideCount > 0 ? $"; {hiddenSlideCount} hidden skipped" : string.Empty;
         ReportLoadProgress($"Caching Canva page images (0 of {totalPageCount}{hiddenSlideProgress})…", 0d);
@@ -211,7 +218,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
             IReadOnlyList<string> textBlocks = slide?.TextBlocks ?? [];
             PageResponse? metadata = pageMetadata.FirstOrDefault(page => page.PageNumber == sourcePageNumber);
             string? fallbackImagePath = metadata?.Thumbnail?.Url is not null
-                ? await DownloadPageImageAsync(presentationId, sourcePageNumber, metadata.Thumbnail.Url, cancellationToken).ConfigureAwait(false)
+                ? await DownloadPageImageAsync(imageDirectory, sourcePageNumber, metadata.Thumbnail.Url, cancellationToken).ConfigureAwait(false)
                 : null;
             string title = textBlocks.FirstOrDefault() ?? $"Page {pageNumber}";
             pages.Add(new PresentationPage(pageNumber, title, textBlocks, "#0D0E10", "#75E6C8", textBlocks.Count > 0, fallbackImagePath, metadata?.Id));
@@ -332,13 +339,11 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         throw new CanvaConnectException("Canva is still preparing this presentation after five minutes. The selected presentation was not changed; try Apply again.");
     }
 
-    private async Task<string?> DownloadPageImageAsync(string presentationId, int pageNumber, string url, CancellationToken cancellationToken)
+    private async Task<string?> DownloadPageImageAsync(string directory, int pageNumber, string url, CancellationToken cancellationToken)
     {
         try
         {
             byte[] image = await _httpClient.GetByteArrayAsync(url, cancellationToken).ConfigureAwait(false);
-            string safePresentationId = string.Concat(presentationId.Where(char.IsLetterOrDigit));
-            string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CanvaStage", "cache", safePresentationId);
             Directory.CreateDirectory(directory);
             string path = Path.Combine(directory, $"page-{pageNumber}.png");
             await File.WriteAllBytesAsync(path, image, cancellationToken).ConfigureAwait(false);
@@ -394,9 +399,10 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
 
     private async Task<AuthorizationResponse> ReceiveAuthorizationResponseAsync(HttpListener listener, string expectedState, CancellationToken cancellationToken)
     {
+        Task<HttpListenerContext> pendingContext = listener.GetContextAsync();
         try
         {
-            HttpListenerContext context = await listener.GetContextAsync().WaitAsync(TimeSpan.FromMinutes(5), cancellationToken).ConfigureAwait(false);
+            HttpListenerContext context = await pendingContext.WaitAsync(TimeSpan.FromMinutes(5), cancellationToken).ConfigureAwait(false);
             string? code = context.Request.QueryString["code"];
             string? state = context.Request.QueryString["state"];
             string? error = context.Request.QueryString["error"];
@@ -417,6 +423,16 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         catch (TimeoutException)
         {
             throw new CanvaConnectException("Canva authorization timed out. Try Connect again when you are ready.");
+        }
+        finally
+        {
+            if (!pendingContext.IsCompleted)
+            {
+                listener.Stop();
+                try { await pendingContext.ConfigureAwait(false); }
+                catch (HttpListenerException) { /* Stopping a pending callback is expected on timeout or cancellation. */ }
+                catch (ObjectDisposedException) { /* Observe the pending callback before listener disposal. */ }
+            }
         }
     }
 

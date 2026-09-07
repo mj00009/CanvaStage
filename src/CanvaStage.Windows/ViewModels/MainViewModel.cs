@@ -21,7 +21,7 @@ public sealed class MainViewModel : ViewModelBase
     private readonly JsonPreferencesStore _preferencesStore;
     private readonly PresentationCacheStore _presentationCacheStore;
     private readonly CanvaConnectService _canva;
-    private readonly CanvaPresenterAccessibilityTracker _canvaPresenterAccessibilityTracker;
+    private readonly ICanvaPresenterTracker _canvaPresenterAccessibilityTracker;
     private OutputSnapshot _snapshot;
     private DisplayOption? _selectedDisplay;
     private CanvaPresentation? _selectedCanvaPresentation;
@@ -41,8 +41,16 @@ public sealed class MainViewModel : ViewModelBase
     private string _canvaDownloadDescription = string.Empty;
     private bool _isPresenterSyncEnabled;
     private string _canvaPresenterTrackingStatus = "Automatic Presenter sync is starting…";
+    private bool _isPresenterSyncPaused;
+    private bool _isClosing;
+    private bool _isEditingCanvaSecret;
+    private PresenterSyncState _presenterSyncState = PresenterSyncState.Waiting;
+    private string? _confirmedPresenterKey;
+    private PresenterSource? _selectedPresenterSource;
+    private CanvaPresenterTrackingUpdate? _lastPresenterUpdate;
+    private readonly System.Windows.Threading.DispatcherTimer _presenterHealthTimer = new() { Interval = TimeSpan.FromSeconds(1) };
 
-    public MainViewModel(IOutputCoordinator coordinator, OutputWindowManager outputWindowManager, DisplayService displayService, JsonPreferencesStore preferencesStore, PresentationCacheStore presentationCacheStore, CanvaConnectService canva, CanvaPresenterAccessibilityTracker canvaPresenterAccessibilityTracker, AppPreferences preferences)
+    public MainViewModel(IOutputCoordinator coordinator, OutputWindowManager outputWindowManager, DisplayService displayService, JsonPreferencesStore preferencesStore, PresentationCacheStore presentationCacheStore, CanvaConnectService canva, ICanvaPresenterTracker canvaPresenterAccessibilityTracker, AppPreferences preferences)
     {
         _coordinator = coordinator;
         _outputWindowManager = outputWindowManager;
@@ -75,8 +83,11 @@ public sealed class MainViewModel : ViewModelBase
         PreviewCommand = new RelayCommand(ShowPreview);
         StartOutputCommand = new RelayCommand(StartOutput, CanStartOutput);
         StopOutputCommand = new RelayCommand(StopOutput, () => Snapshot.IsLive);
-        PreviousPageCommand = new RelayCommand(_coordinator.GoPrevious, () => Snapshot.CanGoPrevious);
-        NextPageCommand = new RelayCommand(_coordinator.GoNext, () => Snapshot.CanGoNext);
+        PreviousPageCommand = new RelayCommand(() => { PauseForManualNavigation(); _coordinator.GoPrevious(); }, () => Snapshot.CanGoPrevious);
+        NextPageCommand = new RelayCommand(() => { PauseForManualNavigation(); _coordinator.GoNext(); }, () => Snapshot.CanGoNext);
+        TogglePresenterSyncCommand = new RelayCommand(TogglePresenterSync);
+        ConfirmPresenterWindowCommand = new RelayCommand(ConfirmPresenterWindow, () => SelectedPresenterSource is not null);
+        AutomaticPresenterWindowCommand = new RelayCommand(() => { _confirmedPresenterKey = null; ReevaluatePresenterSync(); });
         RefreshDisplaysCommand = new RelayCommand(RefreshDisplays);
         TestSetupCommand = new RelayCommand(ShowSetupDiagnostics);
         ConnectCanvaCommand = new AsyncRelayCommand(ConnectCanvaAsync, () => !IsCanvaBusy);
@@ -87,11 +98,21 @@ public sealed class MainViewModel : ViewModelBase
         UseDemoDeckCommand = new RelayCommand(UseDemoDeck);
         CopyRedirectUrlCommand = new RelayCommand(CopyRedirectUrl);
         OpenCanvaDeveloperPortalCommand = new RelayCommand(OpenCanvaDeveloperPortal);
+        SaveCanvaConfigurationCommand = new AsyncRelayCommand(() => RunCanvaActionAsync(() =>
+        {
+            SaveCanvaConfiguration();
+            CanvaConnectionStatus = _canva.IsConnected ? "Configuration saved securely. Canva remains connected."
+                : "Configuration saved securely for this Windows account. Connect Canva to authorize it.";
+            return Task.CompletedTask;
+        }, message => CanvaConnectionStatus = message), () => !IsCanvaBusy);
+        ReplaceCanvaSecretCommand = new RelayCommand(() => { _isEditingCanvaSecret = true; NotifySecretState(); });
         SelectedDisplay = Displays.FirstOrDefault(display => display.Id == preferences.SelectedDisplayId) ?? Displays.FirstOrDefault();
         _coordinator.SnapshotChanged += OnSnapshotChanged;
         _canva.LoadProgressChanged += OnCanvaLoadProgressChanged;
         _canvaPresenterAccessibilityTracker.TrackingUpdated += OnCanvaPresenterTrackingUpdated;
         ApplyPresenterSyncPreference();
+        _presenterHealthTimer.Tick += OnPresenterHealthTick;
+        _presenterHealthTimer.Start();
     }
 
     public ObservableCollection<DisplayOption> Displays { get; }
@@ -113,6 +134,36 @@ public sealed class MainViewModel : ViewModelBase
     public ICommand UseDemoDeckCommand { get; }
     public ICommand CopyRedirectUrlCommand { get; }
     public ICommand OpenCanvaDeveloperPortalCommand { get; }
+    public ICommand SaveCanvaConfigurationCommand { get; }
+    public ICommand ReplaceCanvaSecretCommand { get; }
+    public bool HasSavedCanvaSecret => _canva.HasSavedConfiguration && string.Equals(_canva.ConfiguredClientId, CanvaClientId.Trim(), StringComparison.Ordinal);
+    public bool ShowSecretInput => _isEditingCanvaSecret || !HasSavedCanvaSecret;
+    public string SavedSecretDescription => HasSavedCanvaSecret
+        ? "••••••••  Saved securely. Reused automatically after reopening; no need to enter it again."
+        : "Enter once, then Save configuration. Stored securely for this Windows account.";
+    public ICommand TogglePresenterSyncCommand { get; }
+    public RelayCommand ConfirmPresenterWindowCommand { get; }
+    public ICommand AutomaticPresenterWindowCommand { get; }
+    public ObservableCollection<PresenterSource> PresenterSources { get; } = [];
+    public PresenterSource? SelectedPresenterSource
+    {
+        get => _selectedPresenterSource;
+        set { if (SetProperty(ref _selectedPresenterSource, value)) ConfirmPresenterWindowCommand.RaiseCanExecuteChanged(); }
+    }
+    public string PresenterSyncSummary => _presenterSyncState switch
+    {
+        PresenterSyncState.Following => "Following Canva",
+        PresenterSyncState.Paused => "Paused — manual control",
+        PresenterSyncState.Manual => "Manual control",
+        PresenterSyncState.ChooseWindow => "Choose Presenter window",
+        PresenterSyncState.Mismatch => "Presentation mismatch",
+        PresenterSyncState.Recovering => "Reconnecting to Presenter",
+        _ => "Waiting for Presenter"
+    };
+    public Brush PresenterSyncBrush => _presenterSyncState == PresenterSyncState.Following
+        ? BrushFrom("#74E5A2", Brushes.LightGreen) : BrushFrom("#E5C07B", Brushes.Goldenrod);
+    public string PresenterSyncButtonText => !IsPresenterSyncEnabled || _isPresenterSyncPaused ? "Resume sync" : "Pause sync";
+    public bool IsPresenterWindowChoiceNeeded => _presenterSyncState is PresenterSyncState.ChooseWindow or PresenterSyncState.Mismatch;
     public string RedirectUrl => CanvaConnectService.RedirectUrl;
     public bool IsCanvaPresenterTracking => _canvaPresenterAccessibilityTracker.IsTracking;
     public bool IsPresenterSyncEnabled
@@ -139,7 +190,7 @@ public sealed class MainViewModel : ViewModelBase
     public OperatorSection ActiveSection
     {
         get => _activeSection;
-        private set
+        set
         {
             if (!SetProperty(ref _activeSection, value)) return;
             OnPropertyChanged(nameof(IsLiveControlSelected));
@@ -214,7 +265,7 @@ public sealed class MainViewModel : ViewModelBase
         }
     }
 
-    public int CurrentPageNumber { get => Snapshot.SelectedPageNumber; set => _coordinator.SelectPage(value); }
+    public int CurrentPageNumber { get => Snapshot.SelectedPageNumber; set { if (value != Snapshot.SelectedPageNumber) { PauseForManualNavigation(); _coordinator.SelectPage(value); } } }
     public int PageCount => Snapshot.Document.Pages.Count;
     public string PageLabel => $"Page {CurrentPageNumber} of {PageCount}";
     public string CurrentPageText => $"Page {CurrentPageNumber} of {PageCount}";
@@ -294,7 +345,7 @@ public sealed class MainViewModel : ViewModelBase
     public Brush PreviewBackgroundBrush => BrushFrom(BackgroundColor, Brushes.Black);
     public Brush PreviewTextBrush => BrushFrom(TextColor, Brushes.White);
     public Brush PreviewAccentBrush => BrushFrom(AccentColor, Brushes.MediumPurple);
-    public string CanvaClientId { get => _canvaClientId; set => SetProperty(ref _canvaClientId, value); }
+    public string CanvaClientId { get => _canvaClientId; set { if (SetProperty(ref _canvaClientId, value)) NotifySecretState(); } }
     public string CanvaConnectionStatus
     {
         get => _canvaConnectionStatus;
@@ -372,8 +423,25 @@ public sealed class MainViewModel : ViewModelBase
     }
 
     public void SetCanvaClientSecret(string value) => _canvaClientSecret = value;
+    private void NotifySecretState()
+    {
+        OnPropertyChanged(nameof(HasSavedCanvaSecret));
+        OnPropertyChanged(nameof(ShowSecretInput));
+        OnPropertyChanged(nameof(SavedSecretDescription));
+    }
+
+    private void SaveCanvaConfiguration()
+    {
+        _canva.SaveConfiguration(CanvaClientId, _canvaClientSecret);
+        _canvaClientSecret = string.Empty;
+        _isEditingCanvaSecret = false;
+        NotifySecretState();
+    }
     public void PrepareToClose()
     {
+        _isClosing = true;
+        _presenterHealthTimer.Stop();
+        _presenterHealthTimer.Tick -= OnPresenterHealthTick;
         _coordinator.SnapshotChanged -= OnSnapshotChanged;
         _canva.LoadProgressChanged -= OnCanvaLoadProgressChanged;
         _canvaPresenterAccessibilityTracker.TrackingUpdated -= OnCanvaPresenterTrackingUpdated;
@@ -393,15 +461,17 @@ public sealed class MainViewModel : ViewModelBase
 
     private void ApplyPresenterSyncPreference()
     {
+        _isPresenterSyncPaused = false;
+        _lastPresenterUpdate = null;
         if (IsPresenterSyncEnabled)
         {
             _canvaPresenterAccessibilityTracker.Start();
-            CanvaPresenterTrackingStatus = "Automatic Presenter sync is on. Waiting for Canva Presenter View…";
+            SetPresenterState(PresenterSyncState.Waiting, "Waiting for Canva Presenter View…");
         }
         else
         {
             _canvaPresenterAccessibilityTracker.Stop();
-            CanvaPresenterTrackingStatus = "Automatic Presenter sync is off. Manual page controls remain available.";
+            SetPresenterState(PresenterSyncState.Manual, "Automatic Presenter sync is off. Use manual page controls or Resume sync.");
         }
 
         OnPropertyChanged(nameof(IsCanvaPresenterTracking));
@@ -425,7 +495,7 @@ public sealed class MainViewModel : ViewModelBase
     private async Task ConnectCanvaAsync() => await RunCanvaActionAsync(async () =>
     {
         CanvaConnectionStatus = "Opening Canva authorization in your browser…";
-        _canva.SaveConfiguration(CanvaClientId, _canvaClientSecret);
+        SaveCanvaConfiguration();
         await _canva.ConnectAsync();
         _canvaClientSecret = string.Empty;
         CanvaConnectionStatus = "Connected. Refreshing presentations…";
@@ -434,7 +504,7 @@ public sealed class MainViewModel : ViewModelBase
 
     private async Task TestCanvaAsync() => await RunCanvaActionAsync(async () =>
     {
-        _canva.SaveConfiguration(CanvaClientId, _canvaClientSecret);
+        SaveCanvaConfiguration();
         CanvaConnectionStatus = "Testing the Canva connection…";
         await _canva.TestAsync();
         _canvaClientSecret = string.Empty;
@@ -528,6 +598,8 @@ public sealed class MainViewModel : ViewModelBase
         catch (CanvaConnectException exception) { PrivacySafeLog.Write($"Canva action failed: {exception.Message}"); setFailureStatus(exception.Message); }
         catch (HttpRequestException) { PrivacySafeLog.Write("Canva request could not reach the service."); setFailureStatus("Canva could not be reached. Check the internet connection and try again."); }
         catch (OperationCanceledException) { PrivacySafeLog.Write("Canva action was cancelled."); setFailureStatus("The Canva action was cancelled."); }
+        catch (System.IO.IOException exception) { PrivacySafeLog.WriteException("Canva presentation storage failed", exception); setFailureStatus("CanvaStage could not save the downloaded presentation. Check free disk space and try Apply again. The previous presentation remains available."); }
+        catch (UnauthorizedAccessException exception) { PrivacySafeLog.WriteException("Canva storage access denied", exception); setFailureStatus("Windows blocked access to CanvaStage's local storage. Check folder permissions and try again."); }
         finally { IsCanvaBusy = false; }
     }
 
@@ -576,37 +648,103 @@ public sealed class MainViewModel : ViewModelBase
 
     private void ApplyCanvaPresenterTrackingUpdate(CanvaPresenterTrackingUpdate update)
     {
-        OnPropertyChanged(nameof(IsCanvaPresenterTracking));
-        if (update.State != CanvaPresenterTrackingState.PageDetected
-            || update.CurrentPage is null
-            || update.TotalPages is null)
+        if (_isClosing || !IsPresenterSyncEnabled || update.Generation != _canvaPresenterAccessibilityTracker.Generation) return;
+        _lastPresenterUpdate = update;
+        IReadOnlyList<PresenterSource> sources = update.Sources ?? [];
+        if (!PresenterSources.Select(source => source.Key).SequenceEqual(sources.Select(source => source.Key)))
         {
-            CanvaPresenterTrackingStatus = update.Message;
-            return;
+            string? selectedKey = SelectedPresenterSource?.Key;
+            PresenterSources.Clear();
+            foreach (PresenterSource source in sources) PresenterSources.Add(source);
+            SelectedPresenterSource = PresenterSources.FirstOrDefault(source => source.Key == selectedKey);
         }
-
-        int loadedPageCount = Snapshot.Document.Pages.Count;
-        if (update.TotalPages.Value != loadedPageCount)
-        {
-            CanvaPresenterTrackingStatus = $"Canva Presenter reports {update.TotalPages.Value} pages, but CanvaStage has {loadedPageCount}. Apply the matching presentation to enable automatic sync.";
-            return;
-        }
-
-        if (Snapshot.Document.FindPage(update.CurrentPage.Value) is null)
-        {
-            CanvaPresenterTrackingStatus = $"Presenter page {update.CurrentPage.Value} is not available in the applied CanvaStage presentation.";
-            return;
-        }
-
-        _coordinator.SelectPage(update.CurrentPage.Value);
-        CanvaPresenterTrackingStatus = $"Synced to presenter page {update.CurrentPage.Value} at {update.ObservedAt.ToLocalTime():h:mm:ss tt}.";
+        ReevaluatePresenterSync();
     }
 
+    private void ReevaluatePresenterSync()
+    {
+        OnPropertyChanged(nameof(IsCanvaPresenterTracking));
+        if (!IsPresenterSyncEnabled)
+        {
+            SetPresenterState(PresenterSyncState.Manual, "Automatic Presenter sync is off. Use manual page controls or Resume sync.");
+            return;
+        }
+        if (_isPresenterSyncPaused)
+        {
+            SetPresenterState(PresenterSyncState.Paused, "Sync is paused. Manual page changes stay in place until you choose Resume sync.");
+            return;
+        }
+        CanvaPresenterTrackingUpdate? update = _lastPresenterUpdate;
+        if (update is null || DateTimeOffset.UtcNow - update.ObservedAt > TimeSpan.FromSeconds(3))
+        {
+            SetPresenterState(PresenterSyncState.Waiting, "Waiting for a fresh Presenter update…");
+            return;
+        }
+        if (update.State != CanvaPresenterTrackingState.PageDetected)
+        {
+            SetPresenterState(update.State == CanvaPresenterTrackingState.Error ? PresenterSyncState.Recovering : PresenterSyncState.Waiting, update.Message);
+            return;
+        }
+        PresenterSyncDecision decision = PresenterSourceResolver.Resolve(update.Sources ?? [], Snapshot.Document.Id,
+            Snapshot.Document.Title, Snapshot.Document.Pages.Count, _confirmedPresenterKey);
+        SetPresenterState(decision.State, decision.Message);
+        if (decision.Source is not null && Snapshot.SelectedPageNumber != decision.Source.CurrentPage)
+            _coordinator.SelectPage(decision.Source.CurrentPage);
+    }
+
+    private void OnPresenterHealthTick(object? sender, EventArgs eventArgs)
+    {
+        if (_presenterSyncState == PresenterSyncState.Following && _lastPresenterUpdate is not null
+            && DateTimeOffset.UtcNow - _lastPresenterUpdate.ObservedAt > TimeSpan.FromSeconds(3))
+            ReevaluatePresenterSync();
+    }
+
+    private void SetPresenterState(PresenterSyncState state, string message)
+    {
+        if (_presenterSyncState != state) PrivacySafeLog.Write($"Presenter sync state: {state}.");
+        _presenterSyncState = state;
+        CanvaPresenterTrackingStatus = message;
+        OnPropertyChanged(nameof(PresenterSyncSummary));
+        OnPropertyChanged(nameof(PresenterSyncBrush));
+        OnPropertyChanged(nameof(PresenterSyncButtonText));
+        OnPropertyChanged(nameof(IsPresenterWindowChoiceNeeded));
+    }
+
+    private void PauseForManualNavigation()
+    {
+        if (!IsPresenterSyncEnabled) return;
+        _isPresenterSyncPaused = true;
+        ReevaluatePresenterSync();
+    }
+
+    private void TogglePresenterSync()
+    {
+        if (!IsPresenterSyncEnabled) { IsPresenterSyncEnabled = true; return; }
+        _isPresenterSyncPaused = !_isPresenterSyncPaused;
+        ReevaluatePresenterSync();
+    }
+
+    private void ConfirmPresenterWindow()
+    {
+        _confirmedPresenterKey = SelectedPresenterSource?.Key;
+        ReevaluatePresenterSync();
+    }
+
+    internal void ReceivePresenterUpdateForVerification(CanvaPresenterTrackingUpdate update)
+        => ApplyCanvaPresenterTrackingUpdate(update with { Generation = _canvaPresenterAccessibilityTracker.Generation });
+
     private void SetAppearance(MonitorAppearance appearance) => _coordinator.SetAppearance(appearance);
-    private void OnSnapshotChanged(object? sender, OutputSnapshot snapshot) { Snapshot = snapshot; Persist(); }
+    private void OnSnapshotChanged(object? sender, OutputSnapshot snapshot)
+    {
+        bool documentChanged = !ReferenceEquals(Snapshot.Document, snapshot.Document);
+        Snapshot = snapshot;
+        if (documentChanged) { _confirmedPresenterKey = null; ReevaluatePresenterSync(); }
+        Persist();
+    }
 
     private void NotifyReadinessChanged()
     {
+        NotifySecretState();
         OnPropertyChanged(nameof(SelectedPresentationSummary));
         OnPropertyChanged(nameof(LiveReadinessText));
         OnPropertyChanged(nameof(CanvaDiagnostic));
