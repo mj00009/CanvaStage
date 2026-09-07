@@ -49,7 +49,7 @@ internal static class WindowsReleaseVerification
         Require(viewModel.CurrentPageNumber == 1 && viewModel.PresenterSyncSummary.StartsWith("Paused"), "Manual navigation pauses following");
         viewModel.TogglePresenterSyncCommand.Execute(null);
         Require(viewModel.CurrentPageNumber == 3, "Resume uses current fresh Presenter page");
-        Feed([source, source with { Key = "window-2", CurrentPage = 1 }]);
+        Feed([source with { CurrentPage = 3 }, source with { Key = "window-2", CurrentPage = 1 }]);
         Require(!viewModel.IsPresenterWindowChoiceNeeded && viewModel.CurrentPageNumber == 3, "Previously followed automatic window remains stable when a duplicate appears");
         viewModel.AutomaticPresenterWindowCommand.Execute(null);
         Feed([source, source with { Key = "window-2", CurrentPage = 1 }]);
