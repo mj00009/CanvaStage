@@ -1,7 +1,9 @@
 using CanvaStage.Windows.ViewModels;
 using System.ComponentModel;
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Threading;
 
 namespace CanvaStage.Windows.Views;
@@ -11,6 +13,7 @@ public partial class OutputWindow : Window
     private readonly DispatcherTimer _clockTimer;
     private readonly OutputWindowViewModel _viewModel;
     private bool _isTextFitQueued;
+    private Rectangle? _displayBounds;
 
     public OutputWindow(OutputWindowViewModel viewModel)
     {
@@ -27,6 +30,7 @@ public partial class OutputWindow : Window
 
     public void SetPreviewPlacement()
     {
+        _displayBounds = null;
         WindowStyle = WindowStyle.SingleBorderWindow;
         ResizeMode = ResizeMode.CanResize;
         WindowState = WindowState.Normal;
@@ -37,6 +41,7 @@ public partial class OutputWindow : Window
 
     public void SetDisplayPlacement(Rectangle bounds)
     {
+        _displayBounds = bounds;
         WindowStyle = WindowStyle.None;
         ResizeMode = ResizeMode.NoResize;
         WindowStartupLocation = WindowStartupLocation.Manual;
@@ -55,7 +60,15 @@ public partial class OutputWindow : Window
         }
 
         Topmost = true;
+        ApplyNativeDisplayPlacement();
         Activate();
+    }
+
+    internal Rectangle GetNativeBounds()
+    {
+        nint handle = new WindowInteropHelper(this).Handle;
+        if (handle == 0 || !GetWindowRect(handle, out NativeRect bounds)) return Rectangle.Empty;
+        return Rectangle.FromLTRB(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
     }
 
     internal void VerifyTextFit(double pixelsPerDip)
@@ -126,5 +139,30 @@ public partial class OutputWindow : Window
         {
             Close();
         }
+    }
+
+    private void ApplyNativeDisplayPlacement()
+    {
+        if (_displayBounds is not Rectangle bounds) return;
+        nint handle = new WindowInteropHelper(this).Handle;
+        if (handle == 0) return;
+        SetWindowPos(handle, new nint(-1), bounds.Left, bounds.Top, bounds.Width, bounds.Height, 0x0040);
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowPos(nint hWnd, nint hWndInsertAfter, int x, int y, int cx, int cy, uint flags);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowRect(nint hWnd, out NativeRect bounds);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
     }
 }

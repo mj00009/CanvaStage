@@ -128,6 +128,14 @@ internal static class WindowsReleaseVerification
             && outputViewModel.NextLineFontWeight == FontWeights.Bold,
             "Output receives the configured next-line font style");
         output.Show();
+        System.Windows.Forms.Screen primaryScreen = System.Windows.Forms.Screen.PrimaryScreen
+            ?? throw new InvalidOperationException("Windows verification requires a primary display.");
+        output.SetDisplayPlacement(primaryScreen.Bounds);
+        output.ShowAndActivate();
+        await output.Dispatcher.InvokeAsync(() => output.UpdateLayout(), DispatcherPriority.ApplicationIdle);
+        Require(output.GetNativeBounds() == primaryScreen.Bounds, "Native fullscreen placement matches the selected display's physical pixel bounds");
+        output.SetPreviewPlacement();
+        checks.Add("Per-monitor-DPI fullscreen placement uses exact Windows display bounds");
         VerificationWindowSizing.Configure(output);
         try
         {
