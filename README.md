@@ -2,7 +2,7 @@
 
 Canva Stage is a Windows desktop confidence-monitor app for churches using Canva presentations. It gives people on stage a separate, readable output while the congregation continues to see the regular Canva presentation.
 
-> **Project status:** `v0.7.0` adds independent next-line styling and the CanvaStage application icon. The current development build restores the proven `v0.5.1` accessibility-spike tracking path after later identity matching proved unreliable. Releases remain unsigned.
+> **Project status:** `v0.7.1` restores the proven `v0.5.1` accessibility-spike tracking path after later identity matching proved unreliable. It retains the output styling and application icon added in `v0.7.0`. Releases remain unsigned.
 
 ## What it will do
 
