@@ -126,13 +126,14 @@ internal static class WindowsReleaseVerification
                 {
                     output.Width = 1920 / scale;
                     output.Height = 1080 / scale;
-                    await output.Dispatcher.InvokeAsync(() => output.VerifyTextFit(scale), DispatcherPriority.ApplicationIdle);
-                    capture(output, Path.Combine(directory, $"output-{layout}-{scale:0.00}.png"), scale);
+                    await output.Dispatcher.InvokeAsync(() => output.UpdateLayout(), DispatcherPriority.ApplicationIdle);
+                    FrameworkElement content = output.ArrangeForVerification(1920 / scale, 1080 / scale, scale);
+                    capture(content, Path.Combine(directory, $"output-{layout}-{scale:0.00}.png"), scale);
                 }
             }
             coordinator.SelectPage(2);
             coordinator.SetOutputMode(OutputMode.Mirror);
-            capture(output, Path.Combine(directory, "output-mirror.png"), 1);
+            capture(output.ArrangeForVerification(1280, 720, 1), Path.Combine(directory, "output-mirror.png"), 1);
         }
         finally { coordinator.StopOutput(); output.Close(); }
         checks.Add("All Monitor layouts with long text at maximum requested font size; measured text fit; Mirror output");

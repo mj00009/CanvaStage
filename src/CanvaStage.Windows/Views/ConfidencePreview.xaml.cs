@@ -46,21 +46,22 @@ public partial class ConfidencePreview : UserControl
         Dispatcher.BeginInvoke(() => { _fitQueued = false; FitText(); }, DispatcherPriority.Render);
     }
 
-    internal void FitText()
+    internal void FitText(bool forVerification = false)
     {
-        if (_viewModel is null || !IsVisible) return;
+        MainViewModel? viewModel = _viewModel ?? DataContext as MainViewModel;
+        if (viewModel is null || (!IsVisible && !forVerification)) return;
         ClockText.Text = DateTime.Now.ToString("h:mm tt");
         UpdateLayout();
         double width = PreviewTextHost.ActualWidth;
         double height = PreviewTextHost.ActualHeight;
         if (width <= 0 || height <= 0) return;
         double low = 8;
-        double high = _viewModel.FontSize;
+        double high = viewModel.FontSize;
         double best = low;
         for (int index = 0; index < 12; index++)
         {
             double candidate = (low + high) / 2;
-            FormattedText text = new(_viewModel.PreviewPrimaryText, CultureInfo.CurrentCulture, System.Windows.FlowDirection.LeftToRight,
+            FormattedText text = new(viewModel.PreviewPrimaryText, CultureInfo.CurrentCulture, System.Windows.FlowDirection.LeftToRight,
                 new Typeface(PreviewText.FontFamily, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal),
                 candidate, PreviewText.Foreground, VisualTreeHelper.GetDpi(this).PixelsPerDip) { MaxTextWidth = width };
             if (text.Height <= height && text.Width <= width) { best = candidate; low = candidate; }

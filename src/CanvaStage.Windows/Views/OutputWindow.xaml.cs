@@ -11,6 +11,7 @@ public partial class OutputWindow : Window
     private readonly DispatcherTimer _clockTimer;
     private readonly OutputWindowViewModel _viewModel;
     private bool _isTextFitQueued;
+    private FrameworkElement? _verificationContent;
 
     public OutputWindow(OutputWindowViewModel viewModel)
     {
@@ -66,6 +67,22 @@ public partial class OutputWindow : Window
         if (_viewModel.IsMonitor && !_viewModel.ShowFallbackImage
             && !_viewModel.PrimaryTextFits(PrimaryTextHost.ActualWidth, PrimaryTextHost.ActualHeight, pixelsPerDip))
             throw new InvalidOperationException("Confidence output text is clipped in the verification scenario.");
+    }
+
+    internal FrameworkElement ArrangeForVerification(double width, double height, double pixelsPerDip)
+    {
+        _verificationContent ??= (FrameworkElement)Content;
+        FrameworkElement content = _verificationContent;
+        content.DataContext = _viewModel;
+        Content = null;
+        content.Width = width;
+        content.Height = height;
+        content.Measure(new System.Windows.Size(width, height));
+        content.Arrange(new Rect(0, 0, width, height));
+        VerifyTextFit(pixelsPerDip);
+        content.Measure(new System.Windows.Size(width, height));
+        content.Arrange(new Rect(0, 0, width, height));
+        return content;
     }
 
     protected override void OnClosed(EventArgs eventArgs)
