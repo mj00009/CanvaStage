@@ -2,7 +2,7 @@
 
 Canva Stage is a Windows desktop confidence-monitor app for churches using Canva presentations. It gives people on stage a separate, readable output while the congregation continues to see the regular Canva presentation.
 
-> **Project status:** `v0.6.0` strengthens automatic Presenter matching, adds visible sync status and pause/resume, and expands Windows release verification. It also fixes refreshing a presentation while its images are open and makes saved Canva credentials clear in setup.
+> **Project status:** `v0.7.0` improves automatic Presenter matching, adds independent next-line styling, and gives the Windows application its CanvaStage icon. This release remains unsigned.
 
 ## What it will do
 
@@ -97,4 +97,4 @@ The application now includes the CanvaStage icon in its Windows executable and w
 
 The Windows workflow runs an isolated, offline verification mode with synthetic content and credentials. It checks Presenter matching and pause/resume, DPAPI credential reuse, refreshing while an image is locked, cache restoration, core theme contrast, WPF binding errors, and measured output text fit. Screenshots cover all operator sections and Monitor layouts, compact controls, and effective layout sizes/raster DPI representing 100%, 125%, 150%, and 200% scaling.
 
-These DPI scenarios simulate layout constraints and rendering; they do not change the runner's Windows display settings or test physical monitor transitions. Screenshots still need visual review. See [the v0.6.0 acceptance guide](docs/v0.6.0-acceptance.md) for real-machine checks and known limitations.
+These DPI scenarios simulate layout constraints and rendering; they do not change the runner's Windows display settings or test physical monitor transitions. Screenshots still need visual review. See [the Windows acceptance guide](docs/v0.6.0-acceptance.md) for real-machine checks and known limitations.
