@@ -87,7 +87,7 @@ internal static class WindowsReleaseVerification
         checks.Add("Primary and secondary operator text contrast");
 
         mainWindow.SetCompactViewForAutomation(false);
-        mainWindow.WindowState = WindowState.Normal;
+        VerificationWindowSizing.Configure(mainWindow);
         foreach ((int width, int height, double scale) in new[] { (1380, 900, 1d), (1366, 768, 1.25d), (1920, 1080, 1.5d), (1920, 1080, 2d) })
         {
             mainWindow.Width = width / scale;
@@ -96,12 +96,11 @@ internal static class WindowsReleaseVerification
             {
                 viewModel.ActiveSection = section;
                 await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(), DispatcherPriority.ApplicationIdle);
-                FrameworkElement content = mainWindow.ArrangeContentForVerification(width / scale, height / scale);
-                capture(content, Path.Combine(directory, $"operator-{section}-{width}x{height}-{scale:0.00}.png"), scale);
+                VerificationWindowSizing.CheckSize(mainWindow, width / scale, height / scale);
+                capture(mainWindow, Path.Combine(directory, $"operator-{section}-{width}x{height}-{scale:0.00}.png"), scale);
             }
         }
         checks.Add("All operator sections at 100%, 125%, 150% and 200% effective layout sizes and raster DPI");
-        mainWindow.RestoreContentAfterVerification();
 
         viewModel.ActiveSection = OperatorSection.LiveControl;
         mainWindow.SetCompactViewForAutomation(true);
@@ -114,6 +113,7 @@ internal static class WindowsReleaseVerification
         using OutputWindowViewModel outputViewModel = new(coordinator);
         OutputWindow output = new(outputViewModel);
         output.Show();
+        VerificationWindowSizing.Configure(output);
         try
         {
             foreach (MonitorLayout layout in Enum.GetValues<MonitorLayout>())
@@ -127,13 +127,18 @@ internal static class WindowsReleaseVerification
                     output.Width = 1920 / scale;
                     output.Height = 1080 / scale;
                     await output.Dispatcher.InvokeAsync(() => output.UpdateLayout(), DispatcherPriority.ApplicationIdle);
-                    FrameworkElement content = output.ArrangeForVerification(1920 / scale, 1080 / scale, scale);
-                    capture(content, Path.Combine(directory, $"output-{layout}-{scale:0.00}.png"), scale);
+                    VerificationWindowSizing.CheckSize(output, 1920 / scale, 1080 / scale);
+                    output.VerifyTextFit(scale);
+                    capture(output, Path.Combine(directory, $"output-{layout}-{scale:0.00}.png"), scale);
                 }
             }
             coordinator.SelectPage(2);
             coordinator.SetOutputMode(OutputMode.Mirror);
-            capture(output.ArrangeForVerification(1280, 720, 1), Path.Combine(directory, "output-mirror.png"), 1);
+            output.Width = 1280;
+            output.Height = 720;
+            await output.Dispatcher.InvokeAsync(() => output.UpdateLayout(), DispatcherPriority.ApplicationIdle);
+            VerificationWindowSizing.CheckSize(output, 1280, 720);
+            capture(output, Path.Combine(directory, "output-mirror.png"), 1);
         }
         finally { coordinator.StopOutput(); output.Close(); }
         checks.Add("All Monitor layouts with long text at maximum requested font size; measured text fit; Mirror output");

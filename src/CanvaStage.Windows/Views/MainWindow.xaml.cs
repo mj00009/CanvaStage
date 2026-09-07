@@ -9,7 +9,6 @@ public partial class MainWindow : Window
     private readonly MainViewModel _viewModel;
     private WindowState _fullViewWindowState = WindowState.Maximized;
     private Rect _fullViewBounds = Rect.Empty;
-    private FrameworkElement? _verificationContent;
 
     public MainWindow(MainViewModel viewModel)
     {
@@ -54,42 +53,6 @@ public partial class MainWindow : Window
     private void ExitCompactView(object sender, RoutedEventArgs eventArgs) => SetCompactView(false);
 
     internal void SetCompactViewForAutomation(bool isCompact) => SetCompactView(isCompact);
-
-    internal FrameworkElement ArrangeContentForVerification(double width, double height)
-    {
-        _verificationContent ??= (FrameworkElement)Content;
-        FrameworkElement content = _verificationContent;
-        content.DataContext = _viewModel;
-        Content = null;
-        content.Width = width;
-        content.Height = height;
-        UpdateResponsiveLayout(width, height);
-        content.Measure(new System.Windows.Size(width, height));
-        content.Arrange(new Rect(0, 0, width, height));
-        content.UpdateLayout();
-        FitPreviewChildren(content);
-        content.Measure(new System.Windows.Size(width, height));
-        content.Arrange(new Rect(0, 0, width, height));
-        return content;
-    }
-
-    internal void RestoreContentAfterVerification()
-    {
-        if (_verificationContent is null) return;
-        FrameworkElement content = _verificationContent;
-        content.Width = double.NaN;
-        content.Height = double.NaN;
-        Content = content;
-        _verificationContent = null;
-        UpdateResponsiveLayout(ActualWidth, ActualHeight);
-    }
-
-    private static void FitPreviewChildren(DependencyObject element)
-    {
-        if (element is ConfidencePreview preview) preview.FitText(true);
-        for (int index = 0; index < System.Windows.Media.VisualTreeHelper.GetChildrenCount(element); index++)
-            FitPreviewChildren(System.Windows.Media.VisualTreeHelper.GetChild(element, index));
-    }
 
     private void CanvaSecretChanged(object sender, RoutedEventArgs eventArgs)
     {
