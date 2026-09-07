@@ -92,7 +92,11 @@ public partial class OutputWindow : Window
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
-        if (eventArgs.PropertyName is nameof(OutputWindowViewModel.PrimaryText) or nameof(OutputWindowViewModel.EffectiveFontSize) or nameof(OutputWindowViewModel.ShowNextLine))
+        if (eventArgs.PropertyName is nameof(OutputWindowViewModel.PrimaryText)
+            or nameof(OutputWindowViewModel.EffectiveFontSize)
+            or nameof(OutputWindowViewModel.ShowNextLine)
+            or nameof(OutputWindowViewModel.NextLineFontSize)
+            or nameof(OutputWindowViewModel.NextLineFontWeight))
         {
             ScheduleTextFit();
         }

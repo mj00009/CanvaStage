@@ -48,6 +48,8 @@ public partial class MainWindow : Window
 
     private void PickAccentColor(object sender, RoutedEventArgs eventArgs) => PickColor(_viewModel.AccentColor, color => _viewModel.AccentColor = color);
 
+    private void PickNextLineColor(object sender, RoutedEventArgs eventArgs) => PickColor(_viewModel.NextLineColor, color => _viewModel.NextLineColor = color);
+
     private void EnterCompactView(object sender, RoutedEventArgs eventArgs) => SetCompactView(true);
 
     private void ExitCompactView(object sender, RoutedEventArgs eventArgs) => SetCompactView(false);

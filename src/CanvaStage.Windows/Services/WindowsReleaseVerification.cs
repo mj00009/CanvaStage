@@ -50,7 +50,10 @@ internal static class WindowsReleaseVerification
         viewModel.TogglePresenterSyncCommand.Execute(null);
         Require(viewModel.CurrentPageNumber == 3, "Resume uses current fresh Presenter page");
         Feed([source, source with { Key = "window-2", CurrentPage = 1 }]);
-        Require(viewModel.IsPresenterWindowChoiceNeeded && viewModel.CurrentPageNumber == 3, "Ambiguous windows hold the last page");
+        Require(!viewModel.IsPresenterWindowChoiceNeeded && viewModel.CurrentPageNumber == 3, "Previously followed automatic window remains stable when a duplicate appears");
+        viewModel.AutomaticPresenterWindowCommand.Execute(null);
+        Feed([source, source with { Key = "window-2", CurrentPage = 1 }]);
+        Require(viewModel.IsPresenterWindowChoiceNeeded && viewModel.CurrentPageNumber == 3, "Ambiguous initial windows hold the last page");
         viewModel.SelectedPresenterSource = viewModel.PresenterSources.Last();
         viewModel.ConfirmPresenterWindowCommand.Execute(null);
         Require(viewModel.CurrentPageNumber == 1, "Explicit window confirmation selects intended source");
@@ -68,7 +71,15 @@ internal static class WindowsReleaseVerification
         Require(viewModel.PresenterSyncSummary == "Reconnecting to Presenter", "Scan failure has actionable recovery status");
         Feed([source]);
         Require(viewModel.PresenterSyncSummary == "Following Canva", "Recovered scan resumes following");
-        checks.Add("Presenter identity, ambiguity, explicit selection, manual pause, resume, disabled updates and recovery");
+        checks.Add("Presenter identity, sticky automatic selection, ambiguity, explicit selection, manual pause, resume, disabled updates and recovery");
+
+        viewModel.NextLineFontSize = 48;
+        viewModel.IsNextLineBold = true;
+        viewModel.NextLineColor = "#75E6C8";
+        Require(coordinator.Snapshot.Appearance is { NextLineFontSize: 48, IsNextLineBold: true, NextLineColor: "#75E6C8" },
+            "Next-line size, weight and color apply immediately");
+        checks.Add("Custom next-line size, weight and color apply to Preview and output");
+        Require(mainWindow.Icon is not null, "Operator window loads the CanvaStage icon");
 
         await VerifyCredentialsAndCacheAsync(directory);
         checks.Add("DPAPI reopen and blank-secret reuse; refresh while previous image is locked; cache restoration");
@@ -111,6 +122,10 @@ internal static class WindowsReleaseVerification
 
         using OutputWindowViewModel outputViewModel = new(coordinator);
         OutputWindow output = new(outputViewModel);
+        Require(output.Icon is not null, "Output window loads the CanvaStage icon");
+        Require(outputViewModel.NextLineFontSize == 48
+            && outputViewModel.NextLineFontWeight == FontWeights.Bold,
+            "Output receives the configured next-line font style");
         output.Show();
         VerificationWindowSizing.Configure(output);
         try

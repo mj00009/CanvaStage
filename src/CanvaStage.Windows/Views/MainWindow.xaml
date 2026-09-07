@@ -5,6 +5,7 @@
         xmlns:views="clr-namespace:CanvaStage.Windows.Views"
         xmlns:vm="clr-namespace:CanvaStage.Windows.ViewModels"
         Title="Canva Stage"
+        Icon="pack://application:,,,/Assets/canva-stage.ico"
         Width="1380"
         Height="900"
         MinWidth="600"
@@ -152,6 +153,12 @@
                                 <StackPanel Grid.Column="0" Margin="0,0,18,0"><TextBlock Text="Background" Style="{StaticResource FieldLabel}" /><DockPanel><Button Content="Change" Click="PickBackgroundColor" Style="{StaticResource TextButton}" DockPanel.Dock="Right" /><TextBox Text="{Binding BackgroundColor}" IsReadOnly="True" /></DockPanel></StackPanel>
                                 <StackPanel Grid.Column="1" Margin="0,0,18,0"><TextBlock Text="Text" Style="{StaticResource FieldLabel}" /><DockPanel><Button Content="Change" Click="PickTextColor" Style="{StaticResource TextButton}" DockPanel.Dock="Right" /><TextBox Text="{Binding TextColor}" IsReadOnly="True" /></DockPanel></StackPanel>
                                 <StackPanel Grid.Column="2"><TextBlock Text="Accent" Style="{StaticResource FieldLabel}" /><DockPanel><Button Content="Change" Click="PickAccentColor" Style="{StaticResource TextButton}" DockPanel.Dock="Right" /><TextBox Text="{Binding AccentColor}" IsReadOnly="True" /></DockPanel></StackPanel>
+                            </Grid>
+                            <TextBlock Text="NEXT LINE STYLE" Style="{StaticResource EyebrowText}" Margin="0,22,0,10" />
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,18,0"><TextBlock Text="Size" Style="{StaticResource FieldLabel}" /><ComboBox ItemsSource="{Binding NextLineFontSizes}" SelectedItem="{Binding NextLineFontSize}" /></StackPanel>
+                                <StackPanel Grid.Column="1" Margin="0,0,18,0"><TextBlock Text="Weight" Style="{StaticResource FieldLabel}" /><CheckBox Content="Bold next text" IsChecked="{Binding IsNextLineBold}" Margin="0,10,0,0" /></StackPanel>
+                                <StackPanel Grid.Column="2"><TextBlock Text="Color" Style="{StaticResource FieldLabel}" /><DockPanel><Button Content="Change" Click="PickNextLineColor" Style="{StaticResource TextButton}" DockPanel.Dock="Right" /><TextBox Text="{Binding NextLineColor}" IsReadOnly="True" /></DockPanel></StackPanel>
                             </Grid>
                         </StackPanel>
                     </Border>

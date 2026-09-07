@@ -10,12 +10,28 @@ public sealed class PresenterSourceResolverTests
     private static PresenterSyncDecision Resolve(params PresenterSource[] sources)
         => PresenterSourceResolver.Resolve(sources, "DESIGN1", "Sunday", 91, null);
 
-    [Fact] public void SameCountAloneRequiresConfirmation() => Assert.Equal(PresenterSyncState.ChooseWindow, Resolve(Source(title: "Presenter view")).State);
+    [Fact] public void SinglePresenterWithMatchingCountCanFollowWithoutExposedIdentity() => Assert.Equal(PresenterSyncState.Following, Resolve(Source(title: "Presenter view")).State);
+    [Fact] public void SingleUnidentifiedPresenterWithWrongCountIsAMismatch() => Assert.Equal(PresenterSyncState.Mismatch, Resolve(Source(title: "Presenter view", total: 90)).State);
     [Fact] public void ExactTitleMatchesBrowserSuffix() => Assert.Equal(PresenterSyncState.Following, Resolve(Source()).State);
-    [Fact] public void SimilarTitleDoesNotMatch() => Assert.Equal(PresenterSyncState.ChooseWindow, Resolve(Source(title: "Sunday rehearsal - Canva")).State);
+    [Fact] public void SingleUnidentifiedSimilarTitleUsesCountFallback() => Assert.Equal(PresenterSyncState.Following, Resolve(Source(title: "Sunday rehearsal - Canva")).State);
+    [Fact] public void SimilarTitlesAmongMultipleWindowsRequireChoice()
+        => Assert.Equal(PresenterSyncState.ChooseWindow, Resolve(Source(title: "Sunday rehearsal - Canva"), Source(key: "two", title: "Presenter view")).State);
     [Fact] public void DesignIdentityOverridesMatchingTitle() => Assert.Equal(PresenterSyncState.Mismatch, Resolve(Source(id: "OTHER")).State);
     [Fact] public void VerifiedDesignDoesNotNeedTitle() => Assert.Equal(PresenterSyncState.Following, Resolve(Source(title: "Presenter", id: "DESIGN1")).State);
     [Fact] public void DuplicatePresentersRequireChoice() => Assert.Equal(PresenterSyncState.ChooseWindow, Resolve(Source(), Source(key: "two")).State);
+    [Fact] public void PreviouslyFollowedAutomaticWindowRemainsSelectedWhenDuplicateAppears()
+    {
+        PresenterSyncDecision result = PresenterSourceResolver.Resolve([Source(page: 4), Source(key: "two", page: 8)], "DESIGN1", "Sunday", 91, null, "one");
+        Assert.Equal(4, result.Source?.CurrentPage);
+    }
+    [Fact] public void EditorCounterDoesNotHideCompatiblePresenterCounter()
+    {
+        PresenterSyncDecision result = Resolve(
+            Source(key: "editor", title: "Sunday - Canva", id: "DESIGN1", page: 8, total: 319),
+            Source(key: "presenter", title: "Presenter view", page: 8, total: 91));
+        Assert.Equal(PresenterSyncState.Following, result.State);
+        Assert.Equal("presenter", result.Source?.Key);
+    }
     [Fact] public void ExplicitChoiceSelectsCorrectWindow()
     {
         PresenterSyncDecision result = PresenterSourceResolver.Resolve([Source(), Source(key: "two", page: 8)], "DESIGN1", "Sunday", 91, "two");

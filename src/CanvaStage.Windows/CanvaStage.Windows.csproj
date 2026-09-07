@@ -10,11 +10,13 @@
     <LangVersion>latest</LangVersion>
     <Version>0.6.0</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\..\assets\canva-stage.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\CanvaStage.Core\CanvaStage.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="..\..\assets\canva-stage-logo-full-option-2.png" Link="Assets\canva-stage-logo-full-option-2.png" />
+    <Resource Include="..\..\assets\canva-stage.ico" Link="Assets\canva-stage.ico" />
   </ItemGroup>
 </Project>

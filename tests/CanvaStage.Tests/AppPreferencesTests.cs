@@ -38,5 +38,27 @@ public sealed class AppPreferencesTests
 
         Assert.NotNull(preferences);
         Assert.True(preferences.IsPresenterSyncEnabled);
+        Assert.Equal(30, preferences.Appearance.NextLineFontSize);
+        Assert.False(preferences.Appearance.IsNextLineBold);
+        Assert.Equal("#F8F8FC", preferences.Appearance.NextLineColor);
+    }
+
+    [Fact]
+    public void NextLineAppearance_RoundTripsWithPreferences()
+    {
+        AppPreferences expected = AppPreferences.Default with
+        {
+            Appearance = MonitorAppearance.Default with
+            {
+                NextLineFontSize = 48,
+                IsNextLineBold = true,
+                NextLineColor = "#75E6C8"
+            }
+        };
+
+        string json = JsonSerializer.Serialize(expected);
+        AppPreferences? actual = JsonSerializer.Deserialize<AppPreferences>(json);
+
+        Assert.Equal(expected, actual);
     }
 }

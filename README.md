@@ -10,7 +10,7 @@ Canva Stage is a Windows desktop confidence-monitor app for churches using Canva
 - Open a separate confidence-output window, including a laptop-friendly Preview mode.
 - Send the output to a selected confidence display when a second screen is available.
 - Switch immediately between **Mirror** mode (the retrieved Canva page image) and **Monitor** mode (a simplified, high-visibility view of slide text).
-- Automatically follow the visible page number in Canva Presenter View through Windows accessibility, with manual page controls always available.
+- Automatically follow the visible page number in Canva Presenter View through Windows accessibility, with sticky window selection and manual page controls always available.
 - Collapse to a compact, pinnable operator view with a live mode-accurate preview for single-screen operation.
 
 ## Who it is for
@@ -26,16 +26,16 @@ You can set up and test the app with one display. For an independent on-stage di
 
 ## How the planned app works
 
-CanvaStage is a native Windows 11 WPF app. It reads the Canva Presenter page counter through Windows accessibility. Automatic matching uses the Canva design ID from the accessible document URL when available, otherwise an exact presentation title after removing known browser/Canva suffixes. A matching page count alone is insufficient. It does not capture the screen or inspect browser traffic.
+CanvaStage is a native Windows 11 WPF app. It reads the Canva Presenter page counter through Windows accessibility. Automatic matching uses the Canva design ID from the accessible document URL when available, otherwise an exact presentation title after removing known browser/Canva suffixes. If Canva exposes exactly one otherwise-unidentified window whose visible-page count matches the applied deck, CanvaStage follows that window as a compatibility fallback. It never uses page count to choose between multiple plausible windows. It does not capture the screen or inspect browser traffic.
 
-If several windows match, or Canva does not expose a matching identity, open **Setup & diagnostics**, select the Presenter window, and choose **Confirm selected window**. Confirm only the window showing the applied presentation. A known different design ID or visible-page count still blocks sync. The selection is session-only; a missing chosen window never causes an automatic switch to a different one. Title matching is less definitive than a design ID, so give presentations distinct titles.
+CanvaStage keeps following the same native Presenter window if another matching Canva window appears during a service. If several plausible windows are already open and no automatic choice has been established, open **Setup & diagnostics**, select the Presenter window, and choose **Confirm selected window**. Confirm only the window showing the applied presentation. A known different design ID or visible-page count still blocks sync. The selection is session-only; a missing explicitly chosen window never causes an automatic switch to a different one. Title and page-count fallbacks are less definitive than a design ID, so give presentations distinct titles.
 
 **Live control** and **Compact view** show the current sync state and a **Pause sync / Resume sync** button. Manual previous/next navigation pauses sync. Resume uses the latest fresh page reading, or waits for a new reading. Scanning retries automatically after errors, with delays up to 15 seconds; reopening Presenter View is detected without restarting CanvaStage. Turning off automatic sync in settings is saved across restarts; a temporary pause is not.
 
 ### Output modes
 
 - **Mirror:** Shows the selected presentation page content.
-- **Monitor:** Shows large, high-contrast current-slide text, with optional next-line and clock information. If usable text is not available, it falls back to the slide image.
+- **Monitor:** Shows large, high-contrast current-slide text, with optional next-line and clock information. The next line has independent size, bold, and color controls. If usable text is not available, it falls back to the slide image.
 
 ## Canva account and privacy
 
@@ -91,7 +91,7 @@ The portable release ZIP includes a SHA-256 checksum. The app runs without requi
 3. GitHub builds, tests, and publishes a self-contained Windows x64 package.
 4. The workflow creates or updates the matching GitHub Release and attaches the package.
 
-Code signing, an installer, and automatic updates are planned future enhancements.
+The application now includes the CanvaStage icon in its Windows executable and windows. Public code signing still requires a validated publisher identity and signing service; see the release notes for whether a particular build is signed. An installer and automatic updates remain future enhancements.
 
 ## Release verification and Sunday testing
 

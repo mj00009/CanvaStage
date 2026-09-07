@@ -49,6 +49,9 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(BackgroundBrush));
             OnPropertyChanged(nameof(TextBrush));
             OnPropertyChanged(nameof(AccentBrush));
+            OnPropertyChanged(nameof(NextLineBrush));
+            OnPropertyChanged(nameof(NextLineFontSize));
+            OnPropertyChanged(nameof(NextLineFontWeight));
             OnPropertyChanged(nameof(ShowNextLine));
             OnPropertyChanged(nameof(ShowClock));
             OnPropertyChanged(nameof(EffectiveFontSize));
@@ -82,6 +85,11 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
     public Brush BackgroundBrush => BrushFrom(Snapshot.Appearance.BackgroundColor);
     public Brush TextBrush => BrushFrom(Snapshot.Appearance.TextColor);
     public Brush AccentBrush => BrushFrom(Snapshot.Appearance.AccentColor);
+    public Brush NextLineBrush => BrushFrom(Snapshot.Appearance.NextLineColor);
+    public double NextLineFontSize => Snapshot.Appearance.NextLineFontSize;
+    public System.Windows.FontWeight NextLineFontWeight => Snapshot.Appearance.IsNextLineBold
+        ? System.Windows.FontWeights.Bold
+        : System.Windows.FontWeights.Normal;
     public BitmapImage? FallbackImage => _fallbackImage;
     public bool HasFallbackImage => _fallbackImage is not null;
     public bool ShowFallbackImage => IsMonitor && HasFallbackImage && Page is { HasFormattedText: false };

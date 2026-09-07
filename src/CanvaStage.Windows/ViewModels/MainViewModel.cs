@@ -46,6 +46,7 @@ public sealed class MainViewModel : ViewModelBase
     private bool _isEditingCanvaSecret;
     private PresenterSyncState _presenterSyncState = PresenterSyncState.Waiting;
     private string? _confirmedPresenterKey;
+    private string? _preferredAutomaticPresenterKey;
     private PresenterSource? _selectedPresenterSource;
     private CanvaPresenterTrackingUpdate? _lastPresenterUpdate;
     private readonly System.Windows.Threading.DispatcherTimer _presenterHealthTimer = new() { Interval = TimeSpan.FromSeconds(1) };
@@ -79,6 +80,7 @@ public sealed class MainViewModel : ViewModelBase
         CanvaPresentations = [];
         FontFamilies = ["Aptos", "Segoe UI", "Arial", "Verdana"];
         FontSizes = [32d, 40d, 48d, 56d, 64d, 72d, 88d, 104d, 120d, 144d, 160d];
+        NextLineFontSizes = [16d, 18d, 20d, 24d, 28d, 30d, 32d, 36d, 40d, 48d, 56d, 64d];
 
         PreviewCommand = new RelayCommand(ShowPreview);
         StartOutputCommand = new RelayCommand(StartOutput, CanStartOutput);
@@ -87,7 +89,7 @@ public sealed class MainViewModel : ViewModelBase
         NextPageCommand = new RelayCommand(() => { PauseForManualNavigation(); _coordinator.GoNext(); }, () => Snapshot.CanGoNext);
         TogglePresenterSyncCommand = new RelayCommand(TogglePresenterSync);
         ConfirmPresenterWindowCommand = new RelayCommand(ConfirmPresenterWindow, () => SelectedPresenterSource is not null);
-        AutomaticPresenterWindowCommand = new RelayCommand(() => { _confirmedPresenterKey = null; ReevaluatePresenterSync(); });
+        AutomaticPresenterWindowCommand = new RelayCommand(() => { _confirmedPresenterKey = null; _preferredAutomaticPresenterKey = null; ReevaluatePresenterSync(); });
         RefreshDisplaysCommand = new RelayCommand(RefreshDisplays);
         TestSetupCommand = new RelayCommand(ShowSetupDiagnostics);
         ConnectCanvaCommand = new AsyncRelayCommand(ConnectCanvaAsync, () => !IsCanvaBusy);
@@ -119,6 +121,7 @@ public sealed class MainViewModel : ViewModelBase
     public ObservableCollection<CanvaPresentation> CanvaPresentations { get; }
     public IReadOnlyList<string> FontFamilies { get; }
     public IReadOnlyList<double> FontSizes { get; }
+    public IReadOnlyList<double> NextLineFontSizes { get; }
     public ICommand PreviewCommand { get; }
     public RelayCommand StartOutputCommand { get; }
     public RelayCommand StopOutputCommand { get; }
@@ -240,12 +243,18 @@ public sealed class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(AccentColor));
             OnPropertyChanged(nameof(FontFamily));
             OnPropertyChanged(nameof(FontSize));
+            OnPropertyChanged(nameof(NextLineFontSize));
+            OnPropertyChanged(nameof(IsNextLineBold));
+            OnPropertyChanged(nameof(NextLineColor));
             OnPropertyChanged(nameof(ShowClock));
             OnPropertyChanged(nameof(ShowPreviewNextLine));
             OnPropertyChanged(nameof(ContrastMessage));
             OnPropertyChanged(nameof(PreviewBackgroundBrush));
             OnPropertyChanged(nameof(PreviewTextBrush));
             OnPropertyChanged(nameof(PreviewAccentBrush));
+            OnPropertyChanged(nameof(PreviewNextLineBrush));
+            OnPropertyChanged(nameof(PreviewNextLineFontSize));
+            OnPropertyChanged(nameof(PreviewNextLineFontWeight));
             OnPropertyChanged(nameof(PreviewMirrorBackgroundBrush));
             OnPropertyChanged(nameof(PreviewMirrorAccentBrush));
             OnPropertyChanged(nameof(PreviewImagePath));
@@ -335,10 +344,16 @@ public sealed class MainViewModel : ViewModelBase
     public string AccentColor { get => Snapshot.Appearance.AccentColor; set => SetAppearance(Snapshot.Appearance with { AccentColor = value }); }
     public string FontFamily { get => Snapshot.Appearance.FontFamily; set => SetAppearance(Snapshot.Appearance with { FontFamily = value }); }
     public double FontSize { get => Snapshot.Appearance.FontSize; set => SetAppearance(Snapshot.Appearance with { FontSize = Math.Clamp(value, 32, 160) }); }
+    public double NextLineFontSize { get => Snapshot.Appearance.NextLineFontSize; set => SetAppearance(Snapshot.Appearance with { NextLineFontSize = Math.Clamp(value, 16, 64) }); }
+    public bool IsNextLineBold { get => Snapshot.Appearance.IsNextLineBold; set => SetAppearance(Snapshot.Appearance with { IsNextLineBold = value }); }
+    public string NextLineColor { get => Snapshot.Appearance.NextLineColor; set => SetAppearance(Snapshot.Appearance with { NextLineColor = value }); }
     public bool ShowClock { get => Snapshot.Appearance.ShowClock; set => SetAppearance(Snapshot.Appearance with { ShowClock = value }); }
     public Brush PreviewBackgroundBrush => BrushFrom(BackgroundColor, Brushes.Black);
     public Brush PreviewTextBrush => BrushFrom(TextColor, Brushes.White);
     public Brush PreviewAccentBrush => BrushFrom(AccentColor, Brushes.MediumPurple);
+    public Brush PreviewNextLineBrush => BrushFrom(NextLineColor, Brushes.White);
+    public double PreviewNextLineFontSize => Math.Clamp(NextLineFontSize * 0.55d, 10d, 32d);
+    public System.Windows.FontWeight PreviewNextLineFontWeight => IsNextLineBold ? FontWeights.Bold : FontWeights.Normal;
     public string CanvaClientId { get => _canvaClientId; set { if (SetProperty(ref _canvaClientId, value)) NotifySecretState(); } }
     public string CanvaConnectionStatus
     {
@@ -409,9 +424,12 @@ public sealed class MainViewModel : ViewModelBase
     {
         get
         {
-            double ratio = ContrastAnalyzer.GetContrastRatio(TextColor, BackgroundColor);
-            return ratio >= 4.5 ? $"Contrast: {ratio:0.0}:1 — recommended for readable output."
-                : ratio > 0 ? $"Contrast warning: {ratio:0.0}:1 is below the recommended 4.5:1."
+            double textRatio = ContrastAnalyzer.GetContrastRatio(TextColor, BackgroundColor);
+            double nextRatio = ContrastAnalyzer.GetContrastRatio(NextLineColor, BackgroundColor);
+            return textRatio >= 4.5 && nextRatio >= 4.5
+                ? $"Text {textRatio:0.0}:1 · Next {nextRatio:0.0}:1 — recommended for readable output."
+                : textRatio > 0 && nextRatio > 0
+                    ? $"Contrast warning: text {textRatio:0.0}:1 · next {nextRatio:0.0}:1; each should be at least 4.5:1."
                 : "Contrast warning: use six-digit #RRGGBB colors.";
         }
     }
@@ -680,8 +698,10 @@ public sealed class MainViewModel : ViewModelBase
             return;
         }
         PresenterSyncDecision decision = PresenterSourceResolver.Resolve(update.Sources ?? [], Snapshot.Document.Id,
-            Snapshot.Document.Title, Snapshot.Document.Pages.Count, _confirmedPresenterKey);
+            Snapshot.Document.Title, Snapshot.Document.Pages.Count, _confirmedPresenterKey, _preferredAutomaticPresenterKey);
         SetPresenterState(decision.State, decision.Message);
+        if (_confirmedPresenterKey is null && decision.Source is not null)
+            _preferredAutomaticPresenterKey = decision.Source.Key;
         if (decision.Source is not null && Snapshot.SelectedPageNumber != decision.Source.CurrentPage)
             _coordinator.SelectPage(decision.Source.CurrentPage);
     }
@@ -695,7 +715,14 @@ public sealed class MainViewModel : ViewModelBase
 
     private void SetPresenterState(PresenterSyncState state, string message)
     {
-        if (_presenterSyncState != state) PrivacySafeLog.Write($"Presenter sync state: {state}.");
+        if (_presenterSyncState != state)
+        {
+            int sourceCount = _lastPresenterUpdate?.Sources?.Count ?? 0;
+            string visiblePageCounts = sourceCount == 0
+                ? "none"
+                : string.Join(",", _lastPresenterUpdate!.Sources!.Select(source => source.TotalPages).Distinct().Order());
+            PrivacySafeLog.Write($"Presenter sync state: {state}. Sources: {sourceCount}; visible page counts: {visiblePageCounts}; applied pages: {Snapshot.Document.Pages.Count}.");
+        }
         _presenterSyncState = state;
         CanvaPresenterTrackingStatus = message;
         OnPropertyChanged(nameof(PresenterSyncSummary));
@@ -732,7 +759,7 @@ public sealed class MainViewModel : ViewModelBase
     {
         bool documentChanged = !ReferenceEquals(Snapshot.Document, snapshot.Document);
         Snapshot = snapshot;
-        if (documentChanged) { _confirmedPresenterKey = null; ReevaluatePresenterSync(); }
+        if (documentChanged) { _confirmedPresenterKey = null; _preferredAutomaticPresenterKey = null; ReevaluatePresenterSync(); }
         Persist();
     }
 

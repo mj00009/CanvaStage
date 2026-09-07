@@ -57,7 +57,16 @@
                 </Image>
                 <Border Grid.Row="2" BorderBrush="{Binding PreviewAccentBrush}" BorderThickness="0,1,0,0" Margin="0,22,0,0" Padding="0,12,0,0">
                     <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding ShowPreviewNextLine}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Border.Style>
-                    <TextBlock Text="{Binding PreviewNextLine, StringFormat=NEXT · {0}}" Foreground="{Binding PreviewTextBrush}" FontSize="16" TextWrapping="Wrap" />
+                    <StackPanel>
+                        <TextBlock Text="NEXT" Foreground="{Binding PreviewAccentBrush}" FontSize="10" FontWeight="Bold" />
+                        <TextBlock Text="{Binding PreviewNextLine}"
+                                   Foreground="{Binding PreviewNextLineBrush}"
+                                   FontFamily="{Binding FontFamily}"
+                                   FontSize="{Binding PreviewNextLineFontSize}"
+                                   FontWeight="{Binding PreviewNextLineFontWeight}"
+                                   Margin="0,3,0,0"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
                 </Border>
             </Grid>
         </Grid>

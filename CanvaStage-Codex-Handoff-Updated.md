@@ -2,7 +2,7 @@
 
 ## Current delivery status — v0.6.0
 
-Phases 1–2 are implemented. Assisted tracking now uses Windows accessibility, replacing the original image-matching implementation plan. v0.6.0 adds design-ID/title matching, explicit Presenter-window confirmation, visible sync states, temporary pause/resume, automatic retry recovery, and expanded Windows verification. Page count alone never authorizes following. Original acceptance checkboxes below are historical hardware/real-account sign-off items, not an unimplemented-feature list; use `docs/v0.6.0-acceptance.md` for the current checklist.
+Phases 1–2 are implemented. Assisted tracking now uses Windows accessibility, replacing the original image-matching implementation plan. v0.6.0 added design-ID/title matching, explicit Presenter-window confirmation, visible sync states, temporary pause/resume, automatic retry recovery, and expanded Windows verification. Subsequent work keeps a stable automatic Presenter-window choice and permits a single-window visible-page-count fallback when Canva exposes no usable identity; multiple plausible windows still require operator choice. Original acceptance checkboxes below are historical hardware/real-account sign-off items, not an unimplemented-feature list; use `docs/v0.6.0-acceptance.md` for the current checklist.
 
 Saved presentation content and DPAPI-protected Canva credentials survive ordinary app closure. Disconnect deliberately removes credentials. Presentation imports use immutable image-cache generations so a refresh cannot overwrite an image being displayed. Smaller header/footer text blocks are excluded by selecting the dominant text block. These decisions supersede any earlier all-text or clear-on-close assumptions.
 

@@ -137,7 +137,9 @@ public sealed class CanvaPresenterAccessibilityTracker : ICanvaPresenterTracker
                 {
                     string title = window.Current.Name ?? string.Empty;
                     using Process process = Process.GetProcessById(window.Current.ProcessId);
-                    string key = $"{process.Id}:{process.StartTime.ToUniversalTime().Ticks}:{window.Current.NativeWindowHandle}:{title}:{designId}";
+                    // The title and exposed document URL can change while presenting. Keep the
+                    // identity tied to the native window so automatic selection remains stable.
+                    string key = $"{process.Id}:{process.StartTime.ToUniversalTime().Ticks}:{window.Current.NativeWindowHandle}";
                     sources.Add(new PresenterSource(key, title, applicationName, designId, currentPage, totalPages));
                 }
             }
