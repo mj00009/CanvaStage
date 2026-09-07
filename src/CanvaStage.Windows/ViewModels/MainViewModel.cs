@@ -45,9 +45,6 @@ public sealed class MainViewModel : ViewModelBase
     private bool _isClosing;
     private bool _isEditingCanvaSecret;
     private PresenterSyncState _presenterSyncState = PresenterSyncState.Waiting;
-    private string? _confirmedPresenterKey;
-    private string? _preferredAutomaticPresenterKey;
-    private PresenterSource? _selectedPresenterSource;
     private CanvaPresenterTrackingUpdate? _lastPresenterUpdate;
     private readonly System.Windows.Threading.DispatcherTimer _presenterHealthTimer = new() { Interval = TimeSpan.FromSeconds(1) };
 
@@ -88,8 +85,6 @@ public sealed class MainViewModel : ViewModelBase
         PreviousPageCommand = new RelayCommand(() => { PauseForManualNavigation(); _coordinator.GoPrevious(); }, () => Snapshot.CanGoPrevious);
         NextPageCommand = new RelayCommand(() => { PauseForManualNavigation(); _coordinator.GoNext(); }, () => Snapshot.CanGoNext);
         TogglePresenterSyncCommand = new RelayCommand(TogglePresenterSync);
-        ConfirmPresenterWindowCommand = new RelayCommand(ConfirmPresenterWindow, () => SelectedPresenterSource is not null);
-        AutomaticPresenterWindowCommand = new RelayCommand(() => { _confirmedPresenterKey = null; _preferredAutomaticPresenterKey = null; ReevaluatePresenterSync(); });
         RefreshDisplaysCommand = new RelayCommand(RefreshDisplays);
         TestSetupCommand = new RelayCommand(ShowSetupDiagnostics);
         ConnectCanvaCommand = new AsyncRelayCommand(ConnectCanvaAsync, () => !IsCanvaBusy);
@@ -145,20 +140,11 @@ public sealed class MainViewModel : ViewModelBase
         ? "••••••••  Saved securely. Reused automatically after reopening; no need to enter it again."
         : "Enter once, then Save configuration. Stored securely for this Windows account.";
     public ICommand TogglePresenterSyncCommand { get; }
-    public RelayCommand ConfirmPresenterWindowCommand { get; }
-    public ICommand AutomaticPresenterWindowCommand { get; }
-    public ObservableCollection<PresenterSource> PresenterSources { get; } = [];
-    public PresenterSource? SelectedPresenterSource
-    {
-        get => _selectedPresenterSource;
-        set { if (SetProperty(ref _selectedPresenterSource, value)) ConfirmPresenterWindowCommand.RaiseCanExecuteChanged(); }
-    }
     public string PresenterSyncSummary => _presenterSyncState switch
     {
         PresenterSyncState.Following => "Following Canva",
         PresenterSyncState.Paused => "Paused — manual control",
         PresenterSyncState.Manual => "Manual control",
-        PresenterSyncState.ChooseWindow => "Choose Presenter window",
         PresenterSyncState.Mismatch => "Presentation mismatch",
         PresenterSyncState.Recovering => "Reconnecting to Presenter",
         _ => "Waiting for Presenter"
@@ -166,7 +152,6 @@ public sealed class MainViewModel : ViewModelBase
     public Brush PresenterSyncBrush => _presenterSyncState == PresenterSyncState.Following
         ? BrushFrom("#74E5A2", Brushes.LightGreen) : BrushFrom("#E5C07B", Brushes.Goldenrod);
     public string PresenterSyncButtonText => !IsPresenterSyncEnabled || _isPresenterSyncPaused ? "Resume sync" : "Pause sync";
-    public bool IsPresenterWindowChoiceNeeded => _presenterSyncState is PresenterSyncState.ChooseWindow or PresenterSyncState.Mismatch;
     public string RedirectUrl => CanvaConnectService.RedirectUrl;
     public bool IsCanvaPresenterTracking => _canvaPresenterAccessibilityTracker.IsTracking;
     public bool IsPresenterSyncEnabled
@@ -662,14 +647,6 @@ public sealed class MainViewModel : ViewModelBase
     {
         if (_isClosing || !IsPresenterSyncEnabled || update.Generation != _canvaPresenterAccessibilityTracker.Generation) return;
         _lastPresenterUpdate = update;
-        IReadOnlyList<PresenterSource> sources = update.Sources ?? [];
-        if (!PresenterSources.Select(source => source.Key).SequenceEqual(sources.Select(source => source.Key)))
-        {
-            string? selectedKey = SelectedPresenterSource?.Key;
-            PresenterSources.Clear();
-            foreach (PresenterSource source in sources) PresenterSources.Add(source);
-            SelectedPresenterSource = PresenterSources.FirstOrDefault(source => source.Key == selectedKey);
-        }
         ReevaluatePresenterSync();
     }
 
@@ -697,13 +674,32 @@ public sealed class MainViewModel : ViewModelBase
             SetPresenterState(update.State == CanvaPresenterTrackingState.Error ? PresenterSyncState.Recovering : PresenterSyncState.Waiting, update.Message);
             return;
         }
-        PresenterSyncDecision decision = PresenterSourceResolver.Resolve(update.Sources ?? [], Snapshot.Document.Id,
-            Snapshot.Document.Title, Snapshot.Document.Pages.Count, _confirmedPresenterKey, _preferredAutomaticPresenterKey);
-        SetPresenterState(decision.State, decision.Message);
-        if (_confirmedPresenterKey is null && decision.Source is not null)
-            _preferredAutomaticPresenterKey = decision.Source.Key;
-        if (decision.Source is not null && Snapshot.SelectedPageNumber != decision.Source.CurrentPage)
-            _coordinator.SelectPage(decision.Source.CurrentPage);
+        if (Snapshot.Document.Id == "demo-sunday")
+        {
+            SetPresenterState(PresenterSyncState.Waiting, "Load a Canva presentation to enable Presenter sync. The demo uses manual controls.");
+            return;
+        }
+        if (update.CurrentPage is null || update.TotalPages is null)
+        {
+            SetPresenterState(PresenterSyncState.Waiting, "Waiting for a complete Presenter page counter…");
+            return;
+        }
+        int pageCount = Snapshot.Document.Pages.Count;
+        if (update.TotalPages.Value != pageCount)
+        {
+            SetPresenterState(PresenterSyncState.Mismatch,
+                $"Canva Presenter reports {update.TotalPages.Value} visible pages; CanvaStage has {pageCount}. Refresh and apply the matching presentation.");
+            return;
+        }
+        if (Snapshot.Document.FindPage(update.CurrentPage.Value) is null)
+        {
+            SetPresenterState(PresenterSyncState.Mismatch, "The Presenter page is outside the applied presentation. Waiting for a valid page.");
+            return;
+        }
+        if (Snapshot.SelectedPageNumber != update.CurrentPage.Value)
+            _coordinator.SelectPage(update.CurrentPage.Value);
+        SetPresenterState(PresenterSyncState.Following,
+            $"Synced to presenter page {update.CurrentPage.Value} at {update.ObservedAt.ToLocalTime():h:mm:ss tt}.");
     }
 
     private void OnPresenterHealthTick(object? sender, EventArgs eventArgs)
@@ -717,18 +713,15 @@ public sealed class MainViewModel : ViewModelBase
     {
         if (_presenterSyncState != state)
         {
-            int sourceCount = _lastPresenterUpdate?.Sources?.Count ?? 0;
-            string visiblePageCounts = sourceCount == 0
-                ? "none"
-                : string.Join(",", _lastPresenterUpdate!.Sources!.Select(source => source.TotalPages).Distinct().Order());
-            PrivacySafeLog.Write($"Presenter sync state: {state}. Sources: {sourceCount}; visible page counts: {visiblePageCounts}; applied pages: {Snapshot.Document.Pages.Count}.");
+            string detectedPage = _lastPresenterUpdate?.CurrentPage?.ToString() ?? "none";
+            string detectedCount = _lastPresenterUpdate?.TotalPages?.ToString() ?? "none";
+            PrivacySafeLog.Write($"Presenter sync state: {state}. Detected page: {detectedPage}; visible pages: {detectedCount}; applied pages: {Snapshot.Document.Pages.Count}.");
         }
         _presenterSyncState = state;
         CanvaPresenterTrackingStatus = message;
         OnPropertyChanged(nameof(PresenterSyncSummary));
         OnPropertyChanged(nameof(PresenterSyncBrush));
         OnPropertyChanged(nameof(PresenterSyncButtonText));
-        OnPropertyChanged(nameof(IsPresenterWindowChoiceNeeded));
     }
 
     private void PauseForManualNavigation()
@@ -745,12 +738,6 @@ public sealed class MainViewModel : ViewModelBase
         ReevaluatePresenterSync();
     }
 
-    private void ConfirmPresenterWindow()
-    {
-        _confirmedPresenterKey = SelectedPresenterSource?.Key;
-        ReevaluatePresenterSync();
-    }
-
     internal void ReceivePresenterUpdateForVerification(CanvaPresenterTrackingUpdate update)
         => ApplyCanvaPresenterTrackingUpdate(update with { Generation = _canvaPresenterAccessibilityTracker.Generation });
 
@@ -759,7 +746,7 @@ public sealed class MainViewModel : ViewModelBase
     {
         bool documentChanged = !ReferenceEquals(Snapshot.Document, snapshot.Document);
         Snapshot = snapshot;
-        if (documentChanged) { _confirmedPresenterKey = null; _preferredAutomaticPresenterKey = null; ReevaluatePresenterSync(); }
+        if (documentChanged) ReevaluatePresenterSync();
         Persist();
     }
 

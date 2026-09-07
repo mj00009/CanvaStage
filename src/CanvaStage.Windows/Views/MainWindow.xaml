@@ -214,15 +214,11 @@
                         <Border Style="{StaticResource PanelCard}">
                             <StackPanel>
                                 <TextBlock Text="Automatic Canva Presenter sync" Style="{StaticResource SectionTitle}" />
-                                <TextBlock Text="CanvaStage checks the Presenter page counter and presentation identity exposed by Windows. If identity is unavailable, confirm the correct window below. Window choices last for this session." Style="{StaticResource MutedText}" Margin="0,6,0,16" TextWrapping="Wrap" />
+                                <TextBlock Text="CanvaStage follows the first Presenter page counter exposed by Windows, using the proven accessibility-spike method. Keep one Canva Presenter View open while presenting." Style="{StaticResource MutedText}" Margin="0,6,0,16" TextWrapping="Wrap" />
                                 <CheckBox Content="Automatically follow Canva Presenter" IsChecked="{Binding IsPresenterSyncEnabled}" />
                                 <TextBlock Text="{Binding PresenterSyncSummary}" Foreground="{Binding PresenterSyncBrush}" FontWeight="SemiBold" Margin="0,12,0,0" />
                                 <TextBlock Text="{Binding CanvaPresenterTrackingStatus}" Style="{StaticResource MutedText}" Margin="0,8,0,0" TextWrapping="Wrap" />
-                                <ComboBox ItemsSource="{Binding PresenterSources}" SelectedItem="{Binding SelectedPresenterSource}" DisplayMemberPath="Label" Margin="0,14,0,8" />
-                                <TextBlock Text="Confirm only if this window is showing the presentation you applied in CanvaStage. A different design ID or page count will still block sync." Style="{StaticResource MutedText}" TextWrapping="Wrap" />
                                 <WrapPanel Margin="0,12,0,0">
-                                    <Button Content="Confirm selected window" Command="{Binding ConfirmPresenterWindowCommand}" Style="{StaticResource SecondaryButton}" />
-                                    <Button Content="Choose automatically" Command="{Binding AutomaticPresenterWindowCommand}" Style="{StaticResource TextButton}" />
                                     <Button Content="{Binding PresenterSyncButtonText}" Command="{Binding TogglePresenterSyncCommand}" Style="{StaticResource SecondaryButton}" />
                                 </WrapPanel>
                             </StackPanel>

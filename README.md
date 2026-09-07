@@ -2,7 +2,7 @@
 
 Canva Stage is a Windows desktop confidence-monitor app for churches using Canva presentations. It gives people on stage a separate, readable output while the congregation continues to see the regular Canva presentation.
 
-> **Project status:** `v0.7.0` improves automatic Presenter matching, adds independent next-line styling, and gives the Windows application its CanvaStage icon. This release remains unsigned.
+> **Project status:** `v0.7.0` adds independent next-line styling and the CanvaStage application icon. The current development build restores the proven `v0.5.1` accessibility-spike tracking path after later identity matching proved unreliable. Releases remain unsigned.
 
 ## What it will do
 
@@ -26,9 +26,7 @@ You can set up and test the app with one display. For an independent on-stage di
 
 ## How the planned app works
 
-CanvaStage is a native Windows 11 WPF app. It reads the Canva Presenter page counter through Windows accessibility. Automatic matching uses the Canva design ID from the accessible document URL when available, otherwise an exact presentation title after removing known browser/Canva suffixes. If Canva exposes exactly one otherwise-unidentified window whose visible-page count matches the applied deck, CanvaStage follows that window as a compatibility fallback. It never uses page count to choose between multiple plausible windows. It does not capture the screen or inspect browser traffic.
-
-CanvaStage keeps following the same native Presenter window if another matching Canva window appears during a service. If several plausible windows are already open and no automatic choice has been established, open **Setup & diagnostics**, select the Presenter window, and choose **Confirm selected window**. Confirm only the window showing the applied presentation. A known different design ID or visible-page count still blocks sync. The selection is session-only; a missing explicitly chosen window never causes an automatic switch to a different one. Title and page-count fallbacks are less definitive than a design ID, so give presentations distinct titles.
+CanvaStage is a native Windows 11 WPF app. It reads the Canva Presenter page counter through Windows accessibility using the same direct method proven in the accessibility spike and `v0.5.1`: each scan stops and publishes as soon as it finds an exposed Presenter counter. CanvaStage validates that the counter's visible-page total matches the applied deck before changing pages. It does not capture the screen, inspect browser traffic, or read Canva presentation content through accessibility. Keep one Canva Presenter View open while presenting so the first exposed counter is unambiguous.
 
 **Live control** and **Compact view** show the current sync state and a **Pause sync / Resume sync** button. Manual previous/next navigation pauses sync. Resume uses the latest fresh page reading, or waits for a new reading. Scanning retries automatically after errors, with delays up to 15 seconds; reopening Presenter View is detected without restarting CanvaStage. Turning off automatic sync in settings is saved across restarts; a temporary pause is not.
 

@@ -22,7 +22,6 @@ public sealed class CanvaPresenterAccessibilityTracker : ICanvaPresenterTracker
     private readonly object _syncRoot = new();
     private CancellationTokenSource? _cancellationTokenSource;
     private Task? _trackingTask;
-    private readonly SemaphoreSlim _scanGate = new(1, 1);
     private long _generation;
 
     public long Generation => Interlocked.Read(ref _generation);
@@ -91,16 +90,7 @@ public sealed class CanvaPresenterAccessibilityTracker : ICanvaPresenterTracker
     private async Task TrackAsync(CancellationToken cancellationToken)
     {
         long generation = Generation;
-        await ResilientPollingLoop.RunAsync(async token =>
-        {
-            await _scanGate.WaitAsync(token).ConfigureAwait(false);
-            try
-            {
-                token.ThrowIfCancellationRequested();
-                return ScanAccessibilityTree(token) with { Generation = generation };
-            }
-            finally { _scanGate.Release(); }
-        }, update =>
+        await ResilientPollingLoop.RunAsync(token => Task.FromResult(ScanAccessibilityTree(token) with { Generation = generation }), update =>
         {
             if (!cancellationToken.IsCancellationRequested) Publish(update);
         }, (exception, delay) =>
@@ -121,7 +111,6 @@ public sealed class CanvaPresenterAccessibilityTracker : ICanvaPresenterTracker
         {
             AutomationElementCollection windows = AutomationElement.RootElement.FindAll(TreeScope.Children, Condition.TrueCondition);
             int candidateCount = 0;
-            List<PresenterSource> sources = [];
             for (int index = 0; index < windows.Count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -132,20 +121,19 @@ public sealed class CanvaPresenterAccessibilityTracker : ICanvaPresenterTracker
                 }
 
                 candidateCount++;
-                IReadOnlyList<string> accessibleText = ReadAccessibleText(window, cancellationToken, out string? designId);
+                IReadOnlyList<string> accessibleText = ReadAccessibleText(window, cancellationToken);
                 if (PresenterPageCounterParser.TryParse(accessibleText, out int currentPage, out int totalPages))
                 {
-                    string title = window.Current.Name ?? string.Empty;
-                    using Process process = Process.GetProcessById(window.Current.ProcessId);
-                    // The title and exposed document URL can change while presenting. Keep the
-                    // identity tied to the native window so automatic selection remains stable.
-                    string key = $"{process.Id}:{process.StartTime.ToUniversalTime().Ticks}:{window.Current.NativeWindowHandle}";
-                    sources.Add(new PresenterSource(key, title, applicationName, designId, currentPage, totalPages));
+                    // Match the accessibility-spike behavior: publish the first exposed Presenter
+                    // counter immediately instead of walking every Canva/browser accessibility tree.
+                    return new CanvaPresenterTrackingUpdate(
+                        CanvaPresenterTrackingState.PageDetected,
+                        currentPage,
+                        totalPages,
+                        $"Detected presenter page {currentPage} of {totalPages} from {applicationName}.",
+                        DateTimeOffset.UtcNow);
                 }
             }
-
-            if (sources.Count > 0)
-                return new(CanvaPresenterTrackingState.PageDetected, null, null, "Presenter windows found.", DateTimeOffset.UtcNow, sources);
 
             return candidateCount == 0
                 ? new CanvaPresenterTrackingUpdate(
@@ -240,9 +228,8 @@ public sealed class CanvaPresenterAccessibilityTracker : ICanvaPresenterTracker
         }
     }
 
-    private static IReadOnlyList<string> ReadAccessibleText(AutomationElement window, CancellationToken cancellationToken, out string? designId)
+    private static IReadOnlyList<string> ReadAccessibleText(AutomationElement window, CancellationToken cancellationToken)
     {
-        designId = null;
         var values = new List<string>();
         var pending = new Queue<AutomationElement>();
         TreeWalker walker = TreeWalker.ControlViewWalker;
@@ -265,14 +252,6 @@ public sealed class CanvaPresenterAccessibilityTracker : ICanvaPresenterTracker
                 if (!string.IsNullOrWhiteSpace(name))
                 {
                     values.Add(name);
-                }
-                // Only the document's URL value is used for identity. Never inspect input fields,
-                // authorization URLs, browser traffic, or store the raw accessibility tree.
-                if (element.Current.ControlType == ControlType.Document
-                    && element.TryGetCurrentPattern(ValuePattern.Pattern, out object pattern))
-                {
-                    string? candidateId = PresenterSourceResolver.GetDesignId(((ValuePattern)pattern).Current.Value);
-                    if (candidateId is not null) designId = candidateId;
                 }
             }
             catch (ElementNotAvailableException)
@@ -380,5 +359,4 @@ public sealed record CanvaPresenterTrackingUpdate(
     int? TotalPages,
     string Message,
     DateTimeOffset ObservedAt,
-    IReadOnlyList<PresenterSource>? Sources = null,
     long Generation = 0);

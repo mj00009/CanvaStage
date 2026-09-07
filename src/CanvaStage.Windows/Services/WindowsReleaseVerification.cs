@@ -37,41 +37,30 @@ internal static class WindowsReleaseVerification
         using BindingErrors errors = new();
         PresentationDocument document = CreateDocument();
         coordinator.SetDocument(document);
-        PresenterSource source = new("window-1", "Sunday verification - Canva", "Chrome", document.Id, 2, 3);
-        void Feed(PresenterSource[] sources) => viewModel.ReceivePresenterUpdateForVerification(
-            new(CanvaPresenterTrackingState.PageDetected, null, null, "Synthetic Presenter", DateTimeOffset.UtcNow, sources));
+        void Feed(int page, int total = 3) => viewModel.ReceivePresenterUpdateForVerification(
+            new(CanvaPresenterTrackingState.PageDetected, page, total, "Synthetic Presenter", DateTimeOffset.UtcNow));
 
         viewModel.IsPresenterSyncEnabled = true;
-        Feed([source]);
-        Require(viewModel.CurrentPageNumber == 2, "Verified Presenter selects its page");
+        Feed(2);
+        Require(viewModel.CurrentPageNumber == 2, "Presenter counter selects its page directly");
         viewModel.PreviousPageCommand.Execute(null);
-        Feed([source with { CurrentPage = 3 }]);
+        Feed(3);
         Require(viewModel.CurrentPageNumber == 1 && viewModel.PresenterSyncSummary.StartsWith("Paused"), "Manual navigation pauses following");
         viewModel.TogglePresenterSyncCommand.Execute(null);
         Require(viewModel.CurrentPageNumber == 3, "Resume uses current fresh Presenter page");
-        Feed([source with { CurrentPage = 3 }, source with { Key = "window-2", CurrentPage = 1 }]);
-        Require(!viewModel.IsPresenterWindowChoiceNeeded && viewModel.CurrentPageNumber == 3, "Previously followed automatic window remains stable when a duplicate appears");
-        viewModel.AutomaticPresenterWindowCommand.Execute(null);
-        Feed([source, source with { Key = "window-2", CurrentPage = 1 }]);
-        Require(viewModel.IsPresenterWindowChoiceNeeded && viewModel.CurrentPageNumber == 3, "Ambiguous initial windows hold the last page");
-        viewModel.SelectedPresenterSource = viewModel.PresenterSources.Last();
-        viewModel.ConfirmPresenterWindowCommand.Execute(null);
-        Require(viewModel.CurrentPageNumber == 1, "Explicit window confirmation selects intended source");
-        Feed([source]);
-        Require(viewModel.CurrentPageNumber == 1 && viewModel.PresenterSyncSummary == "Waiting for Presenter", "Missing confirmed window does not switch to another");
-        viewModel.AutomaticPresenterWindowCommand.Execute(null);
-        Feed([source with { DesignId = "other-design" }]);
-        Require(viewModel.PresenterSyncSummary == "Presentation mismatch", "Wrong design cannot follow despite matching title and count");
-        Feed([source]);
+        Feed(1, 4);
+        Require(viewModel.CurrentPageNumber == 3 && viewModel.PresenterSyncSummary == "Presentation mismatch", "Mismatched page count holds the last page");
+        Feed(2);
+        Require(viewModel.CurrentPageNumber == 2 && viewModel.PresenterSyncSummary == "Following Canva", "Matching counter resumes direct following");
         viewModel.IsPresenterSyncEnabled = false;
-        Feed([source with { CurrentPage = 3 }]);
+        Feed(3);
         Require(viewModel.CurrentPageNumber == 2, "Disabled sync ignores queued updates");
         viewModel.IsPresenterSyncEnabled = true;
         viewModel.ReceivePresenterUpdateForVerification(new(CanvaPresenterTrackingState.Error, null, null, "Retrying automatically…", DateTimeOffset.UtcNow));
         Require(viewModel.PresenterSyncSummary == "Reconnecting to Presenter", "Scan failure has actionable recovery status");
-        Feed([source]);
+        Feed(2);
         Require(viewModel.PresenterSyncSummary == "Following Canva", "Recovered scan resumes following");
-        checks.Add("Presenter identity, sticky automatic selection, ambiguity, explicit selection, manual pause, resume, disabled updates and recovery");
+        checks.Add("Direct Presenter counter following, page-count guard, manual pause, resume, disabled updates and recovery");
 
         viewModel.NextLineFontSize = 48;
         viewModel.IsNextLineBold = true;
