@@ -56,6 +56,10 @@ public partial class MainWindow : Window
 
     internal void SetCompactViewForAutomation(bool isCompact) => SetCompactView(isCompact);
 
+    internal void ScrollContentToEndForAutomation() => ContentScrollViewer.ScrollToEnd();
+
+    internal void ScrollContentToTopForAutomation() => ContentScrollViewer.ScrollToTop();
+
     private void CanvaSecretChanged(object sender, RoutedEventArgs eventArgs)
     {
         if (sender is System.Windows.Controls.PasswordBox passwordBox)

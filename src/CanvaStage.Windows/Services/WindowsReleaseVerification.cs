@@ -113,6 +113,11 @@ internal static class WindowsReleaseVerification
         checks.Add("All operator sections at 100%, 125%, 150% and 200% effective layout sizes and raster DPI");
 
         viewModel.ActiveSection = OperatorSection.LiveControl;
+        VerificationWindowSizing.SetSize(mainWindow, 1380, 900);
+        mainWindow.ScrollContentToEndForAutomation();
+        await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(), DispatcherPriority.ApplicationIdle);
+        capture(mainWindow, Path.Combine(directory, "operator-LiveControl-appearance-controls.png"), 1);
+        mainWindow.ScrollContentToTopForAutomation();
         mainWindow.SetCompactViewForAutomation(true);
         capture(mainWindow, Path.Combine(directory, "compact-following.png"), 1);
         viewModel.TogglePresenterSyncCommand.Execute(null);
