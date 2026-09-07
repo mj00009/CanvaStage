@@ -25,6 +25,17 @@ internal static class VerificationWindowSizing
             throw new InvalidOperationException($"Verification window was constrained to {window.ActualWidth}x{window.ActualHeight}; expected {width}x{height}.");
     }
 
+    public static void SetSize(Window window, double width, double height)
+    {
+        // WPF caches the desktop's maximum tracking size before our hook is installed.
+        // MinWidth/MinHeight take precedence over that cached maximum. These constraints
+        // are used only on isolated verification windows, never on the operator's window.
+        window.MinWidth = width;
+        window.MinHeight = height;
+        window.Width = width;
+        window.Height = height;
+    }
+
     private static nint AllowLargeVerificationWindow(nint hwnd, int message, nint wParam, nint lParam, ref bool handled)
     {
         if (message != 0x0024) return 0; // WM_GETMINMAXINFO

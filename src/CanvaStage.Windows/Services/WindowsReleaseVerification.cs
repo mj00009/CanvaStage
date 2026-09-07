@@ -90,8 +90,7 @@ internal static class WindowsReleaseVerification
         VerificationWindowSizing.Configure(mainWindow);
         foreach ((int width, int height, double scale) in new[] { (1380, 900, 1d), (1366, 768, 1.25d), (1920, 1080, 1.5d), (1920, 1080, 2d) })
         {
-            mainWindow.Width = width / scale;
-            mainWindow.Height = height / scale;
+            VerificationWindowSizing.SetSize(mainWindow, width / scale, height / scale);
             foreach (OperatorSection section in Enum.GetValues<OperatorSection>())
             {
                 viewModel.ActiveSection = section;
@@ -124,8 +123,7 @@ internal static class WindowsReleaseVerification
                 coordinator.SelectPage(1);
                 foreach (double scale in new[] { 1d, 1.5d, 2d })
                 {
-                    output.Width = 1920 / scale;
-                    output.Height = 1080 / scale;
+                    VerificationWindowSizing.SetSize(output, 1920 / scale, 1080 / scale);
                     await output.Dispatcher.InvokeAsync(() => output.UpdateLayout(), DispatcherPriority.ApplicationIdle);
                     VerificationWindowSizing.CheckSize(output, 1920 / scale, 1080 / scale);
                     output.VerifyTextFit(scale);
@@ -134,8 +132,7 @@ internal static class WindowsReleaseVerification
             }
             coordinator.SelectPage(2);
             coordinator.SetOutputMode(OutputMode.Mirror);
-            output.Width = 1280;
-            output.Height = 720;
+            VerificationWindowSizing.SetSize(output, 1280, 720);
             await output.Dispatcher.InvokeAsync(() => output.UpdateLayout(), DispatcherPriority.ApplicationIdle);
             VerificationWindowSizing.CheckSize(output, 1280, 720);
             capture(output, Path.Combine(directory, "output-mirror.png"), 1);
