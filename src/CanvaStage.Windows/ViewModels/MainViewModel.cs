@@ -241,6 +241,7 @@ public sealed class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(FontFamily));
             OnPropertyChanged(nameof(FontSize));
             OnPropertyChanged(nameof(ShowClock));
+            OnPropertyChanged(nameof(ShowPreviewNextLine));
             OnPropertyChanged(nameof(ContrastMessage));
             OnPropertyChanged(nameof(PreviewBackgroundBrush));
             OnPropertyChanged(nameof(PreviewTextBrush));
@@ -283,15 +284,8 @@ public sealed class MainViewModel : ViewModelBase
             return string.IsNullOrWhiteSpace(text) ? "This page has no readable text. Monitor mode will use its Canva page image." : text;
         }
     }
-    public string PreviewNextLine
-    {
-        get
-        {
-            int index = Snapshot.Document.Pages.ToList().FindIndex(page => page.Number == CurrentPageNumber);
-            PresentationPage? nextPage = index >= 0 && index + 1 < Snapshot.Document.Pages.Count ? Snapshot.Document.Pages[index + 1] : null;
-            return nextPage?.PrimaryText ?? "No next page";
-        }
-    }
+    public string PreviewNextLine => Snapshot.NextLine ?? string.Empty;
+    public bool ShowPreviewNextLine => Snapshot.Layout is not MonitorLayout.CurrentOnly and not MonitorLayout.SpeakerFocused && !string.IsNullOrWhiteSpace(Snapshot.NextLine);
     public string? PreviewImagePath => SelectedPage?.FallbackImagePath;
     public bool HasPreviewImage => !string.IsNullOrWhiteSpace(PreviewImagePath);
     public bool ShowMonitorPreviewImage => HasPreviewImage && SelectedPage is { HasFormattedText: false };

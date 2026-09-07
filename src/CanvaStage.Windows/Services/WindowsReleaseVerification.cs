@@ -92,10 +92,12 @@ internal static class WindowsReleaseVerification
             {
                 viewModel.ActiveSection = section;
                 await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(), DispatcherPriority.ApplicationIdle);
-                capture(mainWindow, Path.Combine(directory, $"operator-{section}-{width}x{height}-{scale:0.00}.png"), scale);
+                FrameworkElement content = mainWindow.ArrangeContentForVerification(width / scale, height / scale);
+                capture(content, Path.Combine(directory, $"operator-{section}-{width}x{height}-{scale:0.00}.png"), scale);
             }
         }
         checks.Add("All operator sections at 100%, 125%, 150% and 200% effective layout sizes and raster DPI");
+        mainWindow.RestoreContentAfterVerification();
 
         viewModel.ActiveSection = OperatorSection.LiveControl;
         mainWindow.SetCompactViewForAutomation(true);

@@ -32,14 +32,21 @@
             </Grid.Style>
             <Grid Margin="34">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                <TextBlock Text="{Binding CurrentPageText}" Foreground="{Binding PreviewAccentBrush}" FontWeight="SemiBold" />
-                <TextBlock Grid.Row="1" Text="{Binding PreviewPrimaryText}" Foreground="{Binding PreviewTextBrush}" FontFamily="{Binding FontFamily}" FontSize="42" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center">
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding CurrentPageText}" Foreground="{Binding PreviewAccentBrush}" FontWeight="SemiBold" />
+                    <TextBlock x:Name="ClockText" Grid.Column="1" Foreground="{Binding PreviewAccentBrush}" FontWeight="SemiBold">
+                        <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding ShowClock}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+                <Grid x:Name="PreviewTextHost" Grid.Row="1">
+                <TextBlock x:Name="PreviewText" Text="{Binding PreviewPrimaryText}" Foreground="{Binding PreviewTextBrush}" FontFamily="{Binding FontFamily}" FontSize="42" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
                             <Style.Triggers><DataTrigger Binding="{Binding ShowMonitorPreviewImage}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers>
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
+                </Grid>
                 <Image Grid.Row="1" Source="{Binding PreviewImagePath}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <Image.Style>
                         <Style TargetType="Image">
@@ -49,7 +56,8 @@
                     </Image.Style>
                 </Image>
                 <Border Grid.Row="2" BorderBrush="{Binding PreviewAccentBrush}" BorderThickness="0,1,0,0" Margin="0,22,0,0" Padding="0,12,0,0">
-                    <TextBlock Text="{Binding PreviewNextLine, StringFormat=NEXT · {0}}" Foreground="{Binding PreviewTextBrush}" FontSize="16" />
+                    <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding ShowPreviewNextLine}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Border.Style>
+                    <TextBlock Text="{Binding PreviewNextLine, StringFormat=NEXT · {0}}" Foreground="{Binding PreviewTextBrush}" FontSize="16" TextWrapping="Wrap" />
                 </Border>
             </Grid>
         </Grid>

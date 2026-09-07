@@ -15,8 +15,10 @@ public partial class MainWindow : Window
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = viewModel;
+        MinWidth = Math.Min(MinWidth, SystemParameters.WorkArea.Width);
+        MinHeight = Math.Min(MinHeight, SystemParameters.WorkArea.Height);
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
-        SizeChanged += (_, _) => UpdateResponsiveLayout();
+        SizeChanged += (_, _) => UpdateResponsiveLayout(ActualWidth, ActualHeight);
     }
 
     protected override void OnClosing(CancelEventArgs eventArgs)
@@ -51,6 +53,26 @@ public partial class MainWindow : Window
     private void ExitCompactView(object sender, RoutedEventArgs eventArgs) => SetCompactView(false);
 
     internal void SetCompactViewForAutomation(bool isCompact) => SetCompactView(isCompact);
+
+    internal FrameworkElement ArrangeContentForVerification(double width, double height)
+    {
+        FrameworkElement content = (FrameworkElement)Content;
+        content.Width = width;
+        content.Height = height;
+        UpdateResponsiveLayout(width, height);
+        content.Measure(new System.Windows.Size(width, height));
+        content.Arrange(new Rect(0, 0, width, height));
+        content.UpdateLayout();
+        return content;
+    }
+
+    internal void RestoreContentAfterVerification()
+    {
+        FrameworkElement content = (FrameworkElement)Content;
+        content.Width = double.NaN;
+        content.Height = double.NaN;
+        UpdateResponsiveLayout(ActualWidth, ActualHeight);
+    }
 
     private void CanvaSecretChanged(object sender, RoutedEventArgs eventArgs)
     {
@@ -111,8 +133,8 @@ public partial class MainWindow : Window
 
         CompactViewRoot.Visibility = Visibility.Collapsed;
         FullViewRoot.Visibility = Visibility.Visible;
-        MinWidth = 600;
-        MinHeight = 420;
+        MinWidth = Math.Min(600, SystemParameters.WorkArea.Width);
+        MinHeight = Math.Min(420, SystemParameters.WorkArea.Height);
         if (_fullViewWindowState == WindowState.Maximized)
         {
             WindowState = WindowState.Maximized;
@@ -130,14 +152,15 @@ public partial class MainWindow : Window
         WindowState = _fullViewWindowState;
     }
 
-    private void UpdateResponsiveLayout()
+    private void UpdateResponsiveLayout(double width, double height)
     {
-        bool narrow = ActualWidth < 900;
-        SidebarColumn.Width = new GridLength(narrow ? 0 : ActualWidth < 1250 ? 230 : 286);
+        bool narrow = width < 900;
+        SidebarColumn.Width = new GridLength(narrow ? 0 : width < 1250 ? 230 : 286);
         Sidebar.Visibility = narrow ? Visibility.Collapsed : Visibility.Visible;
+        SidebarFooter.Visibility = height < 650 ? Visibility.Collapsed : Visibility.Visible;
         NarrowNavigation.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
-        MainContent.Margin = new Thickness(ActualWidth < 1250 ? 16 : 30, 20, 16, 20);
-        bool stacked = ActualWidth < 1250;
+        MainContent.Margin = new Thickness(width < 1250 ? 16 : 30, 20, 16, 20);
+        bool stacked = width < 1250;
         LiveOptionsColumn.Width = new GridLength(stacked ? 0 : 300);
         System.Windows.Controls.Grid.SetRow(LiveOptionsPanel, stacked ? 1 : 0);
         System.Windows.Controls.Grid.SetColumn(LiveOptionsPanel, stacked ? 0 : 1);
