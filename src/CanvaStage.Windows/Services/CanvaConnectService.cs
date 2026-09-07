@@ -429,10 +429,10 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
             if (!pendingContext.IsCompleted)
             {
                 listener.Stop();
-                try { await pendingContext.ConfigureAwait(false); }
-                catch (HttpListenerException) { /* Stopping a pending callback is expected on timeout or cancellation. */ }
-                catch (ObjectDisposedException) { /* Observe the pending callback before listener disposal. */ }
             }
+            try { await pendingContext.ConfigureAwait(false); }
+            catch (HttpListenerException) { /* Stopping a pending callback is expected on timeout or cancellation. */ }
+            catch (ObjectDisposedException) { /* Observe the pending callback before listener disposal. */ }
         }
     }
 

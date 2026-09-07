@@ -72,6 +72,10 @@ internal static class WindowsReleaseVerification
 
         await VerifyCredentialsAndCacheAsync(directory);
         checks.Add("DPAPI reopen and blank-secret reuse; refresh while previous image is locked; cache restoration");
+        viewModel.CanvaClientId = "verification-client";
+        viewModel.SetCanvaClientSecret("synthetic-secret-for-isolated-verification");
+        viewModel.SaveCanvaConfigurationCommand.Execute(null);
+        Require(viewModel.HasSavedCanvaSecret && !viewModel.ShowSecretInput, "Saved-secret indicator replaces the input after saving");
 
         foreach ((string foreground, string background) in new[] { ("PrimaryTextBrush", "SurfaceBrush"), ("MutedTextBrush", "SurfaceBrush") })
         {
@@ -126,6 +130,7 @@ internal static class WindowsReleaseVerification
                     capture(output, Path.Combine(directory, $"output-{layout}-{scale:0.00}.png"), scale);
                 }
             }
+            coordinator.SelectPage(2);
             coordinator.SetOutputMode(OutputMode.Mirror);
             capture(output, Path.Combine(directory, "output-mirror.png"), 1);
         }
