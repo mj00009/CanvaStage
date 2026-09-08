@@ -88,6 +88,6 @@ Real hardware and Canva account checks are documented in the [Windows acceptance
 
 ## License
 
-The repository is currently licensed under GPL-3.0; it is not currently MIT-licensed. The license includes warranty and liability disclaimers. Apache-2.0 is recommended for a future relicensing because it better matches the goal of free, permissive use while adding explicit patent and trademark provisions. No license grants rights to Canva’s trademarks.
+CanvaStage is licensed under the [Apache License 2.0](LICENSE). It may be used, modified, and redistributed under that license. The license includes an explicit patent grant, excludes trademark rights, and provides the software on an “as is” basis without warranties or contributor liability except where applicable law requires otherwise.
 
 See [Licensing and trademarks](docs/licensing-and-trademarks.md) before redistributing or rebranding the application.
