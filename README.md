@@ -1,102 +1,93 @@
-# Canva Stage
+# CanvaStage
 
-Canva Stage is a Windows desktop confidence-monitor app for churches using Canva presentations. It gives people on stage a separate, readable output while the congregation continues to see the regular Canva presentation.
+CanvaStage is an independent Windows confidence-monitor application for presentations created in Canva. It gives speakers, musicians, and service leaders a separate, readable output while the audience continues to see the normal presentation.
 
-> **Project status:** `v0.8.0` prepares the next operator-focused release with named and numbered display identification, output blanking, tracking health details, cache management, sanitized diagnostic export, and Canva modification checks. Releases remain unsigned.
+CanvaStage is not affiliated with, endorsed by, or sponsored by Canva Pty Ltd. See [Licensing and trademarks](docs/licensing-and-trademarks.md).
 
-## What it will do
+## Download
 
-- Connect to a church-managed Canva integration and choose a presentation.
-- Open a separate confidence-output window, including a laptop-friendly Preview mode.
-- Send the output to a selected confidence display when a second screen is available.
-- Switch immediately between **Mirror** mode (the retrieved Canva page image) and **Monitor** mode (a simplified, high-visibility view of slide text).
-- Automatically follow the visible page number in Canva Presenter View through Windows accessibility, with sticky window selection and manual page controls always available.
-- Collapse to a compact, pinnable operator view with a live mode-accurate preview for single-screen operation.
-- Identify screens with friendly names, resolution, Primary/Extended status, and temporary numbered overlays.
-- Blank and restore the confidence output without stopping the live session.
+The latest tested version is [CanvaStage v0.8.0](https://github.com/mj00009/CanvaStage/releases/tag/v0.8.0).
 
-## Who it is for
+Download `CanvaStage-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package is self-contained, so the computer does not need a separate .NET installation.
 
-Canva Stage is intended for a church operator, worship leader, musician, presenter, or speaker who needs a dependable on-stage confidence screen. It is designed for a calm Sunday workflow:
+The application and package are currently unsigned. Windows may show a SmartScreen warning on first launch. Administrator access is not required.
 
-1. Configure Canva.
-2. Choose the presentation and displays.
-3. Test the output in Preview.
-4. Start the confidence output.
+## Features
 
-You can set up and test the app with one display. For an independent on-stage display, Windows must see the screens as **extended** displays.
+- Connects to a church-managed Canva account and downloads a selected presentation.
+- Automatically follows the current page in Canva Presenter View through Windows accessibility.
+- Excludes hidden slides so CanvaStage numbering matches Presenter View.
+- Provides manual Previous and Next controls when automatic following is paused or unavailable.
+- Sends a borderless confidence window to a selected extended display.
+- Identifies displays with friendly names, resolution, Primary/Extended status, and temporary numbered overlays.
+- Offers Mirror mode using the retrieved slide image and Monitor mode using simplified high-contrast text.
+- Chooses the largest primary text region and ignores smaller header or footer text where possible.
+- Shrinks long Monitor text to keep it visible and falls back to the slide image when usable text is unavailable.
+- Supports next-line styling, four Monitor layouts, custom colors, curated fonts, and an optional clock.
+- Keeps the downloaded presentation, preferences, Canva credentials, and authorization between launches.
+- Provides cache controls, presentation freshness checks, tracking health, and sanitized diagnostic exports.
+- Provides a compact operator view and a Blank output safety control.
 
-## How the planned app works
+## Requirements
 
-CanvaStage is a native Windows 11 WPF app. It reads the Canva Presenter page counter through Windows accessibility using the same direct method proven in the accessibility spike and `v0.5.1`: each scan stops and publishes as soon as it finds an exposed Presenter counter. CanvaStage validates that the counter's visible-page total matches the applied deck before changing pages. It does not capture the screen, inspect browser traffic, or read Canva presentation content through accessibility. Keep one Canva Presenter View open while presenting so the first exposed counter is unambiguous.
+- Windows 11 x64.
+- A Canva account with multi-factor authentication enabled.
+- A Canva Developer Portal integration with `design:meta:read` and `design:content:read`.
+- One display for setup and Preview; two extended displays for independent confidence output.
 
-**Live control** and **Compact view** show the current sync state and a **Pause sync / Resume sync** button. Manual previous/next navigation pauses sync. Resume uses the latest fresh page reading, or waits for a new reading. Scanning retries automatically after errors, with delays up to 15 seconds; reopening Presenter View is detected without restarting CanvaStage. Turning off automatic sync in settings is saved across restarts; a temporary pause is not.
+Read [Canva setup](docs/canva-setup.md) for the current integration steps and security limitations.
 
-### Output modes
+## Typical Sunday workflow
 
-- **Mirror:** Shows the selected presentation page content.
-- **Monitor:** Shows large, high-contrast current-slide text, with optional next-line and clock information. The next line has independent size, bold, and color controls. If usable text is not available, it falls back to the slide image.
+1. Open CanvaStage using the same Windows account used during setup.
+2. In **Presentation**, confirm the Canva connection, refresh the list, select the presentation, and choose **Apply**.
+3. In **Displays**, choose **Identify displays**, select the Extended display, and test it with **Open Preview**.
+4. Open one Canva Presenter View and confirm CanvaStage reports **Following Canva**.
+5. Choose **Start on selected display**.
+6. Use **Blank output** whenever the stage display should be black.
 
-## Canva account and privacy
+Manual page navigation pauses automatic following. Choose **Resume sync** to return to Canva Presenter’s current page.
 
-Each church supplies and authorizes its own Canva integration. The app stores the Client Secret, access token, and refresh token locally in Windows DPAPI storage for the shared Windows operator account. They are never committed to this repository, logs, GitHub Actions artifacts, or release downloads. The operator UI shows only the Client ID after initial setup. Canva diagnostics redact credentials, tokens, OAuth codes, and authorization headers.
+See the [operator guide](docs/operator-guide.md) for modes, keyboard shortcuts, cache controls, and troubleshooting.
 
-The app’s client-only model is a deliberate church-managed approach. Canva recommends a secure backend for client-secret handling and token exchange, so do not describe this desktop-only approach as Canva’s preferred production security model.
+## Privacy and local data
 
-### Canva setup
+The Client Secret and OAuth tokens are protected for the current Windows user using Windows DPAPI. Non-secret preferences and downloaded presentation content are stored under `%LOCALAPPDATA%\CanvaStage`.
 
-1. Enable MFA on the church Canva account and create an integration in the [Canva Developer Portal](https://www.canva.dev/docs/connect/creating-integrations/).
-2. Enable only `design:meta:read` and `design:content:read`.
-3. Copy CanvaStage’s displayed loopback redirect URL into Canva’s **Authorized redirects**. The current value is `http://127.0.0.1:27843/callback/`; Canva permits `127.0.0.1` for local development, not `localhost`.
-4. Enter the Client ID and Client Secret in CanvaStage and select **Save configuration**, then **Connect Canva** and finish authorization in the browser. On later launches, **Saved securely** confirms that the secret is already stored and reused. The masked indicator is not the secret itself. Use **Replace saved secret** only when changing credentials.
-5. Refresh presentations, select one, and choose **Apply**. CanvaStage exports a temporary PPTX to read native text and downloads visible-page thumbnails for Mirror and image fallback. Each refresh uses a separate local cache folder so images currently on screen are never overwritten. The Presentation page shows cache size and provides safe cleanup, clear, re-download, and modification-check controls.
+Closing CanvaStage keeps the connection and downloaded presentation. **Disconnect** removes the protected Canva credentials. **Clear cache** removes downloaded presentation content but keeps credentials and preferences.
 
-CanvaStage does not capture the primary display. It follows Canva Presenter only when Windows exposes a matching page counter; otherwise the operator uses the manual page controls. Hidden slides are removed from the local presentation during import so visible-page numbering matches Presenter mode. Canva exports and page images are retrieved only as needed for the selected presentation; export URLs are short-lived.
-
-### Closing the output window
-
-Press `Escape`, or hover over the top-right corner of the confidence-output window to reveal the close button. Closing the output blanks it and returns to the operator controls.
-
-During operation, `Ctrl+Left` and `Ctrl+Right` select the previous or next page, `Ctrl+Space` pauses or resumes Presenter sync, `Ctrl+B` blanks or restores output, and `Ctrl+1` / `Ctrl+2` select Mirror or Monitor mode.
-
-### If the app does not open
-
-CanvaStage records startup and unexpected-error details in `%LOCALAPPDATA%\CanvaStage\canvastage.log`. The log deliberately redacts Canva credentials, tokens, authorization codes, and authorization headers. **Setup & diagnostics** can create a sanitized support ZIP on the desktop without presentation content. Send that bundle with the release version when reporting a problem; do not send screenshots of Canva setup fields.
+Logs and exported diagnostic bundles redact credentials, tokens, OAuth codes, and authorization headers. Diagnostic bundles exclude presentation text and images.
 
 ## Development
 
-The implementation target is a self-contained Windows x64 release, so volunteers should not need a separately installed .NET runtime.
-
-On Windows, double-click `Build Windows App.cmd`, or use:
+CanvaStage is a .NET 10 WPF application. On Windows, run `Build Windows App.cmd`, or use:
 
 ```powershell
-dotnet restore
-dotnet build -c Release
-dotnet test -c Release --no-build
-dotnet publish src/CanvaStage.Windows/CanvaStage.Windows.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
+dotnet restore CanvaStage.sln
+dotnet build CanvaStage.sln --configuration Release --no-restore
+dotnet test CanvaStage.sln --configuration Release --no-build
+dotnet publish src\CanvaStage.Windows\CanvaStage.Windows.csproj `
+  --configuration Release `
+  --runtime win-x64 `
+  --self-contained true `
+  -p:PublishSingleFile=true
 ```
 
-The GitHub Actions workflow automatically discovers the solution and WPF application project. It builds and tests pull requests and `main`, launches the published executable in a short smoke-test mode, uploads a self-contained Windows x64 artifact, and attaches that artifact to a GitHub Release for version tags such as `v0.2.1`.
+GitHub Actions builds and tests pull requests and `main`. It also launches the published Windows application with synthetic data, checks WPF bindings and output text fitting, and renders screenshots at representative display scales. A `v*` tag creates a GitHub release containing the portable ZIP and SHA-256 checksum.
 
-The portable release ZIP includes a SHA-256 checksum. The app runs without requiring administrator elevation and stores mutable state under the shared Windows operator's local app-data directory.
+Real hardware and Canva account checks are documented in the [Windows acceptance guide](docs/windows-acceptance.md).
 
-## Repository contents
+## Repository layout
 
-- `CanvaStage-Codex-Handoff-Updated.md` — full product requirements and phased delivery plan.
-- `assets/` — Canva Stage logos and interface mockups.
-- `.github/workflows/windows-release.yml` — Windows build, test, artifact, and tagged-release automation.
+- `src/CanvaStage.Core` — presentation models and platform-independent output behavior.
+- `src/CanvaStage.Windows` — WPF interface, Canva connection, Windows display handling, credentials, cache, and diagnostics.
+- `tests/CanvaStage.Tests` — automated tests for core behavior.
+- `docs` — setup, operation, licensing, and real-machine acceptance guides.
+- `assets` — image and icon resources compiled into the application.
+- `.github/workflows/windows-release.yml` — Windows build, verification, packaging, and release automation.
 
-## Planned release process
+## License
 
-1. Merge a tested change to `main`.
-2. Create and push an annotated version tag, for example `v0.1.0`.
-3. GitHub builds, tests, and publishes a self-contained Windows x64 package.
-4. The workflow creates or updates the matching GitHub Release and attaches the package.
+The repository is currently licensed under GPL-3.0; it is not currently MIT-licensed. The license includes warranty and liability disclaimers. Apache-2.0 is recommended for a future relicensing because it better matches the goal of free, permissive use while adding explicit patent and trademark provisions. No license grants rights to Canva’s trademarks.
 
-The application now includes the CanvaStage icon in its Windows executable and windows. Public code signing still requires a validated publisher identity and signing service; see the release notes for whether a particular build is signed. An installer and automatic updates remain future enhancements.
-
-## Release verification and Sunday testing
-
-The Windows workflow runs an isolated, offline verification mode with synthetic content and credentials. It checks Presenter matching and pause/resume, DPAPI credential reuse, refreshing while an image is locked, cache restoration, core theme contrast, WPF binding errors, and measured output text fit. Screenshots cover all operator sections and Monitor layouts, compact controls, and effective layout sizes/raster DPI representing 100%, 125%, 150%, and 200% scaling.
-
-These DPI scenarios simulate layout constraints and rendering; they do not change the runner's Windows display settings or test physical monitor transitions. Screenshots still need visual review. See [the Windows acceptance guide](docs/v0.6.0-acceptance.md) for real-machine checks and known limitations.
+See [Licensing and trademarks](docs/licensing-and-trademarks.md) before redistributing or rebranding the application.

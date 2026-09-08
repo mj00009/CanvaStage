@@ -13,8 +13,3 @@ artifacts/
 *.user
 *.suo
 *.log
-
-# Canva companion-app development output
-spikes/canva-stage-sync/node_modules/
-spikes/canva-stage-sync/dist/
-spikes/canva-stage-sync/.env

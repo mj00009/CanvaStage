@@ -1,0 +1,61 @@
+# Windows acceptance guide
+
+Use this checklist before relying on a new release during a service. Automated verification covers deterministic behavior, but it cannot replace a real Canva account, physical monitors, and the actual presentation computer.
+
+## Before a service
+
+1. Extract the complete release ZIP and run CanvaStage as the usual Windows operator. Administrator elevation is not required.
+2. Confirm **Saved securely** appears under Client Secret.
+3. Refresh and apply the service presentation. Re-download it after Canva edits.
+4. Open one Canva Presenter View and confirm **Following Canva**.
+5. Identify the displays, select the Extended confidence monitor, and test Preview.
+6. Start output and verify page changes, Mirror, Monitor, Blank output, and Restore output.
+7. Test manual Previous or Next, confirm sync pauses, and then resume it.
+
+## Real-machine checklist
+
+- [ ] Launch the self-contained package without a separately installed .NET runtime.
+- [ ] Test the Canva desktop application or supported browser used during services.
+- [ ] Navigate forward, backward, and to distant pages. Confirm CanvaStage follows within an acceptable delay.
+- [ ] Confirm hidden Canva slides are skipped and the visible page total matches Presenter View.
+- [ ] Confirm main text excludes smaller headers, footers, and copyright notices on representative slides.
+- [ ] Close Presenter View. Confirm output holds the last page, then reopen Presenter View and confirm following resumes.
+- [ ] Open a different deck with another visible-page count. Confirm CanvaStage reports a mismatch and holds the last valid page.
+- [ ] Disable automatic sync, restart, and confirm it remains disabled. Temporary pauses should not persist.
+- [ ] Test one-screen Preview and at least one physical Extended display.
+- [ ] Use **Identify displays** and confirm names, numbers, resolution, and Primary/Extended status are understandable.
+- [ ] Test a 1152 × 864 output and mixed monitor scaling at 100%, 125%, 150%, and 200%. Confirm borderless output fills exactly the selected display.
+- [ ] Move and resize the main window at each scale. Confirm its title bar remains reachable.
+- [ ] Test every Monitor layout, maximum font sizes, long text, image fallback, colors, next-line styling, and the clock.
+- [ ] Reapply the same deck while an image is displayed. Confirm refresh completes without a file-in-use error.
+- [ ] Close and reopen CanvaStage. Confirm the cached presentation and Canva connection remain available.
+- [ ] Check for presentation updates, clean old downloads, and clear the cache.
+- [ ] Unplug or reconfigure the confidence display. Confirm output stops safely.
+- [ ] Export diagnostics and inspect the ZIP for credentials, tokens, authorization codes, presentation text, and slide images.
+
+## Automated release verification
+
+The GitHub workflow:
+
+1. restores, builds, and tests the solution on Windows;
+2. publishes a self-contained Windows x64 package;
+3. launches the published executable with isolated synthetic data;
+4. verifies Presenter following, pause/resume, output blanking, DPAPI reuse, cache restoration and cleanup, display bounds, contrast, WPF bindings, and output text fitting;
+5. renders every operator section and Monitor layout at representative 100%, 125%, 150%, and 200% effective sizes;
+6. uploads the package, checksum, test results, verification report, and UI screenshots.
+
+The generated screenshots require visual review. Synthetic DPI rendering does not change the runner’s physical display configuration, so mixed-DPI and hotplug behavior remain real-machine checks.
+
+## Reporting a problem
+
+Include:
+
+- CanvaStage version;
+- Windows version;
+- Canva desktop app or browser name and version;
+- monitor resolution and scaling;
+- the exact on-screen status;
+- reproduction steps;
+- the sanitized diagnostic ZIP from **Setup & diagnostics**.
+
+Do not include the Client Secret, tokens, authorization codes, or screenshots of credential fields.
