@@ -121,6 +121,10 @@ jobs:
           if (-not $report.Passed -or $report.Checks.Count -lt 6) {
             throw 'Windows functional and UI verification did not pass.'
           }
+          '### Published WPF verification' >> $env:GITHUB_STEP_SUMMARY
+          foreach ($check in $report.Checks) {
+            "- $check" >> $env:GITHUB_STEP_SUMMARY
+          }
 
       - name: Collect application diagnostics
         if: always()
@@ -150,6 +154,9 @@ jobs:
 
       - name: Upload test results
         if: always()
+        # Artifact quota must not turn a passing build into a failed release.
+        # The tag job uploads the package directly from this runner to Releases.
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: test-results
@@ -157,6 +164,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload Windows release package
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: CanvaStage-win-x64
@@ -167,6 +175,7 @@ jobs:
 
       - name: Upload UI demo preview
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: ui-demo-preview
@@ -179,6 +188,7 @@ jobs:
 
       - name: Upload build diagnostics on failure
         if: failure()
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: build-diagnostics

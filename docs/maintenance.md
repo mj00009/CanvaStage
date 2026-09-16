@@ -27,7 +27,8 @@ CanvaStage relies on external behavior that can change independently of this rep
 
 1. Check open GitHub issues, Canva's Connect changelog, supported API fields, GitHub Actions runner requirements, and action release notes. Upgrade workflow actions only after checking compatibility; the workflow currently uses Node 24-capable action majors.
 2. Restore, build, and run unit tests locally. On Windows, `Build Windows App.cmd` also publishes a ZIP with logs and a checksum.
-3. Push the commit and confirm the Windows workflow builds the **published** app in synthetic verification mode. Inspect `verification.json` and UI screenshots, not only the green checkmark.
+3. Push the commit and confirm the Windows workflow builds the **published** app in synthetic verification mode. Inspect its verification summary and, when artifact storage permits, `verification.json` and UI screenshots—not only the green checkmark.
+   If GitHub Actions artifact storage is full, uploads show warnings but cannot block a passing build or tag release. The tag job sends the ZIP and checksum directly to GitHub Releases. Restore artifact availability when the quota resets or through an explicitly approved retention cleanup; do not silently delete prior build artifacts.
 4. Open the resulting `CanvaStage-win-x64.zip` and verify `CanvaStage.Windows.exe`, the full Apache-2.0 `LICENSE`, and `TRADEMARKS.md` are present at ZIP root. Compare the SHA-256 checksum with the ZIP.
 5. Run the [real-machine acceptance checklist](windows-acceptance.md) with the church's normal Windows user, Canva account, deck, and external display. Do not report this complete based only on CI.
 6. Only after verification, push an annotated `v*` tag if a release was requested. A `main` push and tag push each run the workflow; the tag job creates/updates the GitHub release.
