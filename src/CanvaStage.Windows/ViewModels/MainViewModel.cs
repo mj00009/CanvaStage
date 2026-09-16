@@ -79,6 +79,8 @@ public sealed class MainViewModel : ViewModelBase
         _canvaPresentationStatus = _snapshot.Document.Id == "demo-sunday"
             ? "Refresh the connected account's presentation list, then select one and Apply."
             : $"Cached {_snapshot.Document.Title} is ready for Presenter sync and manual page selection.";
+        if (_snapshot.Document.Id != "demo-sunday" && _presentationCacheStore.MissingImageCountOnLoad > 0)
+            _canvaPresentationStatus = $"Cached {_snapshot.Document.Title} has {_presentationCacheStore.MissingImageCountOnLoad} missing page image(s). Monitor text is available; Re-download before using Mirror.";
 
         Displays = new ObservableCollection<DisplayOption>(_displayService.GetDisplays());
         CanvaPresentations = [];
@@ -642,7 +644,10 @@ public sealed class MainViewModel : ViewModelBase
                 _hasPresentationFreshnessCheck = document.SourceModifiedAt is not null;
                 OnPropertyChanged(nameof(CacheSummary));
                 OnPropertyChanged(nameof(PresentationFreshnessText));
-                CanvaPresentationStatus = $"{document.Title} is ready and cached locally. Output remains blank until you open Preview or Start output.";
+                int missingImages = document.Pages.Count(page => string.IsNullOrWhiteSpace(page.FallbackImagePath));
+                CanvaPresentationStatus = missingImages == 0
+                    ? $"{document.Title} is ready and cached locally."
+                    : $"{document.Title} is ready, but {missingImages} page image(s) could not be cached. Monitor text is available; Re-download before relying on Mirror.";
                 Persist();
             }, message => CanvaPresentationStatus = message);
         }

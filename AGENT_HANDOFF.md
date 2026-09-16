@@ -15,7 +15,7 @@ Use this file when starting a new development task with no prior conversation. I
 
 CanvaStage is a Windows 11 x64, .NET 10 WPF confidence-display application. A church operator authorizes a Canva account, selects and caches a presentation, and sends a separate confidence window to an extended display. The operator can use a Preview on one screen. The audience presentation remains in Canva; CanvaStage is not a replacement presenter.
 
-The latest tagged application release at this snapshot is **v0.8.0** (`af39333`). `main` also includes later documentation cleanup and Apache-2.0 relicensing (`c04b043`), neither of which changed the v0.8.0 application binary. The release is an **unsigned, self-contained, portable Windows x64 ZIP**; there is no installer, signing, or auto-update mechanism. The GitHub repository is `mj00009/CanvaStage`. As checked on 2026-09-16, GitHub has **no open issues**; recheck before starting a task.
+The v0.9.0 source adds Canva thumbnail URL recovery, cached-image recovery, API-schema verification, and Apache-2.0 notices in the portable ZIP. Check the latest tag and GitHub release before assuming it is published. The last previously tested release was **v0.8.0** (`af39333`). Releases are **unsigned, self-contained, portable Windows x64 ZIPs**; there is no installer, signing, or auto-update mechanism. The GitHub repository is `mj00009/CanvaStage`. As checked on 2026-09-16, GitHub has **no open issues**; recheck before starting a task.
 
 The user reports that v0.8.0 works very well. Previous issues around Presenter tracking, display placement, WPF UI, cache, and credential persistence have been fixed; do not revive an older spike or workaround without evidence. The repository's [license](LICENSE) is Apache-2.0. The independent-project [trademark notice](TRADEMARKS.md) is separate from the software license. Earlier GPL-3.0 release copies retain their original terms.
 
@@ -37,9 +37,9 @@ The user reports that v0.8.0 works very well. Previous issues around Presenter t
 - The offline demo deck has five pages (`DemoPresentationProvider`) and works without Canva credentials.
 - Canva connection uses a local OAuth 2.0 Authorization Code + PKCE flow with the exact loopback redirect `http://127.0.0.1:27843/callback/`. Required scopes are `design:meta:read` and `design:content:read`. Operators provide their own Canva Client ID and Client Secret; setup is in [docs/canva-setup.md](docs/canva-setup.md).
 - Operators can save/reuse the secret, test/connect/disconnect, refresh accessible presentations, select/apply one, re-download it, and check whether Canva's modification time is newer than the cache.
-- Applying a deck gets Canva page metadata, requests a PPTX export, extracts native text and hidden-slide state from its XML, omits hidden pages from the local page order, and downloads **separate Canva page thumbnails** for Mirror mode and textless-page fallback. Mirror images do **not** come from the PPTX. The export wait is five minutes, with progress for download bytes when Canva supplies content length and per-page caching progress.
+- Applying a deck requests a PPTX export, extracts native text and hidden-slide state from its XML, omits hidden pages from the local page order, then gets Canva page metadata and downloads **separate Canva page thumbnails** for Mirror mode and textless-page fallback. Fetching short-lived thumbnail URLs after PPTX preparation, periodic metadata refresh, and one retry on image failure reduce stale-URL failures. Mirror images do **not** come from the PPTX. The export wait is five minutes, with progress for download bytes when Canva supplies content length and per-page caching progress.
 - The text extractor joins PowerPoint runs without inserting spaces, then chooses one dominant text block using font size and shape area (65%/35% weighting). Smaller headings, footers, and copyright text are usually excluded. Some atypical slide designs may still need manual review.
-- A cached presentation, selected page, output preferences, Client Secret, and OAuth authorization persist across normal exits. `Clear cache` removes downloaded content but retains credentials/preferences; `Disconnect` removes protected credentials; `Clean old downloads` prunes obsolete immutable image generations.
+- A cached presentation, selected page, output preferences, Client Secret, and OAuth authorization persist across normal exits. Missing cached image files no longer discard the deck's text and cause a warning to re-download before relying on Mirror. `Clear cache` removes downloaded content but retains credentials/preferences; `Disconnect` removes protected credentials; `Clean old downloads` prunes obsolete immutable image generations.
 
 ### Presenter tracking
 
@@ -103,9 +103,9 @@ The macOS .NET SDK can build and run the cross-platform tests with Windows targe
 
 Windows verification is launched with `--ui-demo-screenshot`, related screenshot arguments, and `--ui-verification-directory`. It uses synthetic content/credentials in isolated storage and checks WPF binding errors, Presenter transitions, DPAPI persistence, image-refresh safety, output placement, text fitting, contrast, and multiple effective DPI/layout sizes. These screenshots need visual review; synthetic DPI cannot prove actual mixed-DPI or monitor hotplug behavior. Use [docs/windows-acceptance.md](docs/windows-acceptance.md) with physical hardware and a real Canva account for those cases. A `--smoke-test` startup path also exists.
 
-Releases are still unsigned; Windows SmartScreen may warn. Do not promise an installer/signature or call a successful CI smoke test a full real-account acceptance test. Keep version in `src/CanvaStage.Windows/CanvaStage.Windows.csproj` and tag/release naming aligned when the user requests a release.
+Releases are still unsigned; Windows SmartScreen may warn. Do not promise an installer/signature or call a successful CI smoke test a full real-account acceptance test. Keep version in `src/CanvaStage.Windows/CanvaStage.Windows.csproj` and tag/release naming aligned when the user requests a release. The publish workflow and local Windows build script explicitly copy `LICENSE` and `TRADEMARKS.md` into the ZIP and verify their presence; inspect the actual release ZIP as well.
 
-The current publish workflow zips the .NET publish directory and does **not explicitly copy the repository's root `LICENSE` or `TRADEMARKS.md` into it**. Before the next Apache-licensed downloadable release, verify the actual ZIP contents and include the license with distributed binaries if absent. Do not assume NuGet project license metadata puts the text into a portable ZIP.
+The [maintenance guide](docs/maintenance.md) records external compatibility risks and pre-release checks.
 
 ## Skills and working conventions
 
@@ -118,12 +118,12 @@ The current publish workflow zips the .NET publish directory and does **not expl
 
 ## Future work: distinguish commitments from ideas
 
-There is **no currently approved next release or open issue** in this snapshot. The following are candidates or deliberately deferred areas, not permission to start them without a new request:
+After v0.9.0, the following are candidates or deliberately deferred areas, not permission to start them without a new request:
 
 1. **Optional sharper Mirror images** — the user noticed low-resolution graphics but explicitly asked only to consider tradeoffs. Current Mirror uses Canva page thumbnails, not images rendered from PPTX. If later requested, consider direct JPEG export at presentation-native dimensions with moderate quality, cache it per deck revision, and retain thumbnails as fallback. Weigh API/export time, large-deck download size, cache growth, Canva rate limits, and hidden-page mapping. Since Mirror is only a graphic reference, this may not be worth the complexity.
 2. **Per-slide text corrections** — explicitly deferred; the current one-dominant-block heuristic is accepted for now.
 3. **Installer, signing, auto-updates** — intentionally skipped. Revisit only if distribution needs change; do not silently introduce signing cost or installer behavior.
 4. **Richer live capture/recognition or Canva command interception** — out of current scope. The working accessibility-based Presenter counter is the accepted tracking method.
-5. **Long-term robustness/maintenance** — monitor changes to Canva's APIs, Presenter accessibility tree, Windows DPI/display behavior, and release-action dependencies. File concrete issues when a regression is observed rather than treating speculative hardening as committed roadmap.
+5. **Long-term robustness/maintenance** — v0.9.0 adds API and cache recovery checks plus a [maintenance checklist](docs/maintenance.md). Continue monitoring Canva APIs, Presenter accessibility, Windows DPI/display behavior, and release-action dependencies. File concrete issues for observed regressions.
 
-If the user asks what to build next, propose a prioritized plan grounded in fresh issues and real usage feedback. Do not claim an older roadmap remains pending when the feature is already in v0.8.0.
+If the user asks what to build next, propose a prioritized plan grounded in fresh issues and real usage feedback. Do not claim an older roadmap remains pending when the feature is already shipped.

@@ -10,6 +10,7 @@ public sealed class PresentationCacheStore
     private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
     private readonly string _cacheDirectory;
     private readonly string _cachePath;
+    public int MissingImageCountOnLoad { get; private set; }
 
     public PresentationCacheStore(string? directory = null)
     {
@@ -66,6 +67,7 @@ public sealed class PresentationCacheStore
 
     public PresentationDocument? Load()
     {
+        MissingImageCountOnLoad = 0;
         try
         {
             if (!File.Exists(_cachePath))
@@ -75,7 +77,17 @@ public sealed class PresentationCacheStore
 
             string json = File.ReadAllText(_cachePath);
             CachedPresentation? cached = JsonSerializer.Deserialize<CachedPresentation>(json, SerializerOptions);
-            return cached is { Version: CurrentCacheVersion, Document.Pages.Count: > 0 } ? cached.Document : null;
+            if (cached is not { Version: CurrentCacheVersion, Document.Pages.Count: > 0 }) return null;
+
+            PresentationPage[] pages = cached.Document.Pages.Select(page =>
+            {
+                if (string.IsNullOrWhiteSpace(page.FallbackImagePath) || File.Exists(page.FallbackImagePath)) return page;
+                MissingImageCountOnLoad++;
+                return page with { FallbackImagePath = null };
+            }).ToArray();
+            if (MissingImageCountOnLoad > 0)
+                PrivacySafeLog.Write($"Cached presentation is missing {MissingImageCountOnLoad} page image(s); retaining text and clearing broken image references.");
+            return MissingImageCountOnLoad == 0 ? cached.Document : cached.Document with { Pages = pages };
         }
         catch (Exception exception)
         {

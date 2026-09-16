@@ -1,0 +1,35 @@
+# Compatibility and release maintenance
+
+CanvaStage relies on external behavior that can change independently of this repository. Review this guide when preparing a release or investigating a regression. Do not change a working Presenter-tracking approach solely because an alternative looks newer.
+
+## Canva Connect API
+
+- The app uses `design:meta:read` and `design:content:read`, lists presentations, reads page metadata, and exports PPTX for native text and hidden-slide state. Verify endpoint fields and limits in the [official Connect API docs](https://www.canva.dev/docs/connect/) and [changelog](https://www.canva.dev/docs/connect/changelog/) before API changes.
+- **Get design pages is a preview API.** It currently returns 1-based `page_number` and short-lived thumbnail URLs. A missing, duplicate, or out-of-range page number must fail safely rather than pair an image with the wrong slide. The Windows synthetic verification includes a changed-schema case.
+- The PPTX export is for text and hidden-slide mapping; Mirror mode uses separately fetched page thumbnails. The app fetches page URLs after export preparation, refreshes them during long downloads, and retries a failed thumbnail with fresh metadata. If an image still fails, the app keeps text and warns that Mirror may be incomplete.
+- Do not log thumbnail/export URLs: they are short-lived signed links. Do not log or upload credentials, tokens, OAuth codes, authorization headers, or slide content. Keep synthetic CI fixtures isolated from uploaded artifacts.
+- After Canva changes, test a real account with a short deck, a large deck, hidden pages, image-only pages, and pages with title/footer/copyright text. Confirm export progress, visible page count, cache reuse, Mirror, and Monitor.
+
+## Canva Presenter and Windows
+
+- Presenter following reads the first matching page counter exposed through Windows accessibility. Manual controls must remain usable whenever the counter is missing, stale, inaccessible, or reports the wrong visible-page total.
+- Test the actual Canva desktop app or browser used for services, with only one Presenter View open and the same Windows permission level as CanvaStage. Check forward/backward/distant jumps, closing/reopening Presenter View, pause/resume, and restart with sync disabled.
+- For Windows display changes, test one-screen Preview, an Extended monitor, mixed DPI, hotplug, and full physical-pixel coverage. CI's synthetic DPI screenshots do not replace real hardware tests. See [Windows acceptance](windows-acceptance.md).
+
+## Local cache and recovery
+
+- Protected credentials use Windows DPAPI `CurrentUser`; `preferences.json` and the presentation cache live under `%LOCALAPPDATA%\CanvaStage`. A different Windows account cannot reuse the protected secret.
+- Keep old image generations immutable during re-download, because the output may still have an old image open. `Clean old downloads` removes obsolete generations only after a new one is active.
+- On startup, a cached deck with missing image files keeps its text but removes broken image references. The operator is warned to re-download before relying on Mirror. Do not silently delete the whole cached presentation or the saved Canva connection.
+- Verify `Clear cache`, `Disconnect`, restart persistence, and sanitized diagnostics separately; they have different deletion scopes.
+
+## Before a release
+
+1. Check open GitHub issues, Canva's Connect changelog, supported API fields, GitHub Actions runner requirements, and action release notes. Upgrade workflow actions only after checking compatibility; the workflow currently uses Node 24-capable action majors.
+2. Restore, build, and run unit tests locally. On Windows, `Build Windows App.cmd` also publishes a ZIP with logs and a checksum.
+3. Push the commit and confirm the Windows workflow builds the **published** app in synthetic verification mode. Inspect `verification.json` and UI screenshots, not only the green checkmark.
+4. Open the resulting `CanvaStage-win-x64.zip` and verify `CanvaStage.Windows.exe`, the full Apache-2.0 `LICENSE`, and `TRADEMARKS.md` are present at ZIP root. Compare the SHA-256 checksum with the ZIP.
+5. Run the [real-machine acceptance checklist](windows-acceptance.md) with the church's normal Windows user, Canva account, deck, and external display. Do not report this complete based only on CI.
+6. Only after verification, push an annotated `v*` tag if a release was requested. A `main` push and tag push each run the workflow; the tag job creates/updates the GitHub release.
+
+The portable package remains unsigned. Signing, an installer, and auto-updates are deferred until explicitly requested.

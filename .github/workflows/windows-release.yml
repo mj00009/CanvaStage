@@ -77,6 +77,14 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true
           --output publish/CanvaStage-win-x64
 
+      - name: Include license and trademark notices
+        shell: pwsh
+        run: |
+          Copy-Item LICENSE, TRADEMARKS.md -Destination publish/CanvaStage-win-x64 -ErrorAction Stop
+          if (-not (Select-String -Path publish/CanvaStage-win-x64/LICENSE -Pattern 'Apache License' -Quiet)) {
+            throw 'The portable package is missing the Apache license text.'
+          }
+
       - name: Render UI demo and smoke test published WPF application
         shell: pwsh
         run: |
@@ -128,6 +136,16 @@ jobs:
         shell: pwsh
         run: |
           Compress-Archive -Path publish/CanvaStage-win-x64/* -DestinationPath publish/CanvaStage-win-x64.zip -Force
+          $archive = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path publish/CanvaStage-win-x64.zip).Path)
+          try {
+            foreach ($requiredEntry in @('CanvaStage.Windows.exe', 'LICENSE', 'TRADEMARKS.md')) {
+              if (-not $archive.GetEntry($requiredEntry)) {
+                throw "The portable ZIP is missing $requiredEntry."
+              }
+            }
+          } finally {
+            $archive.Dispose()
+          }
           (Get-FileHash -Path publish/CanvaStage-win-x64.zip -Algorithm SHA256).Hash | Set-Content -Path publish/CanvaStage-win-x64.zip.sha256 -NoNewline
 
       - name: Upload test results

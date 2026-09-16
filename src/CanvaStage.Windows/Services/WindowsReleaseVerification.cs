@@ -78,7 +78,7 @@ internal static class WindowsReleaseVerification
         Require(mainWindow.Icon is not null, "Operator window loads the CanvaStage icon");
 
         await VerifyCredentialsAndCacheAsync(directory);
-        checks.Add("DPAPI reopen and blank-secret reuse; refresh while previous image is locked; cache restoration");
+        checks.Add("DPAPI reuse, expired Canva thumbnail recovery, preview API schema guard, immutable refresh and damaged-cache recovery");
         viewModel.CanvaClientId = "verification-client";
         viewModel.SetCanvaClientSecret("synthetic-secret-for-isolated-verification");
         viewModel.SaveCanvaConfigurationCommand.Execute(null);
@@ -185,11 +185,15 @@ internal static class WindowsReleaseVerification
         store.Save(credentials);
         CanvaCredentialsStore reopened = new(storage);
         Require(reopened.Load() == credentials, "Protected credentials survive reopening");
-        using HttpClient client = new(new SyntheticCanvaHandler());
+        var handler = new SyntheticCanvaHandler();
+        using HttpClient client = new(handler);
         CanvaConnectService service = new(reopened, client, Path.Combine(storage, "cache"));
         service.SaveConfiguration(credentials.ClientId, "");
         Require(reopened.Load() == credentials, "Blank input reuses saved secret without clearing tokens");
         PresentationDocument first = await service.LoadAsync("verification-design");
+        Require(handler.PageMetadataRequests >= 2 && first.Pages[0].FallbackImagePath is not null,
+            "Expired Canva thumbnail URL is refreshed and Mirror image is cached");
+        Require(handler.ExportRequestBeforePageMetadata, "Page image URLs are fetched after PowerPoint export completes");
         string originalPath = first.Pages[0].FallbackImagePath!;
         PresentationDocument second;
         using (FileStream lockedImage = new(originalPath, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -204,13 +208,40 @@ internal static class WindowsReleaseVerification
         Require(cache.GetStatus().SizeBytes > 0, "Cache size and timestamp are available");
         Require(cache.RemoveObsoleteGenerations(second) == 1 && !File.Exists(originalPath) && File.Exists(second.Pages[0].FallbackImagePath),
             "Cache cleanup removes an old immutable generation and retains the active generation");
+        File.Delete(second.Pages[0].FallbackImagePath!);
+        PresentationCacheStore damagedCache = new(Path.Combine(storage, "cache"));
+        PresentationDocument? recovered = damagedCache.Load();
+        Require(recovered is { Pages.Count: 1 } && recovered.Pages[0].FallbackImagePath is null
+            && recovered.Pages[0].PrimaryText == second.Pages[0].PrimaryText && damagedCache.MissingImageCountOnLoad == 1,
+            "Missing cached image is removed from restored deck while native text remains available");
+
+        using HttpClient changedApiClient = new(new SyntheticCanvaHandler(omitPageNumber: true));
+        CanvaConnectService changedApi = new(reopened, changedApiClient, Path.Combine(storage, "changed-api-cache"));
+        try
+        {
+            _ = await changedApi.LoadAsync("verification-design");
+            throw new InvalidOperationException("Windows verification failed: changed Canva page schema was accepted");
+        }
+        catch (CanvaConnectException exception) when (exception.Message.Contains("page numbers", StringComparison.Ordinal))
+        {
+            // A preview API schema change must fail safely instead of pairing the wrong images with pages.
+        }
     }
 
     private sealed class SyntheticCanvaHandler : HttpMessageHandler
     {
+        private readonly bool _omitPageNumber;
+        public SyntheticCanvaHandler(bool omitPageNumber = false) => _omitPageNumber = omitPageNumber;
+        public int PageMetadataRequests { get; private set; }
+        public bool ExportRequestBeforePageMetadata { get; private set; }
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             string path = request.RequestUri!.AbsolutePath;
+            if (path.EndsWith("/pages", StringComparison.Ordinal)) PageMetadataRequests++;
+            if (path.EndsWith("/exports", StringComparison.Ordinal) && PageMetadataRequests == 0) ExportRequestBeforePageMetadata = true;
+            if (path.EndsWith("expired.png", StringComparison.Ordinal))
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Forbidden));
             HttpContent content;
             if (path.EndsWith(".pptx", StringComparison.Ordinal))
             {
@@ -227,7 +258,7 @@ internal static class WindowsReleaseVerification
             else
             {
                 string json = path.EndsWith("/pages", StringComparison.Ordinal)
-                    ? "{\"items\":[{\"page_number\":1,\"id\":\"page1\",\"thumbnail\":{\"url\":\"https://test.invalid/page.png\"}}]}"
+                    ? $"{{\"items\":[{{{(_omitPageNumber ? string.Empty : "\"page_number\":1,")}\"id\":\"page1\",\"thumbnail\":{{\"url\":\"https://test.invalid/{(PageMetadataRequests == 1 ? "expired" : "page")}.png\"}}}}]}}"
                     : path.EndsWith("/exports", StringComparison.Ordinal)
                         ? "{\"job\":{\"id\":\"export1\",\"status\":\"success\",\"urls\":[\"https://test.invalid/deck.pptx\"]}}"
                         : "{\"design\":{\"id\":\"verification-design\",\"title\":\"Sunday verification\",\"design_types\":[\"presentation\"],\"page_count\":1,\"updated_at\":1893456000}}";

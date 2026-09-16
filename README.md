@@ -6,9 +6,9 @@ CanvaStage is not affiliated with, endorsed by, or sponsored by Canva Pty Ltd. S
 
 ## Download
 
-The latest tested version is [CanvaStage v0.8.0](https://github.com/mj00009/CanvaStage/releases/tag/v0.8.0).
+The latest release is [CanvaStage v0.9.0](https://github.com/mj00009/CanvaStage/releases/tag/v0.9.0).
 
-Download `CanvaStage-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package is self-contained, so the computer does not need a separate .NET installation.
+Download `CanvaStage-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
 
 The application and package are currently unsigned. Windows may show a SmartScreen warning on first launch. Administrator access is not required.
 
@@ -76,6 +76,7 @@ dotnet publish src\CanvaStage.Windows\CanvaStage.Windows.csproj `
 GitHub Actions builds and tests pull requests and `main`. It also launches the published Windows application with synthetic data, checks WPF bindings and output text fitting, and renders screenshots at representative display scales. A `v*` tag creates a GitHub release containing the portable ZIP and SHA-256 checksum.
 
 Real hardware and Canva account checks are documented in the [Windows acceptance guide](docs/windows-acceptance.md).
+The [maintenance guide](docs/maintenance.md) records external compatibility boundaries and pre-release checks.
 
 ## Repository layout
 

@@ -30,8 +30,10 @@ Use this checklist before relying on a new release during a service. Automated v
 - [ ] Reapply the same deck while an image is displayed. Confirm refresh completes without a file-in-use error.
 - [ ] Close and reopen CanvaStage. Confirm the cached presentation and Canva connection remain available.
 - [ ] Check for presentation updates, clean old downloads, and clear the cache.
+- [ ] Reopen a cached deck after deleting one cached page image in a test profile. Confirm Monitor text remains available and the app warns that Mirror images need re-downloading.
 - [ ] Unplug or reconfigure the confidence display. Confirm output stops safely.
 - [ ] Export diagnostics and inspect the ZIP for credentials, tokens, authorization codes, presentation text, and slide images.
+- [ ] Confirm the release ZIP contains `LICENSE` (Apache License 2.0) and `TRADEMARKS.md` beside the executable.
 
 ## Automated release verification
 
@@ -40,7 +42,7 @@ The GitHub workflow:
 1. restores, builds, and tests the solution on Windows;
 2. publishes a self-contained Windows x64 package;
 3. launches the published executable with isolated synthetic data;
-4. verifies Presenter following, pause/resume, output blanking, DPAPI reuse, cache restoration and cleanup, display bounds, contrast, WPF bindings, and output text fitting;
+4. verifies Presenter following, pause/resume, output blanking, DPAPI reuse, expired thumbnail URL recovery, Canva page-schema validation, damaged-cache recovery and cleanup, display bounds, contrast, WPF bindings, and output text fitting;
 5. renders every operator section and Monitor layout at representative 100%, 125%, 150%, and 200% effective sizes;
 6. uploads the package, checksum, test results, verification report, and UI screenshots.
 

@@ -37,8 +37,24 @@ try {
         -p:IncludeNativeLibrariesForSelfExtract=true `
         --output $publishDirectory
 
+    Copy-Item (Join-Path $projectRoot 'LICENSE'), (Join-Path $projectRoot 'TRADEMARKS.md') -Destination $publishDirectory -ErrorAction Stop
+    if (-not (Select-String -Path (Join-Path $publishDirectory 'LICENSE') -Pattern 'Apache License' -Quiet)) {
+        throw 'The portable package is missing the Apache license text.'
+    }
+
     Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
     Compress-Archive -Path (Join-Path $publishDirectory '*') -DestinationPath $zipPath -Force
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+    try {
+        foreach ($requiredEntry in @('CanvaStage.Windows.exe', 'LICENSE', 'TRADEMARKS.md')) {
+            if (-not $archive.GetEntry($requiredEntry)) {
+                throw "The portable ZIP is missing $requiredEntry."
+            }
+        }
+    }
+    finally {
+        $archive.Dispose()
+    }
     (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash | Set-Content -Path $checksumPath -NoNewline
 
     Write-Host "Build succeeded. Portable package: $zipPath" -ForegroundColor Green

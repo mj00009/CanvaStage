@@ -19,6 +19,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
     private const string ApiBaseUrl = "https://api.canva.com/rest/v1/";
     private static readonly TimeSpan ExportPreparationTimeout = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan MaximumExportPollDelay = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan PageMetadataRefreshInterval = TimeSpan.FromMinutes(10);
     private readonly CanvaCredentialsStore _credentialsStore;
     private readonly HttpClient _httpClient;
     private string? _lastPresentationId;
@@ -32,7 +33,8 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         _httpClient = httpClient ?? new HttpClient { BaseAddress = new Uri(ApiBaseUrl), Timeout = TimeSpan.FromSeconds(30) };
         _httpClient.BaseAddress ??= new Uri(ApiBaseUrl);
         _cacheRoot = cacheRoot ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CanvaStage", "cache");
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("CanvaStage/0.6");
+        string version = typeof(CanvaConnectService).Assembly.GetName().Version?.ToString(3) ?? "0.9.0";
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd($"CanvaStage/{version}");
     }
 
     public bool HasSavedConfiguration => _credentialsStore.Load() is not null;
@@ -203,12 +205,15 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
             throw new CanvaConnectException("The selected Canva design is not a presentation.");
         }
 
-        ReportLoadProgress("Reading Canva page details…", null);
-        IReadOnlyList<PageResponse> pageMetadata = await GetPageMetadataAsync(presentationId, cancellationToken).ConfigureAwait(false);
         byte[] presentationFile = await ExportPptxAsync(presentationId, cancellationToken).ConfigureAwait(false);
         IReadOnlyList<PptxSlideContent> extractedSlides = PptxSlideTextExtractor.ExtractSlides(presentationFile);
         IReadOnlyList<PptxSlideContent> visibleSlides = extractedSlides.Where(static slide => !slide.IsHidden).ToList();
         int hiddenSlideCount = extractedSlides.Count - visibleSlides.Count;
+        // Canva page thumbnail URLs expire after 15 minutes. Fetch them after export
+        // preparation so a large PPTX job does not consume their usable lifetime.
+        ReportLoadProgress("Reading Canva page details…", null);
+        IReadOnlyList<PageResponse> pageMetadata = await GetPageMetadataAsync(presentationId, cancellationToken).ConfigureAwait(false);
+        DateTimeOffset pageMetadataFetchedAt = DateTimeOffset.UtcNow;
         var pages = new List<PresentationPage>();
         // Each import is immutable. A preview or another app instance may still hold the
         // previous generation open; never overwrite images belonging to a working deck.
@@ -220,6 +225,13 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
 
         for (int index = 0; index < totalPageCount; index++)
         {
+            if (DateTimeOffset.UtcNow - pageMetadataFetchedAt >= PageMetadataRefreshInterval)
+            {
+                IReadOnlyList<PageResponse>? refreshedMetadata = await TryRefreshPageMetadataAsync(presentationId, cancellationToken).ConfigureAwait(false);
+                if (refreshedMetadata is not null) pageMetadata = refreshedMetadata;
+                pageMetadataFetchedAt = DateTimeOffset.UtcNow;
+            }
+
             int pageNumber = index + 1;
             PptxSlideContent? slide = index < visibleSlides.Count ? visibleSlides[index] : null;
             int sourcePageNumber = slide?.SourcePageNumber ?? pageNumber;
@@ -228,6 +240,20 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
             string? fallbackImagePath = metadata?.Thumbnail?.Url is not null
                 ? await DownloadPageImageAsync(imageDirectory, sourcePageNumber, metadata.Thumbnail.Url, cancellationToken).ConfigureAwait(false)
                 : null;
+            if (fallbackImagePath is null && metadata?.Thumbnail?.Url is not null)
+            {
+                // An expired signed URL or transient image failure should not leave
+                // Mirror blank without first asking Canva for a fresh page URL.
+                IReadOnlyList<PageResponse>? refreshedMetadata = await TryRefreshPageMetadataAsync(presentationId, cancellationToken).ConfigureAwait(false);
+                if (refreshedMetadata is not null) pageMetadata = refreshedMetadata;
+                pageMetadataFetchedAt = DateTimeOffset.UtcNow;
+                PageResponse? refreshed = pageMetadata.FirstOrDefault(page => page.PageNumber == sourcePageNumber);
+                if (refreshed?.Thumbnail?.Url is not null)
+                {
+                    fallbackImagePath = await DownloadPageImageAsync(imageDirectory, sourcePageNumber, refreshed.Thumbnail.Url, cancellationToken).ConfigureAwait(false);
+                    metadata = refreshed;
+                }
+            }
             string title = textBlocks.FirstOrDefault() ?? $"Page {pageNumber}";
             pages.Add(new PresentationPage(pageNumber, title, textBlocks, "#0D0E10", "#75E6C8", textBlocks.Count > 0, fallbackImagePath, metadata?.Id));
             ReportLoadProgress($"Caching Canva page images ({pageNumber} of {totalPageCount}{hiddenSlideProgress})…", (double)pageNumber / totalPageCount);
@@ -289,17 +315,47 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
     private async Task<IReadOnlyList<PageResponse>> GetPageMetadataAsync(string presentationId, CancellationToken cancellationToken)
     {
         var pages = new List<PageResponse>();
+        var seenPageNumbers = new HashSet<int>();
         int offset = 1;
         while (true)
         {
             PageListResponse response = await GetJsonAsync<PageListResponse>($"designs/{Uri.EscapeDataString(presentationId)}/pages?offset={offset}&limit=200", cancellationToken).ConfigureAwait(false);
-            pages.AddRange(response.Items);
+            if (response.Items is null)
+            {
+                throw new CanvaConnectException("Canva returned page details in an unsupported format. Try refreshing again after updating CanvaStage.");
+            }
+            foreach (PageResponse page in response.Items)
+            {
+                if (page.PageNumber is < 1 or > 500 || !seenPageNumbers.Add(page.PageNumber))
+                {
+                    throw new CanvaConnectException("Canva returned inconsistent page numbers. The selected presentation was not changed; try Apply again.");
+                }
+                pages.Add(page);
+            }
             if (response.Items.Count < 200)
             {
                 return pages;
             }
 
             offset += response.Items.Count;
+        }
+    }
+
+    private async Task<IReadOnlyList<PageResponse>?> TryRefreshPageMetadataAsync(string presentationId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await GetPageMetadataAsync(presentationId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is CanvaConnectException or HttpRequestException)
+        {
+            PrivacySafeLog.Write("Canva page image URL refresh failed; retaining available presentation content.");
+            return null;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            PrivacySafeLog.Write("Canva page image URL refresh timed out; retaining available presentation content.");
+            return null;
         }
     }
 
@@ -359,6 +415,12 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         }
         catch (HttpRequestException)
         {
+            PrivacySafeLog.Write($"Canva page {pageNumber} thumbnail download failed; trying refreshed metadata if available.");
+            return null;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            PrivacySafeLog.Write($"Canva page {pageNumber} thumbnail download timed out; trying refreshed metadata if available.");
             return null;
         }
     }
