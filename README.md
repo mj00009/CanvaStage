@@ -83,6 +83,7 @@ Real hardware and Canva account checks are documented in the [Windows acceptance
 - `src/CanvaStage.Windows` — WPF interface, Canva connection, Windows display handling, credentials, cache, and diagnostics.
 - `tests/CanvaStage.Tests` — automated tests for core behavior.
 - `docs` — setup, operation, licensing, and real-machine acceptance guides.
+- `AGENT_HANDOFF.md` — current architecture, decisions, validation, and future-work context for new development agents.
 - `assets` — image and icon resources compiled into the application.
 - `.github/workflows/windows-release.yml` — Windows build, verification, packaging, and release automation.
 
