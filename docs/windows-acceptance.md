@@ -45,7 +45,7 @@ The GitHub workflow:
 3. launches the published executable with isolated synthetic data;
 4. verifies Presenter following, pause/resume, output blanking, DPAPI reuse, expired thumbnail URL recovery, Canva page-schema validation, damaged-cache recovery and cleanup, display bounds, contrast, WPF bindings, and output text fitting;
 5. renders every operator section and Monitor layout at representative 100%, 125%, 150%, and 200% effective sizes;
-6. attempts to upload the package, checksum, test results, verification report, and UI screenshots. GitHub Actions storage quota can block these artifacts; the verification summary remains in the workflow run, and a tagged release uploads its ZIP and checksum directly to GitHub Releases.
+6. attempts to upload test results, the verification report, and UI screenshots; non-tag runs also upload a short-lived package artifact. GitHub Actions storage quota can block these artifacts; the verification summary remains in the workflow run, and a tagged release uploads its ZIP and checksum directly to GitHub Releases.
 
 The generated screenshots require visual review. Synthetic DPI rendering does not change the runner’s physical display configuration, so mixed-DPI and hotplug behavior remain real-machine checks.
 
