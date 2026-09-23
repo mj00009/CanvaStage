@@ -76,9 +76,11 @@ internal static class WindowsReleaseVerification
             "Next-line size, weight and color apply immediately");
         checks.Add("Custom next-line size, weight and color apply to Preview and output");
         Require(mainWindow.Icon is not null, "Operator window loads the CanvaStage icon");
+        Require(System.Windows.Application.Current.ShutdownMode == ShutdownMode.OnMainWindowClose,
+            "Closing the operator window shuts down Preview and output windows");
 
         await VerifyCredentialsAndCacheAsync(directory);
-        checks.Add("DPAPI reuse, expired Canva thumbnail recovery, preview API schema guard, immutable refresh and damaged-cache recovery");
+        checks.Add("DPAPI reuse, expired Canva thumbnail recovery, preview API schema guard, immutable refresh and cache save/recovery checks");
         viewModel.CanvaClientId = "verification-client";
         viewModel.SetCanvaClientSecret("synthetic-secret-for-isolated-verification");
         viewModel.SaveCanvaConfigurationCommand.Execute(null);
@@ -205,6 +207,18 @@ internal static class WindowsReleaseVerification
         cache.Save(second);
         Require(new PresentationCacheStore(Path.Combine(storage, "cache")).Load()?.Pages[0].FallbackImagePath == second.Pages[0].FallbackImagePath,
             "Refreshed cache restores across restart");
+        string blockedCacheDirectory = Path.Combine(storage, "blocked-cache-directory");
+        File.WriteAllText(blockedCacheDirectory, "This file prevents a cache directory from being created.");
+        bool failedSaveWasReported = false;
+        try
+        {
+            new PresentationCacheStore(blockedCacheDirectory).Save(second);
+        }
+        catch (IOException)
+        {
+            failedSaveWasReported = true;
+        }
+        Require(failedSaveWasReported, "Cache save failures reach the Apply action instead of reporting success");
         Require(cache.GetStatus().SizeBytes > 0, "Cache size and timestamp are available");
         Require(cache.RemoveObsoleteGenerations(second) == 1 && !File.Exists(originalPath) && File.Exists(second.Pages[0].FallbackImagePath),
             "Cache cleanup removes an old immutable generation and retains the active generation");

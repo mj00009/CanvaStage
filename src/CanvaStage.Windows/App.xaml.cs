@@ -162,7 +162,17 @@ public partial class App : System.Windows.Application
             }
 
             PrivacySafeLog.Write("Startup: UI demo screenshots were created.");
-            Shutdown();
+            if (!string.IsNullOrWhiteSpace(verificationDirectory))
+            {
+                // Exercise the normal exit path with a hidden Preview window still open.
+                viewModel.PreviewCommand.Execute(null);
+                viewModel.StopOutputCommand.Execute(null);
+                mainWindow.Close();
+            }
+            else
+            {
+                Shutdown();
+            }
         }
         catch (Exception exception)
         {

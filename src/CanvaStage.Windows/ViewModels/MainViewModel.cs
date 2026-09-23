@@ -527,7 +527,15 @@ public sealed class MainViewModel : ViewModelBase
         _canva.LoadProgressChanged -= OnCanvaLoadProgressChanged;
         _canvaPresenterAccessibilityTracker.TrackingUpdated -= OnCanvaPresenterTrackingUpdated;
         _canvaPresenterAccessibilityTracker.Dispose();
-        Persist();
+        _outputWindowManager.Dispose();
+        try
+        {
+            Persist();
+        }
+        catch (Exception exception)
+        {
+            PrivacySafeLog.WriteException("Preferences could not be saved while closing", exception);
+        }
     }
     private void ShowPreview() => _outputWindowManager.ShowPreview();
     private bool CanStartOutput() => SelectedDisplay is not null;
@@ -636,8 +644,8 @@ public sealed class MainViewModel : ViewModelBase
             {
                 CanvaPresentationStatus = $"Preparing and reading {presentation.Title}. Large presentations can take up to five minutes.";
                 PresentationDocument document = await _canva.LoadAsync(presentation.Id);
-                _coordinator.SetDocument(document, Snapshot.SelectedPageNumber);
                 _presentationCacheStore.Save(document);
+                _coordinator.SetDocument(document, Snapshot.SelectedPageNumber);
                 _lastCanvaContentRefresh = document.RefreshedAt;
                 OnPropertyChanged(nameof(LastCanvaContentRefreshText));
                 IsPresentationUpdateAvailable = false;
@@ -787,8 +795,11 @@ public sealed class MainViewModel : ViewModelBase
         catch (CanvaConnectException exception) { PrivacySafeLog.Write($"Canva action failed: {exception.Message}"); setFailureStatus(exception.Message); }
         catch (HttpRequestException) { PrivacySafeLog.Write("Canva request could not reach the service."); setFailureStatus("Canva could not be reached. Check the internet connection and try again."); }
         catch (OperationCanceledException) { PrivacySafeLog.Write("Canva action was cancelled."); setFailureStatus("The Canva action was cancelled."); }
+        catch (System.Text.Json.JsonException) { PrivacySafeLog.Write("Canva returned unreadable JSON data."); setFailureStatus("Canva returned data CanvaStage could not read. Try the action again; the selected presentation was not changed."); }
+        catch (System.IO.InvalidDataException) { PrivacySafeLog.Write("Canva returned an unreadable presentation export."); setFailureStatus("CanvaStage could not read the PowerPoint export. Try Apply again; the previous presentation remains available."); }
         catch (System.IO.IOException exception) { PrivacySafeLog.WriteException("Canva presentation storage failed", exception); setFailureStatus("CanvaStage could not save the downloaded presentation. Check free disk space and try Apply again. The previous presentation remains available."); }
         catch (UnauthorizedAccessException exception) { PrivacySafeLog.WriteException("Canva storage access denied", exception); setFailureStatus("Windows blocked access to CanvaStage's local storage. Check folder permissions and try again."); }
+        catch (Exception exception) { PrivacySafeLog.Write($"Canva action failed unexpectedly ({exception.GetType().Name})."); setFailureStatus("CanvaStage could not finish this Canva action. Try again; if it repeats, export diagnostics from Setup & diagnostics."); }
         finally { IsCanvaBusy = false; }
     }
 

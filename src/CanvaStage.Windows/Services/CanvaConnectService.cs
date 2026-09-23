@@ -33,7 +33,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         _httpClient = httpClient ?? new HttpClient { BaseAddress = new Uri(ApiBaseUrl), Timeout = TimeSpan.FromSeconds(30) };
         _httpClient.BaseAddress ??= new Uri(ApiBaseUrl);
         _cacheRoot = cacheRoot ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CanvaStage", "cache");
-        string version = typeof(CanvaConnectService).Assembly.GetName().Version?.ToString(3) ?? "0.9.0";
+        string version = typeof(CanvaConnectService).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd($"CanvaStage/{version}");
     }
 

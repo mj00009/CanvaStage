@@ -8,7 +8,7 @@ Use this checklist before relying on a new release during a service. Automated v
 2. Confirm **Saved securely** appears under Client Secret.
 3. Refresh and apply the service presentation. Re-download it after Canva edits.
 4. Open one Canva Presenter View and confirm **Following Canva**.
-5. Identify the displays, select the Extended confidence monitor, and test Preview.
+5. Identify the displays, select the Extended confidence monitor, check content in Preview, then start output to confirm physical display placement.
 6. Start output and verify page changes, Mirror, Monitor, Blank output, and Restore output.
 7. Test manual Previous or Next, confirm sync pauses, and then resume it.
 
@@ -29,6 +29,7 @@ Use this checklist before relying on a new release during a service. Automated v
 - [ ] Test every Monitor layout, maximum font sizes, long text, image fallback, colors, next-line styling, and the clock.
 - [ ] Reapply the same deck while an image is displayed. Confirm refresh completes without a file-in-use error.
 - [ ] Close and reopen CanvaStage. Confirm the cached presentation and Canva connection remain available.
+- [ ] Open Preview, stop output, then close the main window. Confirm no hidden CanvaStage process remains. Repeat while output is live and approve the close prompt; confirm the confidence window closes.
 - [ ] Check for presentation updates, clean old downloads, and clear the cache.
 - [ ] Reopen a cached deck after deleting one cached page image in a test profile. Confirm Monitor text remains available and the app warns that Mirror images need re-downloading.
 - [ ] Unplug or reconfigure the confidence display. Confirm output stops safely.
@@ -44,7 +45,7 @@ The GitHub workflow:
 3. launches the published executable with isolated synthetic data;
 4. verifies Presenter following, pause/resume, output blanking, DPAPI reuse, expired thumbnail URL recovery, Canva page-schema validation, damaged-cache recovery and cleanup, display bounds, contrast, WPF bindings, and output text fitting;
 5. renders every operator section and Monitor layout at representative 100%, 125%, 150%, and 200% effective sizes;
-6. uploads the package, checksum, test results, verification report, and UI screenshots.
+6. attempts to upload the package, checksum, test results, verification report, and UI screenshots. GitHub Actions storage quota can block these artifacts; the verification summary remains in the workflow run, and a tagged release uploads its ZIP and checksum directly to GitHub Releases.
 
 The generated screenshots require visual review. Synthetic DPI rendering does not change the runner’s physical display configuration, so mixed-DPI and hotplug behavior remain real-machine checks.
 

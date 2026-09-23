@@ -4,9 +4,9 @@ CanvaStage uses the Canva Connect APIs to list and download presentations. Each 
 
 ## Important security limitation
 
-Canva’s current security guidance recommends a web application with a secure backend for Connect API integrations. It specifically does not recommend storing client credentials in desktop applications.
+Canva's [REST API security recommendations](https://www.canva.dev/docs/apps/rest-apis/security-recommendations/) say integrations must be associated with a web app and that desktop apps are unsupported because they are difficult places to protect client credentials.
 
-CanvaStage is intended for a self-managed church computer and shared operator account. It reduces local exposure by protecting the Client Secret and OAuth tokens with Windows DPAPI, but this architecture is not a substitute for Canva’s recommended server-side model. Do not publish the credentials, copy them into issue reports, or reuse them for another integration.
+CanvaStage is a self-managed local deployment on a church computer and shared operator account. Windows DPAPI reduces local exposure of the Client Secret and OAuth tokens; it does not make this a Canva-supported desktop integration. Do not publish the credentials, copy them into issue reports, or reuse them for another integration.
 
 ## Before you begin
 
@@ -17,7 +17,7 @@ You need:
 - permission to create an integration in the Canva Developer Portal;
 - CanvaStage running under the Windows account that will operate it.
 
-Canva currently offers Public integrations and Enterprise-only Private integrations. A loopback redirect is supported for local development, but it cannot remain when a Public integration is submitted for Canva review. CanvaStage’s local desktop flow is therefore intended for a self-managed integration, not a generally published Canva Marketplace integration.
+Canva currently offers Public integrations and Enterprise-only Private integrations. A Public integration can be used in draft state for individual use and testing; submission for review is required to make it broadly available. A loopback redirect can be used for local development, but it cannot remain when a Public integration is submitted for review. CanvaStage's local flow is intended for a self-managed deployment, not a broadly published Canva integration.
 
 ## Create and configure the integration
 

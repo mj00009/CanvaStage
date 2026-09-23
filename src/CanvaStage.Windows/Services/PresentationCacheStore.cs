@@ -116,6 +116,7 @@ public sealed class PresentationCacheStore
         catch (Exception exception)
         {
             PrivacySafeLog.WriteException("Presentation cache could not be saved", exception);
+            throw;
         }
     }
 

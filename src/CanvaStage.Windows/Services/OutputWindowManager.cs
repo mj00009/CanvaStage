@@ -47,6 +47,7 @@ public sealed class OutputWindowManager : IDisposable
 
     public void StopOutput()
     {
+        _targetDisplayId = null;
         _coordinator.StopOutput();
         if (_window is not null)
         {
@@ -80,13 +81,20 @@ public sealed class OutputWindowManager : IDisposable
 
     private void OnDisplaySettingsChanged(object? sender, EventArgs eventArgs)
     {
-        if (_targetDisplayId is null || _displayService.FindDisplay(_targetDisplayId) is not null)
+        System.Windows.Threading.Dispatcher? dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (_disposed || dispatcher is null || dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
         {
             return;
         }
 
-        System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+        _ = dispatcher.InvokeAsync(() =>
         {
+            if (_disposed || !_coordinator.Snapshot.IsLive || _targetDisplayId is null
+                || _displayService.FindDisplay(_targetDisplayId) is not null)
+            {
+                return;
+            }
+
             StopOutput();
             System.Windows.MessageBox.Show(
                 "The selected confidence display is no longer available. Output was stopped safely. Choose a display or open Preview when you are ready.",
@@ -109,6 +117,7 @@ public sealed class OutputWindowManager : IDisposable
             disposableViewModel.Dispose();
         }
         _window = null;
+        _targetDisplayId = null;
         _coordinator.StopOutput();
     }
 }

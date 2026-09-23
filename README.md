@@ -6,7 +6,7 @@ CanvaStage is not affiliated with, endorsed by, or sponsored by Canva Pty Ltd. S
 
 ## Download
 
-The latest release is [CanvaStage v0.9.0](https://github.com/mj00009/CanvaStage/releases/tag/v0.9.0).
+The latest release is [CanvaStage v0.9.1](https://github.com/mj00009/CanvaStage/releases/tag/v0.9.1).
 
 Download `CanvaStage-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
 
@@ -33,7 +33,7 @@ The application and package are currently unsigned. Windows may show a SmartScre
 - Windows 11 x64.
 - A Canva account with multi-factor authentication enabled.
 - A Canva Developer Portal integration with `design:meta:read` and `design:content:read`.
-- One display for setup and Preview; two extended displays for independent confidence output.
+- One display for setup and Preview; two displays configured to Extend for independent confidence output.
 
 Read [Canva setup](docs/canva-setup.md) for the current integration steps and security limitations.
 
@@ -41,10 +41,11 @@ Read [Canva setup](docs/canva-setup.md) for the current integration steps and se
 
 1. Open CanvaStage using the same Windows account used during setup.
 2. In **Presentation**, confirm the Canva connection, refresh the list, select the presentation, and choose **Apply**.
-3. In **Displays**, choose **Identify displays**, select the Extended display, and test it with **Open Preview**.
-4. Open one Canva Presenter View and confirm CanvaStage reports **Following Canva**.
-5. Choose **Start on selected display**.
-6. Use **Blank output** whenever the stage display should be black.
+3. In **Displays**, choose **Identify displays** and select the Extended confidence display.
+4. Choose **Open Preview** to check content and appearance in a resizable window.
+5. Open one Canva Presenter View and confirm CanvaStage reports **Following Canva**.
+6. Choose **Start on selected display** and confirm output appears on the intended monitor.
+7. Use **Blank output** whenever the stage display should be black.
 
 Manual page navigation pauses automatic following. Choose **Resume sync** to return to Canva Presenter’s current page.
 

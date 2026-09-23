@@ -19,7 +19,7 @@ Use **Check for updates** to compare the cached copy with Canva’s current modi
 2. In CanvaStage, open **Displays** and choose **Identify displays**.
 3. Match the large temporary number on each screen with the numbered dropdown entry.
 4. Choose the Extended display intended for the stage.
-5. Use **Open Preview** to verify content and appearance.
+5. Use **Open Preview** to verify content and appearance in a resizable window. Use **Start on selected display** to verify placement on the physical confidence monitor.
 
 The dropdown includes the monitor name reported by Windows, resolution, and Primary or Extended status. CanvaStage remembers the monitor’s hardware identity when Windows provides one.
 
@@ -94,4 +94,4 @@ The regular log is stored at:
 - Only one Presenter View should be open.
 - Videos, transitions, animations, browser controls, and pointer movement are not mirrored.
 - The current package is unsigned, so Windows may display a SmartScreen warning.
-- Canva integration credentials are protected locally, but Canva recommends a server-side integration architecture for production public integrations.
+- Canva's published REST API guidance does not support desktop apps that store integration credentials. CanvaStage uses local Windows protection for this self-managed deployment, but that does not make it a Canva-supported desktop integration. See [Canva setup](canva-setup.md).

@@ -25,8 +25,11 @@ try {
 
     Set-Location $projectRoot
     dotnet restore CanvaStage.sln
+    if ($LASTEXITCODE -ne 0) { throw "Restore failed (exit code $LASTEXITCODE)." }
     dotnet build CanvaStage.sln --configuration Release --no-restore
+    if ($LASTEXITCODE -ne 0) { throw "Build failed (exit code $LASTEXITCODE)." }
     dotnet test CanvaStage.sln --configuration Release --no-build
+    if ($LASTEXITCODE -ne 0) { throw "Tests failed (exit code $LASTEXITCODE)." }
 
     Remove-Item -Recurse -Force $publishDirectory -ErrorAction SilentlyContinue
     dotnet publish src\CanvaStage.Windows\CanvaStage.Windows.csproj `
@@ -36,6 +39,7 @@ try {
         -p:PublishSingleFile=true `
         -p:IncludeNativeLibrariesForSelfExtract=true `
         --output $publishDirectory
+    if ($LASTEXITCODE -ne 0) { throw "Publish failed (exit code $LASTEXITCODE)." }
 
     Copy-Item (Join-Path $projectRoot 'LICENSE'), (Join-Path $projectRoot 'TRADEMARKS.md') -Destination $publishDirectory -ErrorAction Stop
     if (-not (Select-String -Path (Join-Path $publishDirectory 'LICENSE') -Pattern 'Apache License' -Quiet)) {
