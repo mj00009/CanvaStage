@@ -464,6 +464,8 @@ public sealed class MainViewModel : ViewModelBase
             : "A newer version is available in Canva. Select Re-download to update the local copy."
         : Snapshot.Document.Id == "demo-sunday"
             ? "Load a Canva presentation to check for updates."
+            : !Snapshot.Document.UsesRenderedPageImages
+                ? "This older cache uses preview images. Re-download to obtain fresh rendered Mirror images."
             : _hasPresentationFreshnessCheck
                 ? "The cached copy matches the latest Canva modification time checked."
                 : "Freshness is unknown for this older cache. Re-download once to enable modification checks.";
@@ -667,10 +669,11 @@ public sealed class MainViewModel : ViewModelBase
         await RunCanvaActionAsync(() => LoadAndApplyCanvaCoreAsync(presentation), message => CanvaPresentationStatus = message);
     }
 
-    private async Task RedownloadCanvaAsync()
+    internal async Task RedownloadCanvaAsync()
     {
         PresentationDocument current = Snapshot.Document;
         if (current.Id == "demo-sunday") return;
+        PrivacySafeLog.Write("Canva manual Re-download requested for the applied deck.");
         await RunCanvaActionAsync(() => LoadAndApplyCanvaCoreAsync(
             new CanvaPresentation(current.Id, current.Title, current.Pages.Count), current), message => CanvaPresentationStatus = message);
     }
@@ -684,7 +687,7 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanvaDownloadProgressPercent));
         try
         {
-            CanvaPresentationStatus = $"Preparing and reading {presentation.Title}. Large presentations can take up to five minutes.";
+            CanvaPresentationStatus = $"Preparing and reading {presentation.Title}. Text and Mirror image exports can take several minutes.";
             PresentationDocument document = await Task.Run(() => _canva.LoadAsync(presentation.Id, _lifetimeCancellation.Token), _lifetimeCancellation.Token);
             if (_isClosing || expectedDocument is not null && (!ReferenceEquals(Snapshot.Document, expectedDocument) || !IsAutomaticContentRefreshEnabled && _isAutomaticRefreshRunning)) return;
             await Task.Run(() => _presentationCacheStore.Save(document), _lifetimeCancellation.Token);
@@ -694,6 +697,7 @@ public sealed class MainViewModel : ViewModelBase
                 && total == document.Pages.Count && DateTimeOffset.UtcNow - _lastPresenterUpdate.ObservedAt <= TimeSpan.FromSeconds(3)
                 ? page : null;
             _coordinator.SetDocument(document, presenterPage);
+            PrivacySafeLog.Write($"Canva content applied: {document.Pages.Count} visible pages; selected page {Snapshot.SelectedPageNumber}; rendered images {document.UsesRenderedPageImages}; source modified {document.SourceModifiedAt:O}.");
             _lastCanvaContentRefresh = document.RefreshedAt;
             OnPropertyChanged(nameof(LastCanvaContentRefreshText));
             IsPresentationUpdateAvailable = false;
@@ -742,15 +746,16 @@ public sealed class MainViewModel : ViewModelBase
         _nextAutomaticContentCheck = DateTimeOffset.UtcNow.AddSeconds(30);
     }
 
-    private async Task CheckPresentationUpdatesAsync() => await RunCanvaActionAsync(
-        () => CheckPresentationUpdatesCoreAsync(IsAutomaticContentRefreshEnabled), message => CanvaPresentationStatus = message);
+    internal async Task CheckPresentationUpdatesAsync() => await RunCanvaActionAsync(
+        () => CheckPresentationUpdatesCoreAsync(IsAutomaticContentRefreshEnabled, forceDownload: IsAutomaticContentRefreshEnabled), message => CanvaPresentationStatus = message);
 
-    private async Task CheckPresentationUpdatesCoreAsync(bool applyUpdates)
+    private async Task CheckPresentationUpdatesCoreAsync(bool applyUpdates, bool forceDownload = false)
     {
         PresentationDocument applied = Snapshot.Document;
         if (applied.Id == "demo-sunday") return;
         CanvaPresentation current = await _canva.GetPresentationAsync(applied.Id, _lifetimeCancellation.Token);
         if (_isClosing || !ReferenceEquals(Snapshot.Document, applied)) return;
+        PrivacySafeLog.Write($"Canva content check: cached modified {applied.SourceModifiedAt:O}; reported modified {current.ModifiedAt:O}; automatic refresh {_isAutomaticRefreshRunning}; force download {forceDownload}; rendered images {applied.UsesRenderedPageImages}.");
         CanvaPresentation? listed = CanvaPresentations.FirstOrDefault(item => item.Id == current.Id);
         if (listed is not null)
         {
@@ -759,14 +764,15 @@ public sealed class MainViewModel : ViewModelBase
             if (SelectedCanvaPresentation == listed) SelectedCanvaPresentation = current;
         }
         EvaluatePresentationFreshness(current);
-        if (applyUpdates && (IsPresentationUpdateAvailable || applied.SourceModifiedAt is null && current.ModifiedAt is not null))
+        if (applyUpdates && (forceDownload || !applied.UsesRenderedPageImages || IsPresentationUpdateAvailable || applied.SourceModifiedAt is null && current.ModifiedAt is not null))
         {
             await LoadAndApplyCanvaCoreAsync(current, applied);
             return;
         }
         CanvaPresentationStatus = IsPresentationUpdateAvailable
             ? "Canva has a newer version. Select Re-download to update the cached presentation."
-            : _hasPresentationFreshnessCheck ? "The downloaded presentation is up to date."
+            : !applied.UsesRenderedPageImages ? "This older cache uses preview images. Select Re-download to obtain fresh Mirror images."
+            : _hasPresentationFreshnessCheck ? "The cached copy matches Canva's reported modification time."
                 : "Canva did not provide comparable edit timestamps. Use Re-download to refresh the presentation.";
     }
 

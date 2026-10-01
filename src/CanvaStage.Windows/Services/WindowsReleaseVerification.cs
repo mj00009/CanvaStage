@@ -81,8 +81,10 @@ internal static class WindowsReleaseVerification
 
         await VerifyCredentialsAndCacheAsync(directory);
         await LiveCanvaRefreshVerification.RunAsync(directory);
-        checks.Add("DPAPI reuse, expired Canva thumbnail recovery, preview API schema guard, immutable refresh and cache save/recovery checks");
+        await MirrorImageExportVerification.RunAsync(directory);
+        checks.Add("DPAPI reuse, fresh rendered images instead of preview thumbnails, preview API schema guard, immutable refresh and cache save/recovery checks");
         checks.Add("Saved-token startup, concurrent token rotation, 401 retry, live refresh navigation, page-count change, failed export, pause/blank preservation, opt-out and shutdown cancellation");
+        checks.Add("Mirror pixels change after refresh with unchanged thumbnails; manual refresh bypasses lagging metadata; hidden-page render mapping, bounded image size, signed URL preservation and invalid/failed image guards");
         viewModel.CanvaClientId = "verification-client";
         viewModel.SetCanvaClientSecret("synthetic-secret-for-isolated-verification");
         viewModel.SaveCanvaConfigurationCommand.Execute(null);
@@ -206,8 +208,9 @@ internal static class WindowsReleaseVerification
         service.SaveConfiguration(credentials.ClientId, "");
         Require(reopened.Load() == credentials, "Blank input reuses saved secret without clearing tokens");
         PresentationDocument first = await service.LoadAsync("verification-design");
-        Require(handler.PageMetadataRequests >= 2 && first.Pages[0].FallbackImagePath is not null,
-            "Expired Canva thumbnail URL is refreshed and Mirror image is cached");
+        Require(handler.PageMetadataRequests == 1 && handler.ThumbnailRequests == 0 && handler.ImageExportRequests == 1
+            && first.UsesRenderedPageImages && first.Pages[0].FallbackImagePath is not null,
+            "Mirror caches a fresh render job without downloading the stale/expired thumbnail");
         Require(handler.ExportRequestBeforePageMetadata, "Page image URLs are fetched after PowerPoint export completes");
         string originalPath = first.Pages[0].FallbackImagePath!;
         PresentationDocument second;
@@ -260,15 +263,23 @@ internal static class WindowsReleaseVerification
         private readonly bool _omitPageNumber;
         public SyntheticCanvaHandler(bool omitPageNumber = false) => _omitPageNumber = omitPageNumber;
         public int PageMetadataRequests { get; private set; }
+        public int ThumbnailRequests { get; private set; }
+        public int ImageExportRequests { get; private set; }
         public bool ExportRequestBeforePageMetadata { get; private set; }
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             string path = request.RequestUri!.AbsolutePath;
             if (path.EndsWith("/pages", StringComparison.Ordinal)) PageMetadataRequests++;
             if (path.EndsWith("/exports", StringComparison.Ordinal) && PageMetadataRequests == 0) ExportRequestBeforePageMetadata = true;
-            if (path.EndsWith("expired.png", StringComparison.Ordinal))
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Forbidden));
+            if (path.EndsWith(".png", StringComparison.Ordinal)) ThumbnailRequests++;
+            bool isImageExport = false;
+            if (path.EndsWith("/exports", StringComparison.Ordinal))
+            {
+                using JsonDocument body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+                isImageExport = body.RootElement.GetProperty("format").GetProperty("type").GetString() == "jpg";
+                if (isImageExport) ImageExportRequests++;
+            }
             HttpContent content;
             if (path.EndsWith(".pptx", StringComparison.Ordinal))
             {
@@ -280,19 +291,31 @@ internal static class WindowsReleaseVerification
                 }
                 content = new ByteArrayContent(stream.ToArray());
             }
-            else if (path.EndsWith(".png", StringComparison.Ordinal))
-                content = new ByteArrayContent(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a7WQAAAAASUVORK5CYII="));
+            else if (path.EndsWith(".jpg", StringComparison.Ordinal))
+                content = new ByteArrayContent(CreateVerificationImage(80));
             else
             {
                 string json = path.EndsWith("/pages", StringComparison.Ordinal)
                     ? $"{{\"items\":[{{{(_omitPageNumber ? string.Empty : "\"page_number\":1,")}\"id\":\"page1\",\"thumbnail\":{{\"url\":\"https://test.invalid/{(PageMetadataRequests == 1 ? "expired" : "page")}.png\"}}}}]}}"
                     : path.EndsWith("/exports", StringComparison.Ordinal)
-                        ? "{\"job\":{\"id\":\"export1\",\"status\":\"success\",\"urls\":[\"https://test.invalid/deck.pptx\"]}}"
+                        ? $"{{\"job\":{{\"id\":\"export1\",\"status\":\"success\",\"urls\":[\"https://test.invalid/{(isImageExport ? "rendered.jpg" : "deck.pptx")}\"]}}}}"
                         : "{\"design\":{\"id\":\"verification-design\",\"title\":\"Sunday verification\",\"design_types\":[\"presentation\"],\"page_count\":1,\"updated_at\":1893456000}}";
                 content = new StringContent(json, Encoding.UTF8, "application/json");
             }
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
         }
+    }
+
+    internal static byte[] CreateVerificationImage(byte red)
+    {
+        byte[] pixels = [0, 0, red, 255];
+        System.Windows.Media.Imaging.BitmapSource image = System.Windows.Media.Imaging.BitmapSource.Create(1, 1, 96, 96,
+            PixelFormats.Bgra32, null, pixels, 4);
+        System.Windows.Media.Imaging.PngBitmapEncoder encoder = new();
+        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(image));
+        using MemoryStream stream = new();
+        encoder.Save(stream);
+        return stream.ToArray();
     }
 
     private sealed class BindingErrors : TraceListener, IDisposable

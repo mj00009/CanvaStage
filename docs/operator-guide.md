@@ -5,9 +5,11 @@
 1. Open CanvaStage using the Windows account used during Canva setup.
 2. Select **Presentation**.
 3. The saved Canva connection loads the presentation list automatically. Select the presentation and choose **Apply**; use **Refresh** if needed.
-4. Wait for the export, download, text extraction, and image caching to finish.
+4. Wait for the PowerPoint export, text extraction, separate Mirror image export, and image caching to finish.
 
 The progress bar shows exact transferred bytes when Canva supplies the export size. Export preparation remains indeterminate because Canva does not publish a percentage for that stage.
+
+Mirror and textless-page fallback use newly exported JPEG images, not Canva's page-preview thumbnails. Reference images use regular export quality, JPEG quality 70, and a width capped at 1280 pixels when page dimensions are available, without enlarging smaller designs. Preparing both exports can take several minutes for large decks. If any new image cannot be retrieved or validated, the previous deck remains active; CanvaStage does not silently substitute a potentially stale thumbnail.
 
 Hidden slides are removed from CanvaStage’s local page order. Smaller header and footer text blocks are ignored when a larger main text block is available. If a page has no usable text, Monitor mode shows its retrieved page image.
 
@@ -15,7 +17,9 @@ Hidden slides are removed from CanvaStage’s local page order. Smaller header a
 
 The refresh preserves the current Presenter page when its counter matches the new deck, manual pauses, appearance, output placement, and blank state. If pages were added or removed, tracking can temporarily report a count mismatch until the new copy is ready. A failed refresh keeps the current deck and retries with a longer delay (up to five minutes).
 
-Turn automatic updates off in **Presentation** to control updates manually. **Check for updates** checks the applied deck immediately and also applies an update if automatic updates are enabled. **Re-download** always reloads the applied deck, even if a different presentation is highlighted in the dropdown. Changing to another deck still requires **Apply**.
+Turn automatic updates off in **Presentation** to control updates manually. With automatic updates enabled, **Check for updates** reloads the applied deck even if Canva's reported modification time has not advanced. With automatic updates disabled, it only checks the modification time; use **Re-download** to obtain new content. **Re-download** always reloads the applied deck, even if a different presentation is highlighted in the dropdown. Changing to another deck still requires **Apply**.
+
+Older cached decks that use preview thumbnails are upgraded once on the next automatic check. If automatic updates are disabled, choose **Re-download** to upgrade. Automatic checks still depend on Canva reporting a newer modification time after that upgrade; if an edit has not appeared, use **Check for updates** with automatic updates enabled or **Re-download**.
 
 The next-line cue shows only the first authored line of the next page's main text. A paragraph without authored line breaks displays as one line, with an ellipsis when it is too long for the available width.
 

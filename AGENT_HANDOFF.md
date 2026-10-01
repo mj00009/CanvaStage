@@ -21,6 +21,8 @@ The user reports that v0.8.0 works very well. Previous issues around Presenter t
 
 The v0.10.0 release addresses issues #17–19: single-line next cues, saved-authorization startup and token renewal, and automatic live content updates. See [release notes](docs/releases/v0.10.0.md) and confirm publication status from GitHub. Synthetic Windows verification and 50 unit tests passed for the functional fixes; real-account acceptance, especially confirmation of the reported refresh freeze, remains a user test.
 
+Current development source addresses issue #20 (stale Mirror content): it uses fresh JPEG exports instead of page-preview thumbnails and forces a manual import for **Check for updates** when automatic updates are enabled. The operator confirmed that button was used, but the exact Canva-side freshness cause is unproven. Keep the issue open until real-account acceptance. Issue #21 reports missing word spaces; its title says Monitor but its body says Mirror. Confirm the affected mode and inspect the screenshots before changing text extraction. These changes are not in v0.10.0.
+
 ## User decisions and non-goals
 
 - Typical deployment uses one shared church Canva account and one shared Windows operator account. Secrets are protected **for that Windows user**; another Windows profile needs its own setup.
@@ -32,7 +34,7 @@ The v0.10.0 release addresses issues #17–19: single-line next cues, saved-auth
 - The user chose to leave CanvaStage branding in place for now. The project is independent and not endorsed by Canva.
 - Avoid external writes such as pushing, tagging, releasing, or closing issues unless the current task authorizes them. A push to `main` and a `v*` tag each trigger a Windows workflow run; a tag additionally publishes a GitHub release.
 
-## Shipped behavior
+## Current source behavior
 
 ### Presentation and Canva
 
@@ -41,9 +43,10 @@ The v0.10.0 release addresses issues #17–19: single-line next cues, saved-auth
 - Operators can save/reuse the secret, test/connect/disconnect, refresh accessible presentations, select/apply one, re-download it, and check whether Canva's modification time is newer than the cache.
 - Current source restores the saved connection and presentation list at startup. Expired access tokens are renewed under a semaphore because Canva refresh tokens are single-use; a protected API 401 gets one renewal/retry. Only an explicit Connect action can open browser authorization. Revoked authorization retains protected setup and the working cached deck.
 - Automatic content checks are enabled by default and persisted in `AppPreferences.IsAutomaticContentRefreshEnabled`. A 30-second dispatcher timer checks only the applied design's metadata; a newer modification time downloads and saves a new immutable deck before swapping it into output. Failures keep the working deck and back off up to five minutes. No refresh stops Presenter scanning or resets live/blank/manual-pause state. Re-download targets the applied deck independently of dropdown selection.
+- `PresentationDocument.UsesRenderedPageImages` defaults to false for older cached JSON. Automatic checks migrate such a cache once even if Canva's timestamp is unchanged. Manual **Check for updates** forces an import when automatic updates are enabled, but remains metadata-only when disabled. Periodic checks after migration still depend on Canva's reported edit time.
 - Progress is throttled at the service and coalesced at the dispatcher, while preview text fitting reacts only to text/layout changes. Imports and cache saves run away from the UI thread. `OutputCoordinator` queues reentrant notifications so a Presenter page selected during a deck swap cannot be overwritten by a late old snapshot. Same-deck refresh uses a stable external page ID if supplied, otherwise a valid page number; fresh matching Presenter counters take priority when following.
 - Next cues preserve authored PPTX soft breaks, select the first nonempty line, and use a single visual line with word ellipsis for paragraphs that wrap. Main text remains complete.
-- Applying a deck requests a PPTX export, extracts native text and hidden-slide state from its XML, omits hidden pages from the local page order, then gets Canva page metadata and downloads **separate Canva page thumbnails** for Mirror mode and textless-page fallback. Fetching short-lived thumbnail URLs after PPTX preparation, periodic metadata refresh, and one retry on image failure reduce stale-URL failures. Mirror images do **not** come from the PPTX. The export wait is five minutes, with progress for download bytes when Canva supplies content length and per-page caching progress.
+- Applying a deck requests a PPTX export, extracts native text and hidden-slide state from its XML, omits hidden pages from the local page order, then reads Canva page IDs/dimensions and requests a **separate JPEG export** for the visible source page numbers. Mirror and textless-page fallback use these rendered images, not PPTX graphics or preview thumbnails. JPEG quality is 70, `export_quality` is `regular`, and width is capped at 1280 without upscaling when all page widths are known; otherwise native dimensions are used. Export preparation can take five minutes per job, with PPTX byte progress when Canva supplies content length and per-page image caching progress. URL counts must match requested pages, images must decode, and any render failure leaves the working deck active. GETs request cache revalidation without changing signed URLs.
 - The text extractor joins PowerPoint runs without inserting spaces, then chooses one dominant text block using font size and shape area (65%/35% weighting). Smaller headings, footers, and copyright text are usually excluded. Some atypical slide designs may still need manual review.
 - A cached presentation, selected page, output preferences, Client Secret, and OAuth authorization persist across normal exits. Missing cached image files no longer discard the deck's text and cause a warning to re-download before relying on Mirror. `Clear cache` removes downloaded content but retains credentials/preferences; `Disconnect` removes protected credentials; `Clean old downloads` prunes obsolete immutable image generations.
 
@@ -57,7 +60,7 @@ The v0.10.0 release addresses issues #17–19: single-line next cues, saved-auth
 ### Output and operator UI
 
 - Independent Preview and selected-display borderless output; loss of the selected display stops output safely. Displays have stable identity when available, friendly name, resolution, Primary/Extended status, and numbered identification overlays.
-- Mirror shows the cached Canva thumbnail. Monitor shows the extracted main text and optional next line, with four layouts, font/size/colors, contrast guidance, an optional clock, and a fallback image if text is unusable. Main text is measured and shrunk to avoid clipping.
+- Mirror shows the cached Canva render (older caches may still contain thumbnails until migrated). Monitor shows the extracted main text and optional next line, with four layouts, font/size/colors, contrast guidance, an optional clock, and a fallback image if text is unusable. Main text is measured and shrunk to avoid clipping.
 - Appearance/mode changes apply immediately to in-app preview and output. The output can be blanked/restored without closing its session; `Escape` and a hover-revealed close button can close it. The operator has a compact view and Always-on-top toggle.
 - Keyboard shortcuts with the main window focused: `Ctrl+Left/Right` previous/next; `Ctrl+Space` pause/resume sync; `Ctrl+B` blank/restore; `Ctrl+1/2` Mirror/Monitor.
 - Setup diagnostics show connection, presenter, output, and cache health. A privacy-safe log lives at `%LOCALAPPDATA%\CanvaStage\canvastage.log`; diagnostic ZIP exports omit presentation content and redact credentials/tokens/codes/authorization headers.
@@ -68,7 +71,7 @@ The v0.10.0 release addresses issues #17–19: single-line next cues, saved-auth
 |---|---|
 | Cross-platform state | `src/CanvaStage.Core/Models/*`, `Services/OutputCoordinator.cs`: deck, selected page, mode, layout, appearance, blank/live snapshot |
 | Presentation providers | `Services/IPresentationProvider.cs`, `ICanvaPresentationProvider.cs`, `DemoPresentationProvider.cs`; Canva implementation is Windows-specific |
-| Canva API and import | `src/CanvaStage.Windows/Services/CanvaConnectService.cs`: auth, list, page metadata, export/download, thumbnail cache |
+| Canva API and import | `src/CanvaStage.Windows/Services/CanvaConnectService.cs`: auth, list, page metadata, PPTX/JPEG exports, immutable image cache |
 | PPTX text | `src/CanvaStage.Core/Utilities/PptxSlideTextExtractor.cs`: hidden slides, run joining, dominant block selection |
 | Presenter sync | `Services/CanvaPresenterAccessibilityTracker.cs`, `ICanvaPresenterTracker.cs`, `Core/Utilities/PresenterPageCounterParser.cs`, `Core/Services/ResilientPollingLoop.cs`; policy/state lives in `MainViewModel.cs` |
 | Local persistence | `CanvaCredentialsStore.cs` (Windows DPAPI CurrentUser), `JsonPreferencesStore.cs` (`preferences.json`), `PresentationCacheStore.cs` (`cache/presentation.json` plus immutable image generations) |
@@ -76,7 +79,7 @@ The v0.10.0 release addresses issues #17–19: single-line next cues, saved-auth
 | Confidence output | `Services/OutputWindowManager.cs`, `Views/OutputWindow.xaml(.cs)`, `ViewModels/OutputWindowViewModel.cs`, `Views/ConfidencePreview.xaml`: display placement, live updates, text fitting, image loading |
 | Display handling | `DisplayService.cs`, `DisplayIdentificationService.cs`; native placement reconciles physical screen bounds with WPF DPI |
 | Startup and diagnostics | `App.xaml.cs` constructs services and installs crash handlers; `PrivacySafeLog.cs`, `DiagnosticsExportService.cs`, `Core/Utilities/SensitiveDataRedactor.cs` |
-| Windows CI verification | `WindowsReleaseVerification.cs`, `LiveCanvaRefreshVerification.cs`, `VerificationWindowSizing.cs`: synthetic delayed/failed live-refresh and token tests, screenshots, binding checks, text fit, DPI/layout scenarios |
+| Windows CI verification | `WindowsReleaseVerification.cs`, `LiveCanvaRefreshVerification.cs`, `MirrorImageExportVerification.cs`, `VerificationWindowSizing.cs`: synthetic delayed/failed refresh, changed Mirror pixels, hidden-page render mapping, token tests, screenshots, binding checks, text fit, DPI/layout scenarios |
 | Unit tests | `tests/CanvaStage.Tests/*`: core state, text extraction, counter parsing, polling, preferences, contrast, redaction |
 
 There is no DI container; `App.xaml.cs` constructs the service graph directly. The Windows application targets `net10.0-windows` with WPF and Windows Forms enabled; the Core library targets `net10.0`. Both project files advertise Apache-2.0. Avoid moving Windows UI Automation, DPAPI, WPF types, or display APIs into Core.
@@ -92,7 +95,7 @@ The accessibility tracker supplies page-counter observations to `MainViewModel`;
 - Mutable app data lives under `%LOCALAPPDATA%\CanvaStage`. Protected credentials are in `canva.credentials.protected`; preferences in `preferences.json`; cached deck/images under `cache`.
 - Canva credentials and OAuth tokens must never appear in source, test fixtures uploaded to CI, logs, screenshots, or diagnostic bundles. Keep errors/privacy-safe and test redaction when adding API flows.
 - The local desktop secret model is a deliberate, self-managed compromise. Canva's [published security guidance](https://www.canva.dev/docs/apps/rest-apis/security-recommendations/) says desktop REST API integrations that store credentials are unsupported; do not claim this architecture is Canva-supported or suitable for broad public distribution. DPAPI reduces local exposure but does not change that boundary.
-- Canva page metadata thumbnails have limited resolution. Direct JPEG/PNG exports support higher-resolution options, but no such quality upgrade is implemented. Do not assume PPTX export quality controls the Mirror image.
+- Mirror uses bounded regular-quality JPEG exports for freshness, not a pixel-perfect presentation feed. Do not assume PPTX export quality controls the Mirror image. A configurable higher-quality option remains deferred.
 - Canva Connect API details, supported formats, scopes, limits, and developer terms can change. Verify the [official Canva Connect docs](https://www.canva.dev/docs/connect/) before implementing API changes.
 
 ## Build, test, and release
@@ -126,7 +129,7 @@ The [maintenance guide](docs/maintenance.md) records external compatibility risk
 
 After v0.9.0, the following are candidates or deliberately deferred areas, not permission to start them without a new request:
 
-1. **Optional sharper Mirror images** — the user noticed low-resolution graphics but explicitly asked only to consider tradeoffs. Current Mirror uses Canva page thumbnails, not images rendered from PPTX. If later requested, consider direct JPEG export at presentation-native dimensions with moderate quality, cache it per deck revision, and retain thumbnails as fallback. Weigh API/export time, large-deck download size, cache growth, Canva rate limits, and hidden-page mapping. Since Mirror is only a graphic reference, this may not be worth the complexity.
+1. **Optional sharper Mirror images** — current development source uses bounded JPEG exports to address stale previews, not to promise pixel-perfect graphics. A user-configurable quality/native-resolution option is not implemented. Weigh API/export time, large-deck download size, cache growth, Canva rate limits, and hidden-page mapping before adding one. Do not silently use stale thumbnails as a fallback during a content update.
 2. **Per-slide text corrections** — explicitly deferred; the current one-dominant-block heuristic is accepted for now.
 3. **Installer, signing, auto-updates** — intentionally skipped. Revisit only if distribution needs change; do not silently introduce signing cost or installer behavior.
 4. **Richer live capture/recognition or Canva command interception** — out of current scope. The working accessibility-based Presenter counter is the accepted tracking method.

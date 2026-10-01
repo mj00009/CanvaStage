@@ -6,6 +6,9 @@ using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace CanvaStage.Windows.Services;
 
@@ -47,11 +50,18 @@ internal static class LiveCanvaRefreshVerification
             await viewModel.InitializeCanvaAsync();
             Require(viewModel.CanvaPresentations.Count == 1 && viewModel.SelectedCanvaPresentation?.Id == "live-deck",
                 "Startup loads presentation choices using saved authorization");
+            coordinator.SetDocument(initial with { UsesRenderedPageImages = false });
+            viewModel.IsAutomaticContentRefreshEnabled = true;
+            await viewModel.CheckAutomaticContentRefreshAsync(true);
+            initial = coordinator.Snapshot.Document;
+            Require(initial.UsesRenderedPageImages && cache.Load()?.UsesRenderedPageImages == true,
+                "A legacy thumbnail cache migrates once even when its Canva edit timestamp has not changed");
             void Feed(int page) => viewModel.ReceivePresenterUpdateForVerification(new(
                 CanvaPresenterTrackingState.PageDetected, page, handler.PageCount, "Synthetic Presenter", DateTimeOffset.UtcNow));
             coordinator.StartOutput();
             Feed(2);
-            viewModel.IsAutomaticContentRefreshEnabled = true;
+            coordinator.SetOutputMode(OutputMode.Mirror);
+            byte oldPixel = ReadRed(output.FallbackImage);
             handler.Version++;
             handler.BlockDownload();
             Task refresh = viewModel.CheckAutomaticContentRefreshAsync(true);
@@ -68,6 +78,9 @@ internal static class LiveCanvaRefreshVerification
             Require(output.Snapshot is { IsLive: true, IsBlanked: true, SelectedPageNumber: 3 }
                 && output.PrimaryText == "Version 2 page 3" && viewModel.PresenterSyncSummary == "Following Canva",
                 "Live refresh retains the latest Presenter page and blank state in both views");
+            Require(oldPixel != ReadRed(output.FallbackImage) && ReadRed(output.FallbackImage) == 60
+                && output.IsMirror && handler.ThumbnailRequests == 0,
+                "Mirror replaces its decoded image after live refresh even when preview thumbnails never change");
             Feed(1);
             Require(output.Snapshot.SelectedPageNumber == 1 && output.PrimaryText == "Version 2 page 1",
                 "Output continues following after deck replacement");
@@ -95,6 +108,34 @@ internal static class LiveCanvaRefreshVerification
             viewModel.TogglePresenterSyncCommand.Execute(null);
             Require(output.Snapshot.SelectedPageNumber == 2, "Resume after refresh uses the latest Presenter counter");
 
+            handler.MetadataVersionOverride = handler.Version;
+            handler.Version++;
+            oldPixel = ReadRed(output.FallbackImage);
+            await viewModel.CheckPresentationUpdatesAsync();
+            Require(ReadRed(output.FallbackImage) != oldPixel && output.PrimaryText == "Version 5 page 2",
+                "Manual update forces fresh text and Mirror pixels even if Canva modification metadata lags");
+            handler.MetadataVersionOverride = null;
+
+            PresentationDocument beforeImageFailure = output.Snapshot.Document;
+            handler.Version++;
+            handler.FailImageExport = true;
+            await viewModel.CheckAutomaticContentRefreshAsync(true);
+            Require(ReferenceEquals(output.Snapshot.Document, beforeImageFailure) && !viewModel.IsCanvaBusy,
+                "A failed fresh image export keeps the entire working deck instead of silently using stale thumbnails");
+            handler.FailImageExport = false;
+
+            viewModel.IsAutomaticContentRefreshEnabled = false;
+            exports = handler.ExportRequests;
+            await viewModel.CheckPresentationUpdatesAsync();
+            Require(handler.ExportRequests == exports && ReferenceEquals(output.Snapshot.Document, beforeImageFailure)
+                && viewModel.IsPresentationUpdateAvailable,
+                "Manual Check for updates remains metadata-only when automatic updates are disabled");
+            viewModel.SelectedCanvaPresentation = new("other-deck", "Other deck", 1);
+            await viewModel.RedownloadCanvaAsync();
+            Require(output.Snapshot.Document.Id == "live-deck" && output.PrimaryText == "Version 6 page 2"
+                && handler.ExportRequests == exports + 2,
+                "Re-download forces fresh exports of the applied deck, not the highlighted dropdown entry");
+            viewModel.IsAutomaticContentRefreshEnabled = true;
             working = output.Snapshot.Document;
             handler.Version++;
             handler.BlockDownload();
@@ -135,6 +176,15 @@ internal static class LiveCanvaRefreshVerification
         if (!condition) throw new InvalidOperationException("Windows live-refresh verification failed: " + message);
     }
 
+    private static byte ReadRed(BitmapSource? image)
+    {
+        if (image is null) throw new InvalidOperationException("Mirror verification did not load an image.");
+        FormatConvertedBitmap converted = new(image, PixelFormats.Bgra32, null, 0);
+        byte[] pixels = new byte[4];
+        converted.CopyPixels(pixels, 4, 0);
+        return pixels[2];
+    }
+
     private sealed class LiveCanvaHandler : HttpMessageHandler
     {
         public int Version { get; set; } = 1;
@@ -142,6 +192,9 @@ internal static class LiveCanvaRefreshVerification
         public int TokenRequests { get; private set; }
         public int ExportRequests { get; private set; }
         public bool FailExport { get; set; }
+        public bool FailImageExport { get; set; }
+        public int? MetadataVersionOverride { get; set; }
+        public int ThumbnailRequests { get; private set; }
         public bool RejectRefreshToken { get; set; }
         public TaskCompletionSource DownloadStarted { get; private set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource ReleaseDownload { get; private set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -170,7 +223,22 @@ internal static class LiveCanvaRefreshVerification
             {
                 ExportRequests++;
                 if (FailExport) return Json("{}", HttpStatusCode.InternalServerError);
+                using JsonDocument body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
+                if (body.RootElement.GetProperty("format").GetProperty("type").GetString() == "jpg")
+                {
+                    if (FailImageExport) return Json("{\"job\":{\"id\":\"image-export\",\"status\":\"failed\"}}");
+                    string urls = string.Join(",", body.RootElement.GetProperty("format").GetProperty("pages").EnumerateArray()
+                        .Select(page => $"\"https://test.invalid/image/{Version}/{page.GetInt32()}.jpg\""));
+                    return Json($"{{\"job\":{{\"id\":\"image-export\",\"status\":\"success\",\"urls\":[{urls}]}}}}");
+                }
                 return Json("{\"job\":{\"id\":\"export\",\"status\":\"success\",\"urls\":[\"https://test.invalid/deck.pptx\"]}}");
+            }
+            if (path.EndsWith(".jpg", StringComparison.Ordinal))
+                return new(HttpStatusCode.OK) { Content = new ByteArrayContent(WindowsReleaseVerification.CreateVerificationImage((byte)(int.Parse(path.Split('/')[2]) * 30))) };
+            if (path.EndsWith("stale.png", StringComparison.Ordinal))
+            {
+                ThumbnailRequests++;
+                return new(HttpStatusCode.OK) { Content = new ByteArrayContent(WindowsReleaseVerification.CreateVerificationImage(30)) };
             }
             if (path.EndsWith(".pptx", StringComparison.Ordinal))
             {
@@ -190,8 +258,8 @@ internal static class LiveCanvaRefreshVerification
                 return new(HttpStatusCode.OK) { Content = new ByteArrayContent(stream.ToArray()) };
             }
             if (path.EndsWith("/pages", StringComparison.Ordinal))
-                return Json("{\"items\":[" + string.Join(",", Enumerable.Range(1, PageCount).Select(page => $"{{\"page_number\":{page},\"id\":\"page-{page}\"}}")) + "]}");
-            string design = $"{{\"id\":\"live-deck\",\"title\":\"Live deck\",\"design_types\":[\"presentation\"],\"page_count\":{PageCount},\"updated_at\":{1893456000 + Version}}}";
+                return Json("{\"items\":[" + string.Join(",", Enumerable.Range(1, PageCount).Select(page => $"{{\"page_number\":{page},\"id\":\"page-{page}\",\"thumbnail\":{{\"url\":\"https://test.invalid/stale.png\"}}}}")) + "]}");
+            string design = $"{{\"id\":\"live-deck\",\"title\":\"Live deck\",\"design_types\":[\"presentation\"],\"page_count\":{PageCount},\"updated_at\":{1893456000 + (MetadataVersionOverride ?? Version)}}}";
             return Json(path.EndsWith("/designs", StringComparison.Ordinal) ? $"{{\"items\":[{design}]}}" : $"{{\"design\":{design}}}");
         }
 

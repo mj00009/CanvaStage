@@ -19,7 +19,6 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
     private const string ApiBaseUrl = "https://api.canva.com/rest/v1/";
     private static readonly TimeSpan ExportPreparationTimeout = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan MaximumExportPollDelay = TimeSpan.FromSeconds(5);
-    private static readonly TimeSpan PageMetadataRefreshInterval = TimeSpan.FromMinutes(10);
     private readonly CanvaCredentialsStore _credentialsStore;
     private readonly HttpClient _httpClient;
     private string? _lastPresentationId;
@@ -212,6 +211,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         }
 
         _lastPresentationId = presentationId;
+        PrivacySafeLog.Write("Canva content import started.");
         GetDesignResponse designResponse = await GetJsonAsync<GetDesignResponse>($"designs/{Uri.EscapeDataString(presentationId)}", cancellationToken).ConfigureAwait(false);
         DesignResponse design = designResponse.Design ?? throw new CanvaConnectException("Canva returned an unreadable presentation response.");
         if (!IsPresentation(design))
@@ -223,63 +223,40 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         IReadOnlyList<PptxSlideContent> extractedSlides = PptxSlideTextExtractor.ExtractSlides(presentationFile);
         IReadOnlyList<PptxSlideContent> visibleSlides = extractedSlides.Where(static slide => !slide.IsHidden).ToList();
         int hiddenSlideCount = extractedSlides.Count - visibleSlides.Count;
-        // Canva page thumbnail URLs expire after 15 minutes. Fetch them after export
-        // preparation so a large PPTX job does not consume their usable lifetime.
+        // Metadata supplies stable page IDs and dimensions, not the Mirror image.
+        // A separate render job avoids treating a preview thumbnail as a fresh export.
         ReportLoadProgress("Reading Canva page details…", null);
         IReadOnlyList<PageResponse> pageMetadata = await GetPageMetadataAsync(presentationId, cancellationToken).ConfigureAwait(false);
-        DateTimeOffset pageMetadataFetchedAt = DateTimeOffset.UtcNow;
         var pages = new List<PresentationPage>();
         // Each import is immutable. A preview or another app instance may still hold the
         // previous generation open; never overwrite images belonging to a working deck.
         string safePresentationId = string.Concat(presentationId.Where(char.IsLetterOrDigit));
         string imageDirectory = Path.Combine(_cacheRoot, safePresentationId, Guid.NewGuid().ToString("N"));
         int totalPageCount = hiddenSlideCount > 0 ? visibleSlides.Count : Math.Max(extractedSlides.Count, pageMetadata.Count);
+        if (totalPageCount == 0)
+            throw new CanvaConnectException("Canva returned a presentation with no visible pages.");
+        int[] sourcePageNumbers = Enumerable.Range(0, totalPageCount)
+            .Select(index => index < visibleSlides.Count ? visibleSlides[index].SourcePageNumber : index + 1).ToArray();
+        IReadOnlyList<string> imageUrls = await ExportPageImagesAsync(presentationId, sourcePageNumbers, pageMetadata, cancellationToken).ConfigureAwait(false);
         string hiddenSlideProgress = hiddenSlideCount > 0 ? $"; {hiddenSlideCount} hidden skipped" : string.Empty;
         ReportLoadProgress($"Caching Canva page images (0 of {totalPageCount}{hiddenSlideProgress})…", 0d);
 
         for (int index = 0; index < totalPageCount; index++)
         {
-            if (DateTimeOffset.UtcNow - pageMetadataFetchedAt >= PageMetadataRefreshInterval)
-            {
-                IReadOnlyList<PageResponse>? refreshedMetadata = await TryRefreshPageMetadataAsync(presentationId, cancellationToken).ConfigureAwait(false);
-                if (refreshedMetadata is not null) pageMetadata = refreshedMetadata;
-                pageMetadataFetchedAt = DateTimeOffset.UtcNow;
-            }
-
             int pageNumber = index + 1;
             PptxSlideContent? slide = index < visibleSlides.Count ? visibleSlides[index] : null;
-            int sourcePageNumber = slide?.SourcePageNumber ?? pageNumber;
+            int sourcePageNumber = sourcePageNumbers[index];
             IReadOnlyList<string> textBlocks = slide?.TextBlocks ?? [];
             PageResponse? metadata = pageMetadata.FirstOrDefault(page => page.PageNumber == sourcePageNumber);
-            string? fallbackImagePath = metadata?.Thumbnail?.Url is not null
-                ? await DownloadPageImageAsync(imageDirectory, sourcePageNumber, metadata.Thumbnail.Url, cancellationToken).ConfigureAwait(false)
-                : null;
-            if (fallbackImagePath is null && metadata?.Thumbnail?.Url is not null)
-            {
-                // An expired signed URL or transient image failure should not leave
-                // Mirror blank without first asking Canva for a fresh page URL.
-                IReadOnlyList<PageResponse>? refreshedMetadata = await TryRefreshPageMetadataAsync(presentationId, cancellationToken).ConfigureAwait(false);
-                if (refreshedMetadata is not null) pageMetadata = refreshedMetadata;
-                pageMetadataFetchedAt = DateTimeOffset.UtcNow;
-                PageResponse? refreshed = pageMetadata.FirstOrDefault(page => page.PageNumber == sourcePageNumber);
-                if (refreshed?.Thumbnail?.Url is not null)
-                {
-                    fallbackImagePath = await DownloadPageImageAsync(imageDirectory, sourcePageNumber, refreshed.Thumbnail.Url, cancellationToken).ConfigureAwait(false);
-                    metadata = refreshed;
-                }
-            }
+            string fallbackImagePath = await DownloadPageImageAsync(imageDirectory, sourcePageNumber, imageUrls[index], cancellationToken).ConfigureAwait(false);
             string title = textBlocks.FirstOrDefault() ?? $"Page {pageNumber}";
             pages.Add(new PresentationPage(pageNumber, title, textBlocks, "#0D0E10", "#75E6C8", textBlocks.Count > 0, fallbackImagePath, metadata?.Id));
             ReportLoadProgress($"Caching Canva page images ({pageNumber} of {totalPageCount}{hiddenSlideProgress})…", (double)pageNumber / totalPageCount);
         }
 
-        if (pages.Count == 0)
-        {
-            throw new CanvaConnectException("Canva returned a presentation with no pages.");
-        }
-
+        PrivacySafeLog.Write($"Canva content import completed: {pages.Count} visible pages, {hiddenSlideCount} hidden skipped; fresh image export downloaded.");
         ReportLoadProgress("Presentation is ready.", 1d);
-        return new PresentationDocument(presentationId, design.Title ?? "Untitled presentation", pages, DateTimeOffset.UtcNow, ToDateTimeOffset(design.UpdatedAt));
+        return new PresentationDocument(presentationId, design.Title ?? "Untitled presentation", pages, DateTimeOffset.UtcNow, ToDateTimeOffset(design.UpdatedAt), UsesRenderedPageImages: true);
     }
 
     private CanvaCredentials RequireCredentials() => _credentialsStore.Load() ?? throw new CanvaConnectException("Configure your Canva Client ID and Client Secret first.");
@@ -345,6 +322,8 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         for (int attempt = 0; ; attempt++)
         {
             using HttpRequestMessage request = createRequest();
+            if (request.Method == HttpMethod.Get)
+                request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
             if (response.StatusCode != HttpStatusCode.Unauthorized) return response;
@@ -383,33 +362,38 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         }
     }
 
-    private async Task<IReadOnlyList<PageResponse>?> TryRefreshPageMetadataAsync(string presentationId, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<string>> ExportPageImagesAsync(string presentationId, int[] sourcePages,
+        IReadOnlyList<PageResponse> metadata, CancellationToken cancellationToken)
     {
-        try
+        Dictionary<string, object> format = new()
         {
-            return await GetPageMetadataAsync(presentationId, cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception exception) when (exception is CanvaConnectException or HttpRequestException)
-        {
-            PrivacySafeLog.Write("Canva page image URL refresh failed; retaining available presentation content.");
-            return null;
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            PrivacySafeLog.Write("Canva page image URL refresh timed out; retaining available presentation content.");
-            return null;
-        }
+            ["type"] = "jpg", ["quality"] = 70, ["export_quality"] = "regular", ["pages"] = sourcePages
+        };
+        double?[] widths = sourcePages.Select(number => metadata.FirstOrDefault(page => page.PageNumber == number)?.Dimensions?.Width).ToArray();
+        // Bound reference-image downloads without upscaling small designs on Free plans.
+        if (widths.All(width => width is >= 40 and <= 25000))
+            format["width"] = (int)Math.Min(1280, Math.Floor(widths.Min()!.Value));
+        IReadOnlyList<string> urls = await ExportAsync(presentationId, format, "Mirror image", cancellationToken).ConfigureAwait(false);
+        if (urls.Count != sourcePages.Length || urls.Any(string.IsNullOrWhiteSpace))
+            throw new CanvaConnectException("Canva returned an unexpected number of rendered page images. The previous presentation was kept; try Re-download again.");
+        return urls;
     }
 
     private async Task<byte[]> ExportPptxAsync(string presentationId, CancellationToken cancellationToken)
     {
+        IReadOnlyList<string> urls = await ExportAsync(presentationId, new { type = "pptx" }, "PowerPoint", cancellationToken).ConfigureAwait(false);
+        return await DownloadExportAsync(urls[0], cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<IReadOnlyList<string>> ExportAsync(string presentationId, object format, string description, CancellationToken cancellationToken)
+    {
         using HttpResponseMessage createResponse = await SendAuthorizedAsync(() => new HttpRequestMessage(HttpMethod.Post, "exports")
         {
-            Content = JsonContent.Create(new { design_id = presentationId, format = new { type = "pptx" } })
+            Content = JsonContent.Create(new { design_id = presentationId, format })
         }, cancellationToken).ConfigureAwait(false);
         ExportResponse export = await ReadJsonResponseAsync<ExportResponse>(createResponse, cancellationToken).ConfigureAwait(false);
         ExportJobResponse job = export.Job ?? throw new CanvaConnectException("Canva did not return an export job.");
-        ReportLoadProgress("Canva is preparing the PowerPoint export…", null);
+        ReportLoadProgress($"Canva is preparing the {description} export…", null);
 
         DateTimeOffset deadline = DateTimeOffset.UtcNow.Add(ExportPreparationTimeout);
         TimeSpan pollDelay = TimeSpan.FromSeconds(1);
@@ -418,12 +402,12 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         {
             if (string.Equals(job.Status, "success", StringComparison.OrdinalIgnoreCase) && job.Urls is { Count: > 0 })
             {
-                return await DownloadExportAsync(job.Urls[0], cancellationToken).ConfigureAwait(false);
+                return job.Urls;
             }
 
             if (string.Equals(job.Status, "failed", StringComparison.OrdinalIgnoreCase))
             {
-                throw new CanvaConnectException("Canva could not export this presentation. Check that it can be exported as PowerPoint and try again.");
+                throw new CanvaConnectException($"Canva could not prepare the {description} export. The previous presentation was kept; try Re-download again.");
             }
 
             TimeSpan remaining = deadline - DateTimeOffset.UtcNow;
@@ -436,37 +420,45 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
             ExportResponse poll = await GetJsonAsync<ExportResponse>($"exports/{Uri.EscapeDataString(job.Id)}", cancellationToken).ConfigureAwait(false);
             job = poll.Job ?? throw new CanvaConnectException("Canva returned an invalid export job response.");
             pollDelay = TimeSpan.FromTicks(Math.Min(pollDelay.Ticks * 2, MaximumExportPollDelay.Ticks));
-            ReportLoadProgress("Canva is still preparing the PowerPoint export…", null);
+            ReportLoadProgress($"Canva is still preparing the {description} export…", null);
         }
 
-        throw new CanvaConnectException("Canva is still preparing this presentation after five minutes. The selected presentation was not changed; try Apply again.");
+        throw new CanvaConnectException($"Canva is still preparing the {description} export after five minutes. The previous presentation was kept; try Re-download again.");
     }
 
-    private async Task<string?> DownloadPageImageAsync(string directory, int pageNumber, string url, CancellationToken cancellationToken)
+    private async Task<string> DownloadPageImageAsync(string directory, int pageNumber, string url, CancellationToken cancellationToken)
     {
         try
         {
-            byte[] image = await _httpClient.GetByteArrayAsync(url, cancellationToken).ConfigureAwait(false);
+            using HttpRequestMessage request = new(HttpMethod.Get, url);
+            request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
+            using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            byte[] image = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+            using MemoryStream input = new(image, false);
+            _ = System.Windows.Media.Imaging.BitmapDecoder.Create(input,
+                System.Windows.Media.Imaging.BitmapCreateOptions.PreservePixelFormat, System.Windows.Media.Imaging.BitmapCacheOption.OnLoad);
             Directory.CreateDirectory(directory);
-            string path = Path.Combine(directory, $"page-{pageNumber}.png");
+            string path = Path.Combine(directory, $"page-{pageNumber}.jpg");
             await File.WriteAllBytesAsync(path, image, cancellationToken).ConfigureAwait(false);
             return path;
         }
-        catch (HttpRequestException)
+        catch (Exception exception) when (exception is HttpRequestException or NotSupportedException or FileFormatException)
         {
-            PrivacySafeLog.Write($"Canva page {pageNumber} thumbnail download failed; trying refreshed metadata if available.");
-            return null;
+            PrivacySafeLog.Write($"Canva page {pageNumber} rendered image download or validation failed.");
+            throw new CanvaConnectException($"CanvaStage could not retrieve the new image for page {pageNumber}. The previous presentation was kept; try Re-download again.", exception);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            PrivacySafeLog.Write($"Canva page {pageNumber} thumbnail download timed out; trying refreshed metadata if available.");
-            return null;
+            throw new CanvaConnectException($"Canva page {pageNumber} image download timed out. The previous presentation was kept; try Re-download again.");
         }
     }
 
     private async Task<byte[]> DownloadExportAsync(string url, CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        using HttpRequestMessage request = new(HttpMethod.Get, url);
+        request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
+        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         long? totalBytes = response.Content.Headers.ContentLength;
         await using Stream input = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
@@ -651,7 +643,8 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
     private sealed record DesignResponse(string Id, string? Title, IReadOnlyList<string>? DesignTypes, int? PageCount, ThumbnailResponse? Thumbnail, long? UpdatedAt);
     private sealed record GetDesignResponse(DesignResponse? Design);
     private sealed record PageListResponse(IReadOnlyList<PageResponse> Items);
-    private sealed record PageResponse(int PageNumber, string? Id, ThumbnailResponse? Thumbnail);
+    private sealed record PageResponse(int PageNumber, string? Id, ThumbnailResponse? Thumbnail, PageDimensionsResponse? Dimensions);
+    private sealed record PageDimensionsResponse(double Width, double Height);
     private sealed record ThumbnailResponse(string Url);
     private sealed record ExportResponse(ExportJobResponse? Job);
     private sealed record ExportJobResponse(string Id, string Status, IReadOnlyList<string>? Urls);

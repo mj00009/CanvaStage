@@ -8,6 +8,8 @@ CanvaStage is not affiliated with, endorsed by, or sponsored by Canva Pty Ltd. S
 
 The latest release is [CanvaStage v0.10.0](https://github.com/mj00009/CanvaStage/releases/tag/v0.10.0). See the [release notes](docs/releases/v0.10.0.md) for changes and suggested acceptance checks.
 
+Current development source replaces Mirror preview thumbnails with fresh JPEG exports and makes manual **Check for updates** force a reload when automatic updates are enabled (issue #20). These changes need real-account acceptance and are not in v0.10.0; see the [operator guide](docs/operator-guide.md) for the updated behavior.
+
 Download `CanvaStage-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
 
 The application and package are currently unsigned. Windows may show a SmartScreen warning on first launch. Administrator access is not required.

@@ -31,6 +31,8 @@ Use this checklist before relying on a new release during a service. Automated v
 - [ ] Close and reopen CanvaStage. Confirm the cached presentation and Canva connection remain available.
 - [ ] Confirm reopening loads the presentation list without a browser authorization prompt. Repeat after the access token has expired; token renewal should be automatic.
 - [ ] Edit the applied deck while output is live. During the download, navigate Presenter, change mode and appearance, and blank/restore output. Confirm the refreshed content appears on the current page and tracking continues.
+- [ ] Edit an image-only page while Mirror output is live. Confirm the newly exported image appears after refresh, not the old preview thumbnail. With automatic updates enabled, select **Check for updates** and verify it reloads even when Canva still reports the old modification time. With automatic updates disabled, verify that button only checks metadata and **Re-download** still forces a reload.
+- [ ] Reopen an older thumbnail-based cache: automatic updates should migrate it once to rendered images; with automatic updates disabled it should stay usable and prompt for Re-download. Test failed image exports/downloads and verify the previous complete deck remains live.
 - [ ] Add or remove a visible page, then confirm a temporary count mismatch resolves when the refreshed deck arrives. Repeat with sync paused and verify the pause and blank state are preserved.
 - [ ] Disconnect the network during a refresh. Confirm the previous deck remains usable, an error is shown, and automatic refresh recovers after connectivity returns. Turning automatic updates off must stop future checks.
 - [ ] Use a long paragraph on the next slide. Confirm the next cue is one line with an ellipsis in both previews and the confidence window; authored soft line breaks must be preserved in the main text.
@@ -48,7 +50,7 @@ The GitHub workflow:
 1. restores, builds, and tests the solution on Windows;
 2. publishes a self-contained Windows x64 package;
 3. launches the published executable with isolated synthetic data;
-4. verifies Presenter following, pause/resume, output blanking, DPAPI reuse, saved-authorization startup, concurrent token renewal and rejected-token recovery, live deck refresh during navigation, refresh failures and cancellation, changed page counts, expired thumbnail URL recovery, Canva page-schema validation, damaged-cache recovery and cleanup, display bounds, contrast, WPF bindings, output text fitting, and single-line next cues;
+4. verifies Presenter following, pause/resume, output blanking, DPAPI reuse, saved-authorization startup, concurrent token renewal and rejected-token recovery, live deck refresh during navigation, refresh failures and cancellation, changed page counts, changed Mirror pixels despite stale thumbnails, unchanged-timestamp manual reloads, legacy cache migration, rendered-image validation and hidden-page mapping, Canva page-schema validation, damaged-cache recovery and cleanup, display bounds, contrast, WPF bindings, output text fitting, and single-line next cues;
 5. renders every operator section and Monitor layout at representative 100%, 125%, 150%, and 200% effective sizes;
 6. attempts to upload test results, the verification report, and UI screenshots; non-tag runs also upload a short-lived package artifact. GitHub Actions storage quota can block these artifacts; the verification summary remains in the workflow run, and a tagged release uploads its ZIP and checksum directly to GitHub Releases.
 
