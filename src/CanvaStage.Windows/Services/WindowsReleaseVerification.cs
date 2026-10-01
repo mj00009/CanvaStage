@@ -112,7 +112,18 @@ internal static class WindowsReleaseVerification
         }
         checks.Add("All operator sections at 100%, 125%, 150% and 200% effective layout sizes and raster DPI");
 
+        viewModel.ActiveSection = OperatorSection.Presentation;
+        VerificationWindowSizing.SetSize(mainWindow, 1380, 900);
+        await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(), DispatcherPriority.ApplicationIdle);
+        mainWindow.ScrollContentToEndForAutomation();
+        await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(), DispatcherPriority.ApplicationIdle);
+        capture(mainWindow, Path.Combine(directory, "operator-Presentation-refresh-controls.png"), 1);
+        mainWindow.ScrollContentToTopForAutomation();
+
         viewModel.ActiveSection = OperatorSection.LiveControl;
+        Feed(1);
+        await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(), DispatcherPriority.ApplicationIdle);
+        capture(mainWindow, Path.Combine(directory, "operator-LiveControl-single-line-cue.png"), 1);
         VerificationWindowSizing.SetSize(mainWindow, 1380, 900);
         mainWindow.ScrollContentToEndForAutomation();
         await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(), DispatcherPriority.ApplicationIdle);
