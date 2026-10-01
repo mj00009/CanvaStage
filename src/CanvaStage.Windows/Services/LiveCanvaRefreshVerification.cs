@@ -253,7 +253,7 @@ internal static class LiveCanvaRefreshVerification
                     for (int page = 1; page <= PageCount; page++)
                     {
                         using StreamWriter writer = new(zip.CreateEntry($"ppt/slides/slide{page}.xml").Open());
-                        writer.Write($"<p:sld xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:p><a:r><a:t>Version {Version} page {page}</a:t></a:r></a:p></p:sld>");
+                        writer.Write($"<p:sld xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:p><a:r><a:t>Version</a:t></a:r><a:r><a:t> </a:t></a:r><a:r><a:t>{Version}</a:t></a:r><a:r><a:t> </a:t></a:r><a:r><a:t>page</a:t></a:r><a:r><a:t> </a:t></a:r><a:r><a:t>{page}</a:t></a:r></a:p></p:sld>");
                     }
                 return new(HttpStatusCode.OK) { Content = new ByteArrayContent(stream.ToArray()) };
             }

@@ -10,6 +10,8 @@ The latest release is [CanvaStage v0.10.0](https://github.com/mj00009/CanvaStage
 
 Current development source replaces Mirror preview thumbnails with fresh JPEG exports and makes manual **Check for updates** force a reload when automatic updates are enabled (issue #20). These changes need real-account acceptance and are not in v0.10.0; see the [operator guide](docs/operator-guide.md) for the updated behavior.
 
+It also preserves spaces stored in separate PowerPoint text runs, fixing a reproduced word-merging case related to issue #21. Confirmation against the reported slide is still needed.
+
 Download `CanvaStage-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
 
 The application and package are currently unsigned. Windows may show a SmartScreen warning on first launch. Administrator access is not required.

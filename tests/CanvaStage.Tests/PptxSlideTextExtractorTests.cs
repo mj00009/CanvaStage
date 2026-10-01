@@ -27,6 +27,33 @@ public sealed class PptxSlideTextExtractorTests
         Assert.Equal(["won't waste another minute", "Praise the Lord"], slides[0]);
     }
 
+    [Theory]
+    [InlineData(" ")]
+    [InlineData("  ")]
+    [InlineData("&#160;")]
+    public void Extract_PreservesSpacesAuthoredAsSeparateRuns(string separator)
+    {
+        byte[] presentation = CreatePresentationWithSlides((1,
+            $"<a:p><a:r><a:t>Let</a:t></a:r><a:r><a:t>{separator}</a:t></a:r>" +
+            $"<a:r><a:t>your</a:t></a:r><a:r><a:t>{separator}</a:t></a:r><a:r><a:t>glory</a:t></a:r></a:p>"));
+
+        string authoredSpace = separator == "&#160;" ? "\u00a0" : separator;
+        Assert.Equal($"Let{authoredSpace}your{authoredSpace}glory", PptxSlideTextExtractor.Extract(presentation)[0][0]);
+    }
+
+    [Fact]
+    public void Extract_DoesNotTreatXmlIndentationAsSlideText()
+    {
+        byte[] presentation = CreatePresentationWithSlides((1, """
+            <a:p>
+              <a:r><a:t>won't w</a:t></a:r>
+              <a:r><a:t>aste another minute</a:t></a:r>
+            </a:p>
+            """));
+
+        Assert.Equal("won't waste another minute", PptxSlideTextExtractor.Extract(presentation)[0][0]);
+    }
+
     [Fact]
     public void Extract_UsesSlideNumberOrdering()
     {

@@ -30,7 +30,9 @@ public static class PptxSlideTextExtractor
     private static PptxSlideContent ExtractSlide(ZipArchiveEntry entry)
     {
         using Stream entryStream = entry.Open();
-        XDocument document = XDocument.Load(entryStream);
+        // Whitespace-only a:t runs can contain authored spaces between words.
+        // Default XML loading drops those nodes and merges neighboring words.
+        XDocument document = XDocument.Load(entryStream, LoadOptions.PreserveWhitespace);
         IReadOnlyList<string> textBlocks = ExtractSlideParagraphs(document);
         bool isHidden = IsHidden(document.Root);
         return new PptxSlideContent(GetSlideNumber(entry.FullName), isHidden, textBlocks);
