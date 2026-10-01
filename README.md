@@ -6,7 +6,7 @@ CanvaStage is not affiliated with, endorsed by, or sponsored by Canva Pty Ltd. S
 
 ## Download
 
-The latest release is [CanvaStage v0.9.1](https://github.com/mj00009/CanvaStage/releases/tag/v0.9.1).
+The latest release is [CanvaStage v0.10.0](https://github.com/mj00009/CanvaStage/releases/tag/v0.10.0). See the [release notes](docs/releases/v0.10.0.md) for changes and suggested acceptance checks.
 
 Download `CanvaStage-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
 
@@ -26,9 +26,10 @@ The application and package are currently unsigned. Windows may show a SmartScre
 - Supports next-line styling, four Monitor layouts, custom colors, curated fonts, and an optional clock.
 - Keeps the downloaded presentation, preferences, Canva credentials, and authorization between launches.
 - Provides cache controls, presentation freshness checks, tracking health, and sanitized diagnostic exports.
+- Loads presentation choices using saved authorization and automatically renews expired or rejected access tokens.
+- Checks the applied deck for edits every 30 seconds and downloads newer content without interrupting live output or page tracking; automatic content refresh can be disabled.
+- Limits next-slide cues to one display line, with an ellipsis for long paragraphs.
 - Provides a compact operator view and a Blank output safety control.
-
-The source on `main` also includes fixes pending the next release: presentation choices load using saved authorization, rejected or expired access tokens renew automatically, and the applied deck is checked for edits every 30 seconds. Updated content downloads without interrupting live output or page tracking. Automatic content refresh can be disabled. The next-slide cue is limited to one display line.
 
 ## Requirements
 

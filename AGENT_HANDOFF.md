@@ -19,7 +19,7 @@ The v0.9.0 release added Canva thumbnail URL recovery, cached-image recovery, AP
 
 The user reports that v0.8.0 works very well. Previous issues around Presenter tracking, display placement, WPF UI, cache, and credential persistence have been fixed; do not revive an older spike or workaround without evidence. The repository's [license](LICENSE) is Apache-2.0. The independent-project [trademark notice](TRADEMARKS.md) is separate from the software license. Earlier GPL-3.0 release copies retain their original terms.
 
-The source changes after v0.9.1 address issues #17–19: single-line next cues, saved-authorization startup and token renewal, and automatic live content updates. Confirm their publication status from GitHub before describing them as part of an installed release.
+The v0.10.0 release addresses issues #17–19: single-line next cues, saved-authorization startup and token renewal, and automatic live content updates. See [release notes](docs/releases/v0.10.0.md) and confirm publication status from GitHub. Synthetic Windows verification and 50 unit tests passed for the functional fixes; real-account acceptance, especially confirmation of the reported refresh freeze, remains a user test.
 
 ## User decisions and non-goals
 
