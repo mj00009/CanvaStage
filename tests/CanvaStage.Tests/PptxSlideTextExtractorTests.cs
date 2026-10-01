@@ -8,6 +8,14 @@ namespace CanvaStage.Tests;
 public sealed class PptxSlideTextExtractorTests
 {
     [Fact]
+    public void Extract_PreservesSoftLineBreaksWithinAParagraph()
+    {
+        byte[] presentation = CreatePresentationWithSlides((1,
+            "<a:p><a:r><a:t>First line</a:t></a:r><a:br/><a:r><a:t>Second line</a:t></a:r></a:p>"));
+        Assert.Equal("First line\nSecond line", PptxSlideTextExtractor.Extract(presentation)[0][0]);
+    }
+
+    [Fact]
     public void Extract_PreservesWordsSplitAcrossAdjacentPowerPointRuns()
     {
         byte[] presentation = CreatePresentationWithSlides((1,

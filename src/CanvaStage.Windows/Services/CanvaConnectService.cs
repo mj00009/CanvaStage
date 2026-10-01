@@ -24,6 +24,8 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
     private readonly HttpClient _httpClient;
     private string? _lastPresentationId;
     private readonly string _cacheRoot;
+    private readonly SemaphoreSlim _tokenRefreshLock = new(1, 1);
+    private long _lastProgressTimestamp;
 
     public event EventHandler<CanvaLoadProgress>? LoadProgressChanged;
 
@@ -38,7 +40,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
     }
 
     public bool HasSavedConfiguration => _credentialsStore.Load() is not null;
-    public bool IsConnected => _credentialsStore.Load() is { RefreshToken: not null };
+    public bool IsConnected => !string.IsNullOrWhiteSpace(_credentialsStore.Load()?.RefreshToken);
     public string? ConfiguredClientId => _credentialsStore.Load()?.ClientId;
 
     public void SaveConfiguration(string clientId, string clientSecret)
@@ -67,6 +69,18 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
 
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
+        if (IsConnected)
+        {
+            try
+            {
+                await TestAsync(cancellationToken).ConfigureAwait(false);
+                return;
+            }
+            catch (CanvaAuthorizationRequiredException)
+            {
+                // Only an explicit Connect action may open authorization again.
+            }
+        }
         CanvaCredentials credentials = RequireCredentials();
         using var listener = new HttpListener();
         listener.Prefixes.Add(RedirectUrl);
@@ -270,46 +284,74 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
 
     private CanvaCredentials RequireCredentials() => _credentialsStore.Load() ?? throw new CanvaConnectException("Configure your Canva Client ID and Client Secret first.");
 
-    private async Task<string> GetAccessTokenAsync(CancellationToken cancellationToken)
+    private async Task<string> GetAccessTokenAsync(CancellationToken cancellationToken, string? rejectedAccessToken = null)
     {
-        CanvaCredentials credentials = RequireCredentials();
-        if (!string.IsNullOrWhiteSpace(credentials.AccessToken) && credentials.AccessTokenExpiresAt > DateTimeOffset.UtcNow.AddMinutes(1))
+        await _tokenRefreshLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            return credentials.AccessToken;
-        }
-
-        if (string.IsNullOrWhiteSpace(credentials.RefreshToken))
-        {
-            throw new CanvaConnectException("Connect Canva before refreshing presentations.");
-        }
-
-        using var request = new HttpRequestMessage(HttpMethod.Post, "oauth/token")
-        {
-            Content = new FormUrlEncodedContent(new Dictionary<string, string>
+            CanvaCredentials credentials = RequireCredentials();
+            if (!string.IsNullOrWhiteSpace(credentials.AccessToken) && credentials.AccessTokenExpiresAt > DateTimeOffset.UtcNow.AddMinutes(1)
+                && credentials.AccessToken != rejectedAccessToken)
             {
-                ["grant_type"] = "refresh_token",
-                ["refresh_token"] = credentials.RefreshToken
-            })
-        };
-        request.Headers.Authorization = CreateBasicAuthentication(credentials);
-        TokenResponse token = await SendTokenRequestAsync(request, cancellationToken).ConfigureAwait(false);
-        CanvaCredentials updated = credentials with
-        {
-            AccessToken = token.AccessToken,
-            RefreshToken = token.RefreshToken,
-            AccessTokenExpiresAt = DateTimeOffset.UtcNow.AddSeconds(token.ExpiresIn)
-        };
-        _credentialsStore.Save(updated);
-        return updated.AccessToken!;
+                return credentials.AccessToken;
+            }
+
+            if (string.IsNullOrWhiteSpace(credentials.RefreshToken))
+            {
+                throw new CanvaAuthorizationRequiredException("Canva authorization is needed. Choose Connect Canva once to authorize this Windows account.");
+            }
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "oauth/token")
+            {
+                Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                {
+                    ["grant_type"] = "refresh_token",
+                    ["refresh_token"] = credentials.RefreshToken
+                })
+            };
+            request.Headers.Authorization = CreateBasicAuthentication(credentials);
+            TokenResponse token;
+            try
+            {
+                token = await SendTokenRequestAsync(request, cancellationToken).ConfigureAwait(false);
+            }
+            catch (CanvaAuthorizationRequiredException)
+            {
+                _credentialsStore.Save(credentials with { AccessToken = null, RefreshToken = null, AccessTokenExpiresAt = null });
+                throw;
+            }
+            CanvaCredentials updated = credentials with
+            {
+                AccessToken = token.AccessToken,
+                RefreshToken = token.RefreshToken,
+                AccessTokenExpiresAt = DateTimeOffset.UtcNow.AddSeconds(token.ExpiresIn)
+            };
+            _credentialsStore.Save(updated);
+            return updated.AccessToken!;
+        }
+        finally { _tokenRefreshLock.Release(); }
     }
 
     private async Task<T> GetJsonAsync<T>(string path, CancellationToken cancellationToken)
     {
-        string accessToken = await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false);
-        using var request = new HttpRequestMessage(HttpMethod.Get, path);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        using HttpResponseMessage response = await SendAuthorizedAsync(
+            () => new HttpRequestMessage(HttpMethod.Get, path), cancellationToken).ConfigureAwait(false);
         return await ReadJsonResponseAsync<T>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<HttpResponseMessage> SendAuthorizedAsync(Func<HttpRequestMessage> createRequest, CancellationToken cancellationToken)
+    {
+        string accessToken = await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false);
+        for (int attempt = 0; ; attempt++)
+        {
+            using HttpRequestMessage request = createRequest();
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            if (response.StatusCode != HttpStatusCode.Unauthorized) return response;
+            response.Dispose();
+            if (attempt > 0) throw new CanvaAuthorizationRequiredException("Canva did not accept the renewed connection. Choose Connect Canva to authorize again.");
+            accessToken = await GetAccessTokenAsync(cancellationToken, accessToken).ConfigureAwait(false);
+        }
     }
 
     private async Task<IReadOnlyList<PageResponse>> GetPageMetadataAsync(string presentationId, CancellationToken cancellationToken)
@@ -361,13 +403,10 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
 
     private async Task<byte[]> ExportPptxAsync(string presentationId, CancellationToken cancellationToken)
     {
-        string accessToken = await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false);
-        using var createRequest = new HttpRequestMessage(HttpMethod.Post, "exports")
+        using HttpResponseMessage createResponse = await SendAuthorizedAsync(() => new HttpRequestMessage(HttpMethod.Post, "exports")
         {
             Content = JsonContent.Create(new { design_id = presentationId, format = new { type = "pptx" } })
-        };
-        createRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        using HttpResponseMessage createResponse = await _httpClient.SendAsync(createRequest, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken).ConfigureAwait(false);
         ExportResponse export = await ReadJsonResponseAsync<ExportResponse>(createResponse, cancellationToken).ConfigureAwait(false);
         ExportJobResponse job = export.Job ?? throw new CanvaConnectException("Canva did not return an export job.");
         ReportLoadProgress("Canva is preparing the PowerPoint export…", null);
@@ -453,8 +492,14 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         return output.ToArray();
     }
 
-    private void ReportLoadProgress(string message, double? fraction, long? bytesReceived = null, long? totalBytes = null) =>
+    private void ReportLoadProgress(string message, double? fraction, long? bytesReceived = null, long? totalBytes = null)
+    {
+        long now = Stopwatch.GetTimestamp();
+        if (bytesReceived is > 0 && fraction != 1d
+            && Stopwatch.GetElapsedTime(_lastProgressTimestamp, now) < TimeSpan.FromMilliseconds(100)) return;
+        _lastProgressTimestamp = now;
         LoadProgressChanged?.Invoke(this, new CanvaLoadProgress(message, fraction, bytesReceived, totalBytes));
+    }
 
     private static string CreateDownloadMessage(long bytesReceived, long? totalBytes) => totalBytes is > 0
         ? $"Downloading presentation: {FormatFileSize(bytesReceived)} of {FormatFileSize(totalBytes.Value)} ({Math.Round((double)bytesReceived / totalBytes.Value * 100d):0}%)"
@@ -525,7 +570,22 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
     private async Task<TokenResponse> SendTokenRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        return await ReadJsonResponseAsync<TokenResponse>(response, cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            string content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                using JsonDocument error = JsonDocument.Parse(content);
+                if ((error.RootElement.TryGetProperty("error", out JsonElement code) || error.RootElement.TryGetProperty("code", out code))
+                    && code.ValueKind == JsonValueKind.String && code.GetString() is "invalid_grant" or "invalid_refresh_token")
+                    throw new CanvaAuthorizationRequiredException("The saved Canva authorization was revoked or expired. Choose Connect Canva to authorize again; the cached presentation is still available.");
+            }
+            catch (JsonException) { /* The safe HTTP error below handles non-JSON responses. */ }
+        }
+        TokenResponse token = await ReadJsonResponseAsync<TokenResponse>(response, cancellationToken).ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(token.AccessToken) || string.IsNullOrWhiteSpace(token.RefreshToken) || token.ExpiresIn <= 0)
+            throw new CanvaConnectException("Canva returned incomplete authorization data. The saved connection was not replaced; try again.");
+        return token;
     }
 
     private static async Task<T> ReadJsonResponseAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
@@ -605,12 +665,14 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
     }
 }
 
-public sealed class CanvaConnectException : Exception
+public class CanvaConnectException : Exception
 {
     public CanvaConnectException(string message, Exception? innerException = null)
         : base(message, innerException)
     {
     }
 }
+
+public sealed class CanvaAuthorizationRequiredException(string message) : CanvaConnectException(message);
 
 public sealed record CanvaLoadProgress(string Message, double? Fraction, long? BytesReceived = null, long? TotalBytes = null);

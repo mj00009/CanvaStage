@@ -151,13 +151,13 @@
                     </Border.Style>
                     <StackPanel>
                         <TextBlock Text="NEXT" Foreground="{Binding AccentBrush}" FontSize="18" FontWeight="Bold" />
-                        <TextBlock Text="{Binding NextLine}"
+                        <TextBlock x:Name="NextLineText" Text="{Binding NextLine}"
                                    Foreground="{Binding NextLineBrush}"
                                    FontFamily="{Binding Snapshot.Appearance.FontFamily}"
                                    FontSize="{Binding NextLineFontSize}"
                                    FontWeight="{Binding NextLineFontWeight}"
                                    Margin="0,7,0,0"
-                                   TextWrapping="Wrap" />
+                                   TextWrapping="NoWrap" TextTrimming="WordEllipsis" />
                     </StackPanel>
                 </Border>
             </Grid>

@@ -38,9 +38,17 @@ public sealed class AppPreferencesTests
 
         Assert.NotNull(preferences);
         Assert.True(preferences.IsPresenterSyncEnabled);
+        Assert.True(preferences.IsAutomaticContentRefreshEnabled);
         Assert.Equal(30, preferences.Appearance.NextLineFontSize);
         Assert.False(preferences.Appearance.IsNextLineBold);
         Assert.Equal("#F8F8FC", preferences.Appearance.NextLineColor);
+    }
+
+    [Fact]
+    public void AutomaticContentRefreshOptOutSurvivesRestart()
+    {
+        AppPreferences expected = AppPreferences.Default with { IsAutomaticContentRefreshEnabled = false };
+        Assert.False(JsonSerializer.Deserialize<AppPreferences>(JsonSerializer.Serialize(expected))!.IsAutomaticContentRefreshEnabled);
     }
 
     [Fact]

@@ -4,14 +4,20 @@
 
 1. Open CanvaStage using the Windows account used during Canva setup.
 2. Select **Presentation**.
-3. Choose **Refresh**, select the Canva presentation, and choose **Apply**.
+3. The saved Canva connection loads the presentation list automatically. Select the presentation and choose **Apply**; use **Refresh** if needed.
 4. Wait for the export, download, text extraction, and image caching to finish.
 
 The progress bar shows exact transferred bytes when Canva supplies the export size. Export preparation remains indeterminate because Canva does not publish a percentage for that stage.
 
 Hidden slides are removed from CanvaStage’s local page order. Smaller header and footer text blocks are ignored when a larger main text block is available. If a page has no usable text, Monitor mode shows its retrieved page image.
 
-Use **Check for updates** to compare the cached copy with Canva’s current modification time. Choose **Re-download** after changing the Canva presentation.
+**Automatically apply Canva content updates** is enabled by default. CanvaStage checks the applied presentation every 30 seconds and downloads a new copy when Canva reports a newer modification time. This continues during a service: the existing deck remains live and follows Presenter while the new copy downloads, then the updated content replaces it. Export preparation and large downloads can take several minutes; edits are not instantaneous.
+
+The refresh preserves the current Presenter page when its counter matches the new deck, manual pauses, appearance, output placement, and blank state. If pages were added or removed, tracking can temporarily report a count mismatch until the new copy is ready. A failed refresh keeps the current deck and retries with a longer delay (up to five minutes).
+
+Turn automatic updates off in **Presentation** to control updates manually. **Check for updates** checks the applied deck immediately and also applies an update if automatic updates are enabled. **Re-download** always reloads the applied deck, even if a different presentation is highlighted in the dropdown. Changing to another deck still requires **Apply**.
+
+The next-line cue shows only the first authored line of the next page's main text. A paragraph without authored line breaks displays as one line, with an ellipsis when it is too long for the available width.
 
 ## Choose the confidence display
 
@@ -62,6 +68,7 @@ Shortcuts work while the main CanvaStage window has focus:
 ## Cache and saved data
 
 Closing the app keeps the downloaded presentation, preferences, Client Secret, and Canva authorization.
+The app reuses and renews the saved authorization at startup without opening a browser. Reauthorization is needed if Canva revokes or rejects the saved refresh token, or the integration credentials change; choose **Connect Canva** when the app reports that condition. Content checks never open an authorization browser automatically.
 
 On the Presentation page:
 

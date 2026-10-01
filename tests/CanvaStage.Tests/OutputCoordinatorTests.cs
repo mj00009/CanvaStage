@@ -91,6 +91,65 @@ public sealed class OutputCoordinatorTests
         Assert.Equal("Welcome home", coordinator.Snapshot.CurrentPage?.PrimaryText);
     }
 
+    [Fact]
+    public void RefreshPublishesReentrantPresenterUpdatesInOrderToEverySubscriber()
+    {
+        OutputCoordinator coordinator = CreateCoordinator();
+        coordinator.StartOutput();
+        PresentationDocument replacement = DemoPresentationProvider.Create() with { Title = "Updated service" };
+        coordinator.SnapshotChanged += (_, snapshot) =>
+        {
+            if (ReferenceEquals(snapshot.Document, replacement) && snapshot.SelectedPageNumber == 1)
+                coordinator.SelectPage(3);
+        };
+        List<int> outputPages = [];
+        coordinator.SnapshotChanged += (_, snapshot) => outputPages.Add(snapshot.SelectedPageNumber);
+
+        coordinator.SetDocument(replacement);
+
+        Assert.Equal([1, 3], outputPages);
+        Assert.Equal(3, coordinator.Snapshot.SelectedPageNumber);
+        coordinator.GoNext();
+        Assert.Equal(4, outputPages[^1]);
+    }
+
+    [Fact]
+    public void RefreshPreservesLiveBlankedStateAndStablePageIdentityAfterInsertion()
+    {
+        PresentationPage original = new(1, "Original", ["Original text"], "#000000", "#FFFFFF", ExternalPageId: "stable-page");
+        OutputCoordinator coordinator = new(new("deck", "Deck", [original], DateTimeOffset.UtcNow), AppPreferences.Default);
+        coordinator.StartOutput();
+        coordinator.SetBlanked(true);
+        PresentationDocument replacement = new("deck", "Updated", [
+            original with { ExternalPageId = "inserted" },
+            original with { Number = 2, TextBlocks = ["Updated text"] }], DateTimeOffset.UtcNow);
+
+        coordinator.SetDocument(replacement);
+
+        Assert.True(coordinator.Snapshot.IsLive);
+        Assert.True(coordinator.Snapshot.IsBlanked);
+        Assert.Equal(2, coordinator.Snapshot.SelectedPageNumber);
+        Assert.Equal("Updated text", coordinator.Snapshot.CurrentPage?.PrimaryText);
+    }
+
+    [Fact]
+    public void RefreshOfShorterDeckClampsSelectionToItsLastPage()
+    {
+        OutputCoordinator coordinator = CreateCoordinator(selectedPage: 5);
+        coordinator.SetDocument(DemoPresentationProvider.Create() with { Pages = DemoPresentationProvider.Create().Pages.Take(3).ToArray() });
+        Assert.Equal(3, coordinator.Snapshot.SelectedPageNumber);
+    }
+
+    [Fact]
+    public void NextCueUsesOnlyTheFirstNonemptyAuthoredLine()
+    {
+        PresentationDocument document = DemoPresentationProvider.Create();
+        PresentationPage[] pages = document.Pages.ToArray();
+        pages[1] = pages[1] with { TextBlocks = ["\n   \r\nFirst line\nSecond line"] };
+        OutputCoordinator coordinator = new(document with { Pages = pages }, AppPreferences.Default);
+        Assert.Equal("First line", coordinator.Snapshot.NextLine);
+    }
+
     private static OutputCoordinator CreateCoordinator(int selectedPage = 1, NextLineOption nextLineOption = NextLineOption.FirstNonEmptyLine)
     {
         AppPreferences preferences = AppPreferences.Default with

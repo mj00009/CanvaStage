@@ -71,7 +71,8 @@ public static class PptxSlideTextExtractor
     }
 
     private static string ExtractParagraphText(XElement paragraph) => string.Concat(
-        paragraph.Descendants(Drawing + "t").Select(text => text.Value)).Trim();
+        paragraph.Descendants().Where(element => element.Name == Drawing + "t" || element.Name == Drawing + "br")
+            .Select(element => element.Name == Drawing + "br" ? "\n" : element.Value)).Trim();
 
     private static SlideTextBlock ExtractTextBlock(XElement shape)
     {

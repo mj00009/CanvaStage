@@ -16,12 +16,14 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
     private string _currentTime = DateTime.Now.ToString("h:mm tt");
     private BitmapImage? _fallbackImage;
     private double _fittedFontSize;
+    private string? _loadedImagePath;
 
     public OutputWindowViewModel(IOutputCoordinator coordinator)
     {
         _coordinator = coordinator;
         _snapshot = coordinator.Snapshot;
-        _fallbackImage = CreateFallbackImage(_snapshot.CurrentPage?.FallbackImagePath);
+        _loadedImagePath = _snapshot.CurrentPage?.FallbackImagePath;
+        _fallbackImage = CreateFallbackImage(_loadedImagePath);
         _fittedFontSize = EffectiveFontSize;
         coordinator.SnapshotChanged += OnSnapshotChanged;
     }
@@ -36,7 +38,12 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
                 return;
             }
 
-            _fallbackImage = CreateFallbackImage(value.CurrentPage?.FallbackImagePath);
+            string? imagePath = value.CurrentPage?.FallbackImagePath;
+            if (_loadedImagePath != imagePath)
+            {
+                _loadedImagePath = imagePath;
+                _fallbackImage = CreateFallbackImage(imagePath);
+            }
             _fittedFontSize = EffectiveFontSize;
             OnPropertyChanged(nameof(IsBlank));
             OnPropertyChanged(nameof(IsOutputBlanked));

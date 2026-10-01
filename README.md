@@ -28,6 +28,8 @@ The application and package are currently unsigned. Windows may show a SmartScre
 - Provides cache controls, presentation freshness checks, tracking health, and sanitized diagnostic exports.
 - Provides a compact operator view and a Blank output safety control.
 
+The source on `main` also includes fixes pending the next release: presentation choices load using saved authorization, rejected or expired access tokens renew automatically, and the applied deck is checked for edits every 30 seconds. Updated content downloads without interrupting live output or page tracking. Automatic content refresh can be disabled. The next-slide cue is limited to one display line.
+
 ## Requirements
 
 - Windows 11 x64.
@@ -74,7 +76,7 @@ dotnet publish src\CanvaStage.Windows\CanvaStage.Windows.csproj `
   -p:PublishSingleFile=true
 ```
 
-GitHub Actions builds and tests pull requests and `main`. It also launches the published Windows application with synthetic data, checks WPF bindings and output text fitting, and renders screenshots at representative display scales. A `v*` tag creates a GitHub release containing the portable ZIP and SHA-256 checksum.
+GitHub Actions builds and tests pull requests and `main`. It also launches the published Windows application with synthetic data, checks live content refresh and token renewal, checks WPF bindings and output text fitting, and renders screenshots at representative display scales. A `v*` tag creates a GitHub release containing the portable ZIP and SHA-256 checksum.
 
 Real hardware and Canva account checks are documented in the [Windows acceptance guide](docs/windows-acceptance.md).
 The [maintenance guide](docs/maintenance.md) records external compatibility boundaries and pre-release checks.

@@ -37,7 +37,13 @@ public partial class ConfidencePreview : UserControl
         _viewModel = null;
     }
 
-    private void OnViewModelChanged(object? sender, PropertyChangedEventArgs eventArgs) => QueueFit();
+    private void OnViewModelChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    {
+        if (eventArgs.PropertyName is nameof(MainViewModel.PreviewPrimaryText) or nameof(MainViewModel.FontFamily)
+            or nameof(MainViewModel.FontSize) or nameof(MainViewModel.Layout) or nameof(MainViewModel.ShowClock)
+            or nameof(MainViewModel.ShowPreviewNextLine) or nameof(MainViewModel.PreviewNextLineFontSize)
+            or nameof(MainViewModel.PreviewNextLineFontWeight)) QueueFit();
+    }
 
     private void QueueFit()
     {

@@ -71,6 +71,10 @@ public partial class App : System.Windows.Application
                 PrivacySafeLog.Write("Startup: smoke-test mode passed; closing application.");
                 Dispatcher.BeginInvoke(Shutdown, DispatcherPriority.ApplicationIdle);
             }
+            else
+            {
+                Dispatcher.BeginInvoke(new Action(async () => await viewModel.InitializeCanvaAsync()), DispatcherPriority.ApplicationIdle);
+            }
         }
         catch (Exception exception)
         {

@@ -80,7 +80,9 @@ internal static class WindowsReleaseVerification
             "Closing the operator window shuts down Preview and output windows");
 
         await VerifyCredentialsAndCacheAsync(directory);
+        await LiveCanvaRefreshVerification.RunAsync(directory);
         checks.Add("DPAPI reuse, expired Canva thumbnail recovery, preview API schema guard, immutable refresh and cache save/recovery checks");
+        checks.Add("Saved-token startup, concurrent token rotation, 401 retry, live refresh navigation, page-count change, failed export, pause/blank preservation, opt-out and shutdown cancellation");
         viewModel.CanvaClientId = "verification-client";
         viewModel.SetCanvaClientSecret("synthetic-secret-for-isolated-verification");
         viewModel.SaveCanvaConfigurationCommand.Execute(null);
@@ -175,7 +177,7 @@ internal static class WindowsReleaseVerification
         string[] lines = Enumerable.Range(1, 9).Select(index => $"Line {index}: a longer confidence display sentence that must remain entirely visible.").ToArray();
         return new("verification-design", "Sunday verification", [
             new(1, "Long text", lines, "#0D0E10", "#75E6C8"),
-            new(2, "Welcome", ["Welcome to our Sunday service"], "#0D0E10", "#75E6C8"),
+            new(2, "Welcome", [string.Join(" ", Enumerable.Repeat("A long paragraph should show only a single next-line cue.", 12))], "#0D0E10", "#75E6C8"),
             new(3, "Next", ["Thank you for joining us"], "#0D0E10", "#75E6C8")], DateTimeOffset.UtcNow);
     }
 

@@ -11,7 +11,8 @@ public sealed record AppPreferences(
     string? SelectedPresentationId = null,
     string? SelectedPresentationTitle = null,
     DateTimeOffset? SelectedPresentationRefreshedAt = null,
-    bool IsPresenterSyncEnabled = true)
+    bool IsPresenterSyncEnabled = true,
+    bool IsAutomaticContentRefreshEnabled = true)
 {
     public static AppPreferences Default { get; } = new(null, 1, OutputMode.Monitor, MonitorLayout.CurrentAndNext, NextLineOption.FirstNonEmptyLine, MonitorAppearance.Default, false, IsPresenterSyncEnabled: true);
 }

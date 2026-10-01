@@ -12,6 +12,8 @@ public sealed class OutputCoordinator : IOutputCoordinator
     private MonitorLayout _layout;
     private NextLineOption _nextLineOption;
     private MonitorAppearance _appearance;
+    private readonly Queue<OutputSnapshot> _pendingSnapshots = new();
+    private bool _isPublishing;
 
     public OutputCoordinator(PresentationDocument document, AppPreferences preferences)
     {
@@ -99,9 +101,15 @@ public sealed class OutputCoordinator : IOutputCoordinator
             throw new ArgumentException("A presentation must have at least one page.", nameof(document));
         }
 
+        PresentationPage? previousPage = _document.FindPage(_selectedPage);
+        bool samePresentation = _document.Id == document.Id;
+        int requestedPage = preferredPageNumber
+            ?? (samePresentation && previousPage?.ExternalPageId is string externalId
+                ? document.Pages.FirstOrDefault(page => page.ExternalPageId == externalId)?.Number ?? _selectedPage
+                : _selectedPage);
         _document = document;
-        int requestedPage = preferredPageNumber ?? _selectedPage;
-        _selectedPage = document.FindPage(requestedPage)?.Number ?? document.Pages.First().Number;
+        _selectedPage = document.FindPage(requestedPage)?.Number
+            ?? (samePresentation ? document.Pages.MinBy(page => Math.Abs((long)page.Number - requestedPage))!.Number : document.Pages.First().Number);
         Publish();
     }
 
@@ -134,10 +142,27 @@ public sealed class OutputCoordinator : IOutputCoordinator
             return null;
         }
 
-        return _nextLineOption == NextLineOption.TitleOnly
-            ? nextPage.Title
-            : nextPage.PrimaryText;
+        string text = _nextLineOption == NextLineOption.TitleOnly ? nextPage.Title : nextPage.PrimaryText;
+        return text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))?.Trim();
     }
 
-    private void Publish() => SnapshotChanged?.Invoke(this, CreateSnapshot());
+    private void Publish()
+    {
+        // A subscriber may select a fresh Presenter page while processing a new deck.
+        // Deliver that newer snapshot only after every subscriber has received this one.
+        _pendingSnapshots.Enqueue(CreateSnapshot());
+        if (_isPublishing) return;
+        _isPublishing = true;
+        try
+        {
+            while (_pendingSnapshots.TryDequeue(out OutputSnapshot? snapshot))
+                SnapshotChanged?.Invoke(this, snapshot);
+        }
+        finally
+        {
+            _pendingSnapshots.Clear();
+            _isPublishing = false;
+        }
+    }
 }

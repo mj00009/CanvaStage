@@ -79,6 +79,9 @@ public partial class OutputWindow : Window
         if (_viewModel.IsMonitor && !_viewModel.ShowFallbackImage
             && !_viewModel.PrimaryTextFits(PrimaryTextHost.ActualWidth, PrimaryTextHost.ActualHeight, pixelsPerDip))
             throw new InvalidOperationException("Confidence output text is clipped in the verification scenario.");
+        if (_viewModel.ShowNextLine && (NextLineText.TextWrapping != TextWrapping.NoWrap
+            || NextLineText.TextTrimming != TextTrimming.WordEllipsis || NextLineText.ActualHeight > NextLineText.FontSize * 1.8))
+            throw new InvalidOperationException("The next-line cue occupies more than one rendered line.");
     }
 
     protected override void OnClosed(EventArgs eventArgs)
