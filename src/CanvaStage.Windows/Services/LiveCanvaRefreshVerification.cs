@@ -190,10 +190,14 @@ internal static class LiveCanvaRefreshVerification
             try
             {
                 mainWindow.DataContext = target ?? viewModel;
+                // Startup screenshot capture leaves compact view active. Health belongs
+                // to full Live control, so make that surface visible before checking it.
+                mainWindow.SetCompactViewForAutomation(false);
                 VerificationWindowSizing.Configure(mainWindow);
                 VerificationWindowSizing.SetSize(mainWindow, 1380, 900);
                 mainWindow.ScrollContentToTopForAutomation();
-                await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout());
+                await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(),
+                    System.Windows.Threading.DispatcherPriority.ApplicationIdle);
                 FrameworkElement card = (FrameworkElement)mainWindow.FindName("ContentRefreshHealthCard");
                 Require(card.IsVisible && card.ActualHeight > 0, "Refresh health is visible without opening Presentation");
                 capture(mainWindow, Path.Combine(directory, $"operator-LiveControl-refresh-{state}.png"), 1);
