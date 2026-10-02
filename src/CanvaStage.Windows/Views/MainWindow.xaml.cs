@@ -148,7 +148,7 @@ public partial class MainWindow : Window
         MainContent.Margin = new Thickness(width < 1250 ? 16 : 30, 20, 16, 20);
         bool stacked = width < 1250;
         LiveOptionsColumn.Width = new GridLength(stacked ? 0 : 300);
-        System.Windows.Controls.Grid.SetRow(LiveOptionsPanel, stacked ? 1 : 0);
+        System.Windows.Controls.Grid.SetRow(LiveOptionsPanel, stacked ? 2 : 1);
         System.Windows.Controls.Grid.SetColumn(LiveOptionsPanel, stacked ? 0 : 1);
     }
 }

@@ -52,17 +52,19 @@ public sealed class MainViewModel : ViewModelBase
     private bool _hasPresentationFreshnessCheck;
     private string _diagnosticsExportStatus = "Diagnostic exports exclude credentials, tokens, and presentation content.";
     private readonly System.Windows.Threading.DispatcherTimer _presenterHealthTimer = new() { Interval = TimeSpan.FromSeconds(1) };
-    private readonly System.Windows.Threading.DispatcherTimer _contentRefreshTimer = new() { Interval = TimeSpan.FromSeconds(30) };
+    private readonly System.Windows.Threading.DispatcherTimer _contentRefreshTimer = new();
+    private readonly AutomaticContentRefreshSchedule _contentRefreshSchedule;
     private readonly CancellationTokenSource _lifetimeCancellation = new();
     private bool _isAutomaticContentRefreshEnabled;
-    private DateTimeOffset _nextAutomaticContentCheck;
-    private int _automaticRefreshFailures;
+    private DateTimeOffset? _lastContentCheck;
+    private string? _contentRefreshError;
+    private bool _isCheckingContent;
     private readonly object _progressLock = new();
     private CanvaLoadProgress? _pendingProgress;
     private bool _progressQueued;
     private bool _isAutomaticRefreshRunning;
 
-    public MainViewModel(IOutputCoordinator coordinator, OutputWindowManager outputWindowManager, DisplayService displayService, DisplayIdentificationService displayIdentificationService, DiagnosticsExportService diagnosticsExportService, JsonPreferencesStore preferencesStore, PresentationCacheStore presentationCacheStore, CanvaConnectService canva, ICanvaPresenterTracker canvaPresenterAccessibilityTracker, AppPreferences preferences)
+    public MainViewModel(IOutputCoordinator coordinator, OutputWindowManager outputWindowManager, DisplayService displayService, DisplayIdentificationService displayIdentificationService, DiagnosticsExportService diagnosticsExportService, JsonPreferencesStore preferencesStore, PresentationCacheStore presentationCacheStore, CanvaConnectService canva, ICanvaPresenterTracker canvaPresenterAccessibilityTracker, AppPreferences preferences, AutomaticContentRefreshSchedule? contentRefreshSchedule = null)
     {
         _coordinator = coordinator;
         _outputWindowManager = outputWindowManager;
@@ -72,6 +74,7 @@ public sealed class MainViewModel : ViewModelBase
         _preferencesStore = preferencesStore;
         _presentationCacheStore = presentationCacheStore;
         _canva = canva;
+        _contentRefreshSchedule = contentRefreshSchedule ?? new();
         _canvaPresenterAccessibilityTracker = canvaPresenterAccessibilityTracker;
         _snapshot = coordinator.Snapshot;
         _isOperatorTopmost = preferences.IsOperatorTopmost;
@@ -139,7 +142,7 @@ public sealed class MainViewModel : ViewModelBase
         _presenterHealthTimer.Tick += OnPresenterHealthTick;
         _presenterHealthTimer.Start();
         _contentRefreshTimer.Tick += OnAutomaticContentRefreshTick;
-        _contentRefreshTimer.Start();
+        ArmContentRefreshTimer();
     }
 
     public ObservableCollection<DisplayOption> Displays { get; }
@@ -454,10 +457,66 @@ public sealed class MainViewModel : ViewModelBase
         set
         {
             if (!SetProperty(ref _isAutomaticContentRefreshEnabled, value)) return;
-            _nextAutomaticContentCheck = DateTimeOffset.MinValue;
+            _contentRefreshSchedule.Reset();
             OnPropertyChanged(nameof(PresentationFreshnessText));
+            NotifyContentRefreshHealth();
+            ArmContentRefreshTimer();
             Persist();
         }
+    }
+    public string ContentRefreshHealthText => Snapshot.Document.Id == "demo-sunday" ? "Content refresh · Demo deck"
+        : IsCanvaDownloadProgressVisible ? "Content refresh · Downloading presentation"
+        : _isCheckingContent ? "Content refresh · Checking Canva"
+        : !_canva.IsConnected ? "Content refresh · Reconnect Canva"
+        : _contentRefreshError is not null ? "Content refresh · Needs attention"
+        : !IsAutomaticContentRefreshEnabled ? "Content refresh · Automatic updates off"
+        : IsCanvaBusy ? "Content refresh · Waiting for Canva action"
+        : IsPresentationUpdateAvailable ? "Content refresh · Update available"
+        : _lastContentCheck is not null && _hasPresentationFreshnessCheck ? "Content refresh · Checked"
+        : "Content refresh · Waiting for check";
+    public string ContentRefreshDetail => Snapshot.Document.Id == "demo-sunday" ? "Apply a Canva presentation to enable content checks."
+        : IsCanvaDownloadProgressVisible ? "The current deck stays available until the full download is ready."
+        : _isCheckingContent ? "Checking the applied presentation's modification time; unchanged content is not downloaded."
+        : !_canva.IsConnected ? (_contentRefreshError is null ? "" : _contentRefreshError + " ")
+            + "The cached deck remains available. Connect Canva in Presentation to resume checks."
+        : _contentRefreshError ?? (IsPresentationUpdateAvailable ? "A newer version is available in Canva."
+            : _lastContentCheck is not null ? PresentationFreshnessText : "No content check completed for this deck this session.");
+    public string ContentRefreshTimingText
+    {
+        get
+        {
+            string checkedText = _lastContentCheck is null ? "Last check: not yet"
+                : $"Last check: {_lastContentCheck.Value.ToLocalTime():h:mm:ss tt}";
+            string nextText = Snapshot.Document.Id == "demo-sunday" ? ""
+                : !_canva.IsConnected ? " · Checks paused until reconnected"
+                : !IsAutomaticContentRefreshEnabled ? " · Automatic checks off"
+                : _isCheckingContent || IsCanvaDownloadProgressVisible ? " · Refresh in progress"
+                : IsCanvaBusy ? " · Waiting for the current Canva action to finish"
+                : $" · {(_contentRefreshError is null ? "Next check" : "Retry")}: {_contentRefreshSchedule.NextCheckAt.ToLocalTime():h:mm:ss tt}";
+            return $"{checkedText} · {LastCanvaContentRefreshText}{nextText}";
+        }
+    }
+    public Brush ContentRefreshHealthBrush => _contentRefreshError is not null || !_canva.IsConnected
+        ? BrushFrom("#F5BD63", Brushes.Orange) : BrushFrom("#7AE8CB", Brushes.LightGreen);
+
+    private void NotifyContentRefreshHealth()
+    {
+        OnPropertyChanged(nameof(ContentRefreshHealthText));
+        OnPropertyChanged(nameof(ContentRefreshDetail));
+        OnPropertyChanged(nameof(ContentRefreshTimingText));
+        OnPropertyChanged(nameof(ContentRefreshHealthBrush));
+    }
+
+    private void ArmContentRefreshTimer()
+    {
+        _contentRefreshTimer.Stop();
+        if (_isClosing || _isAutomaticRefreshRunning || !IsAutomaticContentRefreshEnabled
+            || !_canva.IsConnected || Snapshot.Document.Id == "demo-sunday") return;
+        // One deadline, not a fixed 30-second tick plus a second 30-second gate.
+        // A busy Canva action is retried shortly without advancing the deadline.
+        _contentRefreshTimer.Interval = IsCanvaBusy ? TimeSpan.FromSeconds(1)
+            : TimeSpan.FromMilliseconds(Math.Max(1, _contentRefreshSchedule.Remaining.TotalMilliseconds));
+        _contentRefreshTimer.Start();
     }
     public string PresentationFreshnessText => IsPresentationUpdateAvailable
         ? IsAutomaticContentRefreshEnabled ? "A newer version is available. CanvaStage will retry the content refresh automatically."
@@ -666,7 +725,7 @@ public sealed class MainViewModel : ViewModelBase
     {
         CanvaPresentation? presentation = SelectedCanvaPresentation;
         if (presentation is null) return;
-        await RunCanvaActionAsync(() => LoadAndApplyCanvaCoreAsync(presentation), message => CanvaPresentationStatus = message);
+        await RunContentRefreshActionAsync(() => LoadAndApplyCanvaCoreAsync(presentation));
     }
 
     internal async Task RedownloadCanvaAsync()
@@ -674,13 +733,14 @@ public sealed class MainViewModel : ViewModelBase
         PresentationDocument current = Snapshot.Document;
         if (current.Id == "demo-sunday") return;
         PrivacySafeLog.Write("Canva manual Re-download requested for the applied deck.");
-        await RunCanvaActionAsync(() => LoadAndApplyCanvaCoreAsync(
-            new CanvaPresentation(current.Id, current.Title, current.Pages.Count), current), message => CanvaPresentationStatus = message);
+        await RunContentRefreshActionAsync(() => LoadAndApplyCanvaCoreAsync(
+            new CanvaPresentation(current.Id, current.Title, current.Pages.Count), current));
     }
 
     private async Task LoadAndApplyCanvaCoreAsync(CanvaPresentation presentation, PresentationDocument? expectedDocument = null)
     {
         IsCanvaDownloadProgressVisible = true;
+        NotifyContentRefreshHealth();
         _canvaDownloadProgress = null;
         CanvaDownloadDescription = "Preparing Canva presentation…";
         OnPropertyChanged(nameof(IsCanvaDownloadProgressIndeterminate));
@@ -713,6 +773,7 @@ public sealed class MainViewModel : ViewModelBase
         finally
         {
             IsCanvaDownloadProgressVisible = false;
+            NotifyContentRefreshHealth();
         }
     }
 
@@ -732,66 +793,94 @@ public sealed class MainViewModel : ViewModelBase
     public async Task InitializeCanvaAsync()
     {
         if (!_canva.IsConnected || _isClosing) return;
-        await RunCanvaActionAsync(async () =>
+        bool succeeded = await RunCanvaActionAsync(async () =>
         {
             await RefreshCanvaCoreAsync();
             CanvaConnectionStatus = "Connected using saved authorization. Presentations loaded automatically.";
-            if (IsAutomaticContentRefreshEnabled && Snapshot.Document.Id != "demo-sunday")
-            {
-                _isAutomaticRefreshRunning = true;
-                try { await CheckPresentationUpdatesCoreAsync(true); }
-                finally { _isAutomaticRefreshRunning = false; }
-            }
         }, message => { CanvaConnectionStatus = message; CanvaPresentationStatus = message; });
-        _nextAutomaticContentCheck = DateTimeOffset.UtcNow.AddSeconds(30);
+        if (succeeded) await CheckAutomaticContentRefreshAsync(true);
     }
 
-    internal async Task CheckPresentationUpdatesAsync() => await RunCanvaActionAsync(
-        () => CheckPresentationUpdatesCoreAsync(IsAutomaticContentRefreshEnabled, forceDownload: IsAutomaticContentRefreshEnabled), message => CanvaPresentationStatus = message);
+    internal async Task CheckPresentationUpdatesAsync() => await RunContentRefreshActionAsync(
+        () => CheckPresentationUpdatesCoreAsync(IsAutomaticContentRefreshEnabled, forceDownload: IsAutomaticContentRefreshEnabled));
+
+    private async Task RunContentRefreshActionAsync(Func<Task> action)
+    {
+        if (_isClosing || IsCanvaBusy) return;
+        _contentRefreshError = null;
+        bool succeeded = await RunCanvaActionAsync(action, message =>
+        {
+            _contentRefreshError = message + " The current presentation remains available.";
+            CanvaPresentationStatus = _contentRefreshError;
+        });
+        _contentRefreshSchedule.Complete(succeeded);
+        NotifyContentRefreshHealth();
+        ArmContentRefreshTimer();
+    }
 
     private async Task CheckPresentationUpdatesCoreAsync(bool applyUpdates, bool forceDownload = false)
     {
         PresentationDocument applied = Snapshot.Document;
         if (applied.Id == "demo-sunday") return;
-        CanvaPresentation current = await _canva.GetPresentationAsync(applied.Id, _lifetimeCancellation.Token);
-        if (_isClosing || !ReferenceEquals(Snapshot.Document, applied)) return;
-        PrivacySafeLog.Write($"Canva content check: cached modified {applied.SourceModifiedAt:O}; reported modified {current.ModifiedAt:O}; automatic refresh {_isAutomaticRefreshRunning}; force download {forceDownload}; rendered images {applied.UsesRenderedPageImages}.");
-        CanvaPresentation? listed = CanvaPresentations.FirstOrDefault(item => item.Id == current.Id);
-        if (listed is not null)
+        _isCheckingContent = true;
+        NotifyContentRefreshHealth();
+        try
         {
-            int index = CanvaPresentations.IndexOf(listed);
-            CanvaPresentations[index] = current;
-            if (SelectedCanvaPresentation == listed) SelectedCanvaPresentation = current;
+            CanvaPresentation current = await _canva.GetPresentationAsync(applied.Id, _lifetimeCancellation.Token);
+            if (_isClosing || !ReferenceEquals(Snapshot.Document, applied)) return;
+            _lastContentCheck = DateTimeOffset.UtcNow;
+            PrivacySafeLog.Write($"Canva content check: cached modified {applied.SourceModifiedAt:O}; reported modified {current.ModifiedAt:O}; automatic refresh {_isAutomaticRefreshRunning}; force download {forceDownload}; rendered images {applied.UsesRenderedPageImages}.");
+            CanvaPresentation? listed = CanvaPresentations.FirstOrDefault(item => item.Id == current.Id);
+            if (listed is not null)
+            {
+                int index = CanvaPresentations.IndexOf(listed);
+                CanvaPresentations[index] = current;
+                if (SelectedCanvaPresentation == listed) SelectedCanvaPresentation = current;
+            }
+            EvaluatePresentationFreshness(current);
+            if (applyUpdates && (forceDownload || !applied.UsesRenderedPageImages || IsPresentationUpdateAvailable || applied.SourceModifiedAt is null && current.ModifiedAt is not null))
+            {
+                await LoadAndApplyCanvaCoreAsync(current, applied);
+                return;
+            }
+            CanvaPresentationStatus = IsPresentationUpdateAvailable
+                ? "Canva has a newer version. Select Re-download to update the cached presentation."
+                : !applied.UsesRenderedPageImages ? "This older cache uses preview images. Select Re-download to obtain fresh Mirror images."
+                : _hasPresentationFreshnessCheck ? "The cached copy matches Canva's reported modification time."
+                    : "Canva did not provide comparable edit timestamps. Use Re-download to refresh the presentation.";
         }
-        EvaluatePresentationFreshness(current);
-        if (applyUpdates && (forceDownload || !applied.UsesRenderedPageImages || IsPresentationUpdateAvailable || applied.SourceModifiedAt is null && current.ModifiedAt is not null))
+        finally
         {
-            await LoadAndApplyCanvaCoreAsync(current, applied);
-            return;
+            _isCheckingContent = false;
+            NotifyContentRefreshHealth();
         }
-        CanvaPresentationStatus = IsPresentationUpdateAvailable
-            ? "Canva has a newer version. Select Re-download to update the cached presentation."
-            : !applied.UsesRenderedPageImages ? "This older cache uses preview images. Select Re-download to obtain fresh Mirror images."
-            : _hasPresentationFreshnessCheck ? "The cached copy matches Canva's reported modification time."
-                : "Canva did not provide comparable edit timestamps. Use Re-download to refresh the presentation.";
     }
 
     private async void OnAutomaticContentRefreshTick(object? sender, EventArgs eventArgs)
-        => await CheckAutomaticContentRefreshAsync();
+    {
+        _contentRefreshTimer.Stop();
+        await CheckAutomaticContentRefreshAsync();
+    }
 
     internal async Task CheckAutomaticContentRefreshAsync(bool force = false)
     {
         if (_isClosing || !IsAutomaticContentRefreshEnabled || !_canva.IsConnected
-            || IsCanvaBusy || Snapshot.Document.Id == "demo-sunday" || !force && DateTimeOffset.UtcNow < _nextAutomaticContentCheck) return;
+            || IsCanvaBusy || Snapshot.Document.Id == "demo-sunday" || !force && !_contentRefreshSchedule.IsDue)
+        {
+            ArmContentRefreshTimer();
+            return;
+        }
+        _contentRefreshTimer.Stop();
         _isAutomaticRefreshRunning = true;
         try
         {
-            bool succeeded = await RunCanvaActionAsync(() => CheckPresentationUpdatesCoreAsync(true),
-                message => CanvaPresentationStatus = $"Automatic content refresh: {message} The current presentation remains available.");
-            _automaticRefreshFailures = succeeded ? 0 : Math.Min(4, _automaticRefreshFailures + 1);
-            _nextAutomaticContentCheck = DateTimeOffset.UtcNow.AddSeconds(Math.Min(300, 30 * Math.Pow(2, _automaticRefreshFailures)));
+            await RunContentRefreshActionAsync(() => CheckPresentationUpdatesCoreAsync(true));
         }
-        finally { _isAutomaticRefreshRunning = false; }
+        finally
+        {
+            _isAutomaticRefreshRunning = false;
+            ArmContentRefreshTimer();
+        }
     }
 
     private void EvaluatePresentationFreshness(CanvaPresentation? checkedPresentation = null)
@@ -1066,18 +1155,28 @@ public sealed class MainViewModel : ViewModelBase
     private void OnSnapshotChanged(object? sender, OutputSnapshot snapshot)
     {
         bool documentChanged = !ReferenceEquals(Snapshot.Document, snapshot.Document);
+        if (Snapshot.Document.Id != snapshot.Document.Id)
+        {
+            _lastContentCheck = null;
+            _contentRefreshError = null;
+            _contentRefreshSchedule.Reset();
+        }
         Snapshot = snapshot;
         if (documentChanged)
         {
             ReevaluatePresenterSync();
             EvaluatePresentationFreshness();
             OnPropertyChanged(nameof(CacheSummary));
+            NotifyContentRefreshHealth();
+            ArmContentRefreshTimer();
         }
         Persist();
     }
 
     private void NotifyReadinessChanged()
     {
+        NotifyContentRefreshHealth();
+        ArmContentRefreshTimer();
         NotifySecretState();
         OnPropertyChanged(nameof(SelectedPresentationSummary));
         OnPropertyChanged(nameof(LiveReadinessText));

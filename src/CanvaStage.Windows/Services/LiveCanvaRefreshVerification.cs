@@ -1,12 +1,14 @@
 using CanvaStage.Core.Models;
 using CanvaStage.Core.Services;
 using CanvaStage.Windows.ViewModels;
+using CanvaStage.Windows.Views;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -15,7 +17,7 @@ namespace CanvaStage.Windows.Services;
 /// <summary>Exercises real service/view-model refresh paths with delayed synthetic Canva responses.</summary>
 internal static class LiveCanvaRefreshVerification
 {
-    public static async Task RunAsync(string directory)
+    public static async Task RunAsync(string directory, MainWindow mainWindow, Action<Window, string, double> capture)
     {
         string storage = Path.Combine(directory, "isolated-storage", "live-refresh");
         CanvaCredentialsStore store = new(storage);
@@ -100,6 +102,11 @@ internal static class LiveCanvaRefreshVerification
             Feed(2);
             Require(ReferenceEquals(output.Snapshot.Document, working) && output.Snapshot.SelectedPageNumber == 2
                 && !viewModel.IsCanvaBusy, "A failed refresh retains usable live output and releases the busy state");
+            Require(viewModel.ContentRefreshHealthText.Contains("Needs attention", StringComparison.Ordinal)
+                && viewModel.ContentRefreshTimingText.Contains("Retry:", StringComparison.Ordinal)
+                && viewModel.ContentRefreshDetail.Contains("remains available", StringComparison.Ordinal),
+                "Live control reports refresh failure, retained content and scheduled retry");
+            await CaptureHealthAsync("failed-retry");
             handler.FailExport = false;
             viewModel.PreviousPageCommand.Execute(null);
             await viewModel.CheckAutomaticContentRefreshAsync(true);
@@ -132,6 +139,8 @@ internal static class LiveCanvaRefreshVerification
                 "Manual Check for updates remains metadata-only when automatic updates are disabled");
             viewModel.SelectedCanvaPresentation = new("other-deck", "Other deck", 1);
             await viewModel.RedownloadCanvaAsync();
+            Require(!viewModel.ContentRefreshHealthText.Contains("Needs attention", StringComparison.Ordinal),
+                "A successful manual re-download clears the previous refresh error");
             Require(output.Snapshot.Document.Id == "live-deck" && output.PrimaryText == "Version 6 page 2"
                 && handler.ExportRequests == exports + 2,
                 "Re-download forces fresh exports of the applied deck, not the highlighted dropdown entry");
@@ -141,6 +150,10 @@ internal static class LiveCanvaRefreshVerification
             handler.BlockDownload();
             refresh = viewModel.CheckAutomaticContentRefreshAsync(true);
             await handler.DownloadStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Require(viewModel.IsCanvaDownloadProgressVisible
+                && viewModel.ContentRefreshHealthText.Contains("Downloading", StringComparison.Ordinal),
+                "Live control exposes full-deck download progress while presenting");
+            await CaptureHealthAsync("downloading");
             viewModel.IsAutomaticContentRefreshEnabled = false;
             handler.ReleaseDownload.TrySetResult();
             await refresh;
@@ -157,6 +170,7 @@ internal static class LiveCanvaRefreshVerification
         }
         finally { viewModel.PrepareToClose(); }
 
+        await VerifyScheduledChecksAsync();
         handler.RejectRefreshToken = true;
         store.Save(store.Load()! with { AccessTokenExpiresAt = DateTimeOffset.UtcNow.AddHours(-1) });
         try
@@ -169,6 +183,93 @@ internal static class LiveCanvaRefreshVerification
             Require(store.Load() is { RefreshToken: null, ClientSecret: "synthetic-secret" },
                 "Revoked authorization reports reconnect while preserving protected setup");
         }
+
+        async Task CaptureHealthAsync(string state, MainViewModel? target = null)
+        {
+            object previousContext = mainWindow.DataContext;
+            try
+            {
+                mainWindow.DataContext = target ?? viewModel;
+                VerificationWindowSizing.Configure(mainWindow);
+                VerificationWindowSizing.SetSize(mainWindow, 1380, 900);
+                mainWindow.ScrollContentToTopForAutomation();
+                await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout());
+                FrameworkElement card = (FrameworkElement)mainWindow.FindName("ContentRefreshHealthCard");
+                Require(card.IsVisible && card.ActualHeight > 0, "Refresh health is visible without opening Presentation");
+                capture(mainWindow, Path.Combine(directory, $"operator-LiveControl-refresh-{state}.png"), 1);
+            }
+            finally { mainWindow.DataContext = previousContext; }
+        }
+
+        async Task VerifyScheduledChecksAsync()
+        {
+            PresentationDocument current = await service.LoadAsync("live-deck");
+            OutputCoordinator scheduledCoordinator = new(current, preferences);
+            MainViewModel scheduled = new(scheduledCoordinator, new OutputWindowManager(scheduledCoordinator), displays,
+                new DisplayIdentificationService(displays), new DiagnosticsExportService(), new JsonPreferencesStore(storage),
+                cache, service, new WindowsReleaseVerification.DemoTracker(), preferences,
+                new AutomaticContentRefreshSchedule(interval: TimeSpan.FromMilliseconds(150)));
+            try
+            {
+                int exports = handler.ExportRequests;
+                int checks = handler.MetadataRequests;
+                scheduled.IsAutomaticContentRefreshEnabled = true;
+                await WaitUntilAsync(() => handler.MetadataRequests >= checks + 3 && !scheduled.IsCanvaBusy);
+                Require(handler.ExportRequests == exports && scheduled.ActiveSection == OperatorSection.LiveControl,
+                    "Real timer ticks check unchanged metadata repeatedly in Live control without exporting the deck");
+                Require(scheduled.ContentRefreshHealthText.EndsWith("Checked", StringComparison.Ordinal)
+                    && !scheduled.ContentRefreshTimingText.Contains("Last check: not yet", StringComparison.Ordinal),
+                    "Live refresh health records completed timer-driven checks");
+                await CaptureHealthAsync("checked", scheduled);
+
+                scheduled.IsAutomaticContentRefreshEnabled = false;
+                checks = handler.MetadataRequests;
+                await Task.Delay(400);
+                Require(handler.MetadataRequests == checks && scheduled.ContentRefreshHealthText.Contains("off", StringComparison.Ordinal),
+                    "Disabling automatic updates stops timer-driven requests and reports the disabled state");
+
+                handler.FailMetadata = true;
+                scheduled.IsAutomaticContentRefreshEnabled = true;
+                await WaitUntilAsync(() => scheduled.ContentRefreshHealthText.Contains("Needs attention", StringComparison.Ordinal));
+                Require(scheduled.ContentRefreshTimingText.Contains("Retry:", StringComparison.Ordinal),
+                    "A timer-driven failure advertises retry timing");
+                handler.FailMetadata = false;
+                await WaitUntilAsync(() => scheduled.ContentRefreshHealthText.EndsWith("Checked", StringComparison.Ordinal));
+                Require(handler.ExportRequests == exports, "A scheduled retry recovers without downloading unchanged content");
+
+                scheduledCoordinator.StartOutput();
+                handler.Version++;
+                handler.BlockDownload();
+                await handler.DownloadStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                checks = handler.MetadataRequests;
+                scheduled.ReceivePresenterUpdateForVerification(new(CanvaPresenterTrackingState.PageDetected,
+                    3, handler.PageCount, "Synthetic Presenter", DateTimeOffset.UtcNow));
+                scheduledCoordinator.SetBlanked(true);
+                await Task.Delay(350);
+                Require(handler.MetadataRequests == checks && scheduled.IsCanvaBusy,
+                    "Scheduled checks cannot overlap a full-deck download");
+                handler.ReleaseDownload.TrySetResult();
+                await WaitUntilAsync(() => !scheduled.IsCanvaBusy);
+                Require(scheduledCoordinator.Snapshot is { IsLive: true, IsBlanked: true, SelectedPageNumber: 3 }
+                    && scheduledCoordinator.Snapshot.Document.Pages[2].PrimaryText == $"Version {handler.Version} page 3",
+                    "A timer-driven changed deck replaces live content without restarting output or following");
+                scheduled.PrepareToClose();
+                checks = handler.MetadataRequests;
+                await Task.Delay(400);
+                Require(handler.MetadataRequests == checks, "Closing disarms the content timer");
+            }
+            finally
+            {
+                handler.FailMetadata = false;
+                scheduled.PrepareToClose();
+            }
+        }
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        using CancellationTokenSource timeout = new(TimeSpan.FromSeconds(5));
+        while (!condition()) await Task.Delay(10, timeout.Token);
     }
 
     private static void Require(bool condition, string message)
@@ -191,6 +292,8 @@ internal static class LiveCanvaRefreshVerification
         public int PageCount { get; set; } = 3;
         public int TokenRequests { get; private set; }
         public int ExportRequests { get; private set; }
+        public int MetadataRequests { get; private set; }
+        public bool FailMetadata { get; set; }
         public bool FailExport { get; set; }
         public bool FailImageExport { get; set; }
         public int? MetadataVersionOverride { get; set; }
@@ -259,6 +362,12 @@ internal static class LiveCanvaRefreshVerification
             }
             if (path.EndsWith("/pages", StringComparison.Ordinal))
                 return Json("{\"items\":[" + string.Join(",", Enumerable.Range(1, PageCount).Select(page => $"{{\"page_number\":{page},\"id\":\"page-{page}\",\"thumbnail\":{{\"url\":\"https://test.invalid/stale.png\"}}}}")) + "]}");
+            if (path.EndsWith("/designs/live-deck", StringComparison.Ordinal))
+            {
+                MetadataRequests++;
+                await Task.Delay(30, cancellationToken).ConfigureAwait(false);
+                if (FailMetadata) return Json("{}", HttpStatusCode.InternalServerError);
+            }
             string design = $"{{\"id\":\"live-deck\",\"title\":\"Live deck\",\"design_types\":[\"presentation\"],\"page_count\":{PageCount},\"updated_at\":{1893456000 + (MetadataVersionOverride ?? Version)}}}";
             return Json(path.EndsWith("/designs", StringComparison.Ordinal) ? $"{{\"items\":[{design}]}}" : $"{{\"design\":{design}}}");
         }

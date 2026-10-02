@@ -107,9 +107,21 @@
                     <Grid.Style>
                         <Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsLiveControlSelected}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style>
                     </Grid.Style>
-                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition x:Name="LiveOptionsColumn" Width="300" /></Grid.ColumnDefinitions>
-                    <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource PanelCard}" Margin="0,0,18,16">
+                    <Border x:Name="ContentRefreshHealthCard" Grid.Row="0" Grid.ColumnSpan="2" Style="{StaticResource PanelCard}" Padding="16,12" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="{Binding ContentRefreshHealthText}" Foreground="{Binding ContentRefreshHealthBrush}" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding ContentRefreshDetail}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                            <TextBlock Text="{Binding ContentRefreshTimingText}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                            <StackPanel Margin="0,8,0,0">
+                                <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsCanvaDownloadProgressVisible}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                                <TextBlock Text="{Binding CanvaDownloadDescription}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,5" />
+                                <ProgressBar Height="6" Minimum="0" Maximum="100" Value="{Binding CanvaDownloadProgressPercent, Mode=OneWay}" IsIndeterminate="{Binding IsCanvaDownloadProgressIndeterminate}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource PanelCard}" Margin="0,0,18,16">
                         <Grid>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <StackPanel Orientation="Horizontal"><TextBlock Text="CONFIDENCE OUTPUT" Style="{StaticResource EyebrowText}" /><TextBlock Text="  •  " Foreground="{StaticResource MutedTextBrush}" /><TextBlock Text="{Binding OutputMode}" Foreground="{StaticResource AccentHoverBrush}" FontWeight="SemiBold" /></StackPanel>
@@ -125,7 +137,7 @@
                             </Grid>
                         </Grid>
                     </Border>
-                    <StackPanel x:Name="LiveOptionsPanel" Grid.Row="0" Grid.Column="1">
+                    <StackPanel x:Name="LiveOptionsPanel" Grid.Row="1" Grid.Column="1">
                         <Border Style="{StaticResource PanelCard}">
                             <StackPanel><TextBlock Text="Sunday controls" Style="{StaticResource SectionTitle}" />
                                 <TextBlock Text="{Binding PresenterSyncSummary}" Foreground="{Binding PresenterSyncBrush}" FontWeight="SemiBold" Margin="0,12,0,6" TextWrapping="Wrap" />
@@ -151,7 +163,7 @@
                             </StackPanel>
                         </Border>
                     </StackPanel>
-                    <Border Grid.Row="2" Grid.ColumnSpan="2" Style="{StaticResource PanelCard}" Margin="0">
+                    <Border Grid.Row="3" Grid.ColumnSpan="2" Style="{StaticResource PanelCard}" Margin="0">
                         <StackPanel>
                             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0" Margin="0,0,18,0"><TextBlock Text="Font" Style="{StaticResource FieldLabel}" /><ComboBox ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding FontFamily}" /></StackPanel>

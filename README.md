@@ -6,7 +6,7 @@ CanvaStage is not affiliated with, endorsed by, or sponsored by Canva Pty Ltd. S
 
 ## Download
 
-The latest release is [CanvaStage v0.10.1](https://github.com/mj00009/CanvaStage/releases/tag/v0.10.1). See the [release notes](docs/releases/v0.10.1.md) for changes and suggested acceptance checks.
+The latest release is [CanvaStage v0.10.2](https://github.com/mj00009/CanvaStage/releases/tag/v0.10.2). See the [release notes](docs/releases/v0.10.2.md) for changes and suggested acceptance checks.
 
 This update replaces Mirror preview thumbnails with fresh JPEG exports, makes manual **Check for updates** force a reload when automatic updates are enabled, and preserves spaces stored in separate PowerPoint text runs. Issues #20 and #21 remain open pending testing with the reported Canva slides; see the [operator guide](docs/operator-guide.md) for the updated behavior.
 
