@@ -1,6 +1,7 @@
 <UserControl x:Class="CanvaStage.Windows.Views.ConfidencePreview"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:CanvaStage.Windows.Controls">
     <Grid ClipToBounds="True">
         <Grid Background="{Binding PreviewMirrorBackgroundBrush}">
             <Grid.Style>
@@ -38,15 +39,15 @@
                         <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding ShowClock}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                     </TextBlock>
                 </Grid>
-                <Grid x:Name="PreviewTextHost" Grid.Row="1">
-                <TextBlock x:Name="PreviewText" Text="{Binding PreviewPrimaryText}" Foreground="{Binding PreviewTextBrush}" FontFamily="{Binding FontFamily}" FontSize="42" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center">
+                <controls:FittedTextHost x:Name="PreviewTextHost" Grid.Row="1" RequestedFontSize="{Binding FontSize}" MinimumFontSize="8">
+                <TextBlock x:Name="PreviewText" Text="{Binding PreviewPrimaryText}" Foreground="{Binding PreviewTextBrush}" FontFamily="{Binding FontFamily}" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
                             <Style.Triggers><DataTrigger Binding="{Binding ShowMonitorPreviewImage}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers>
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
-                </Grid>
+                </controls:FittedTextHost>
                 <Image Grid.Row="1" Source="{Binding PreviewImagePath}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <Image.Style>
                         <Style TargetType="Image">

@@ -1,5 +1,4 @@
 using CanvaStage.Windows.ViewModels;
-using System.ComponentModel;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -12,7 +11,6 @@ public partial class OutputWindow : Window
 {
     private readonly DispatcherTimer _clockTimer;
     private readonly OutputWindowViewModel _viewModel;
-    private bool _isTextFitQueued;
     private Rectangle? _displayBounds;
 
     public OutputWindow(OutputWindowViewModel viewModel)
@@ -20,9 +18,6 @@ public partial class OutputWindow : Window
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = viewModel;
-        SizeChanged += OnOutputSizeChanged;
-        Loaded += OnOutputLoaded;
-        viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
         _clockTimer.Tick += OnClockTick;
         _clockTimer.Start();
@@ -71,24 +66,22 @@ public partial class OutputWindow : Window
         return Rectangle.FromLTRB(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
     }
 
-    internal void VerifyTextFit(double pixelsPerDip)
+    internal void VerifyTextFit()
     {
         UpdateLayout();
-        _viewModel.FitPrimaryText(PrimaryTextHost.ActualWidth, PrimaryTextHost.ActualHeight, pixelsPerDip);
-        UpdateLayout();
         if (_viewModel.IsMonitor && !_viewModel.ShowFallbackImage
-            && !_viewModel.PrimaryTextFits(PrimaryTextHost.ActualWidth, PrimaryTextHost.ActualHeight, pixelsPerDip))
+            && !PrimaryTextHost.TextFits)
             throw new InvalidOperationException("Confidence output text is clipped in the verification scenario.");
         if (_viewModel.ShowNextLine && (NextLineText.TextWrapping != TextWrapping.NoWrap
             || NextLineText.TextTrimming != TextTrimming.WordEllipsis || NextLineText.ActualHeight > NextLineText.FontSize * 1.8))
             throw new InvalidOperationException("The next-line cue occupies more than one rendered line.");
+        if (_viewModel.ShowNextLine && (PrimaryText.FontFamily.Source != NextLineText.FontFamily.Source
+            || (!_viewModel.Snapshot.Appearance.IsNextLineBold && PrimaryText.FontWeight != NextLineText.FontWeight)))
+            throw new InvalidOperationException("The next-line cue does not match the main text's font family/default weight.");
     }
 
     protected override void OnClosed(EventArgs eventArgs)
     {
-        SizeChanged -= OnOutputSizeChanged;
-        Loaded -= OnOutputLoaded;
-        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _clockTimer.Stop();
         _clockTimer.Tick -= OnClockTick;
         base.OnClosed(eventArgs);
@@ -100,38 +93,6 @@ public partial class OutputWindow : Window
         {
             viewModel.UpdateClock();
         }
-    }
-
-    private void OnOutputSizeChanged(object sender, SizeChangedEventArgs eventArgs) => ScheduleTextFit();
-
-    private void OnOutputLoaded(object sender, RoutedEventArgs eventArgs) => ScheduleTextFit();
-
-    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
-    {
-        if (eventArgs.PropertyName is nameof(OutputWindowViewModel.PrimaryText)
-            or nameof(OutputWindowViewModel.EffectiveFontSize)
-            or nameof(OutputWindowViewModel.ShowNextLine)
-            or nameof(OutputWindowViewModel.NextLineFontSize)
-            or nameof(OutputWindowViewModel.NextLineFontWeight))
-        {
-            ScheduleTextFit();
-        }
-    }
-
-    private void ScheduleTextFit()
-    {
-        if (_isTextFitQueued)
-        {
-            return;
-        }
-
-        _isTextFitQueued = true;
-        Dispatcher.BeginInvoke(() =>
-        {
-            _isTextFitQueued = false;
-            var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(this);
-            _viewModel.FitPrimaryText(PrimaryTextHost.ActualWidth, PrimaryTextHost.ActualHeight, dpi.PixelsPerDip);
-        }, DispatcherPriority.Render);
     }
 
     private void CloseOutput(object sender, RoutedEventArgs eventArgs) => Close();

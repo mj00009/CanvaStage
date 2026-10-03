@@ -35,6 +35,12 @@ The next-line cue shows only the first authored line of the next page's main tex
 
 The dropdown includes the monitor name reported by Windows, resolution, and Primary or Extended status. CanvaStage remembers the monitor’s hardware identity when Windows provides one.
 
+## Monitor typography
+
+The current text automatically shrinks to fit its available area before it is drawn, including when changing slides or resizing Preview. Your selected font size is a maximum, not a guarantee that long slides will use that size.
+
+Current text and the Next cue use the same selected font family and, by default, the same semibold weight. The Next cue retains its independent size and color; its optional **Bold** setting makes that cue heavier without changing the current text. The small in-app preview scales the cue size for its smaller viewport. Next cues remain a single line with an ellipsis when necessary; current text remains complete.
+
 ## Start automatic Presenter following
 
 1. Open the presentation in Canva.

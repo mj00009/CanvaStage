@@ -39,6 +39,8 @@ Use this checklist before relying on a new release during a service. Automated v
 - [ ] Disconnect the network during a refresh. Confirm the previous deck remains usable, an error is shown, and automatic refresh recovers after connectivity returns. Turning automatic updates off must stop future checks.
 - [ ] Confirm Live control shows a safe refresh error and retry time after failure, clears the error after successful retry or Re-download, and shows checks disabled or reconnection needed when appropriate.
 - [ ] Use a long paragraph on the next slide. Confirm the next cue is one line with an ellipsis in both previews and the confidence window; authored soft line breaks must be preserved in the main text.
+- [ ] Select maximum main font size, then navigate short → long → short slides in Monitor mode. Both previews and the confidence window must show fitted text immediately, with no oversized-text flash. Repeat while resizing Preview, changing layouts and toggling the clock.
+- [ ] Try Aptos, Arial, Segoe UI and Verdana. Current and Next text must share the selected family and default semibold weight. Changing Next size must not change current size; Next Bold must remain an independent heavier-weight override.
 - [ ] Open Preview, stop output, then close the main window. Confirm no hidden CanvaStage process remains. Repeat while output is live and approve the close prompt; confirm the confidence window closes.
 - [ ] Check for presentation updates, clean old downloads, and clear the cache.
 - [ ] Reopen a cached deck after deleting one cached page image in a test profile. Confirm Monitor text remains available and the app warns that Mirror images need re-downloading.
@@ -56,6 +58,8 @@ The GitHub workflow:
 4. verifies Presenter following, pause/resume, output blanking, DPAPI reuse, saved-authorization startup, concurrent token renewal and rejected-token recovery, live deck refresh during navigation, refresh failures and cancellation, changed page counts, changed Mirror pixels despite stale thumbnails, unchanged-timestamp manual reloads, legacy cache migration, rendered-image validation and hidden-page mapping, Canva page-schema validation, damaged-cache recovery and cleanup, display bounds, contrast, WPF bindings, output text fitting, and single-line next cues;
 5. renders every operator section and Monitor layout at representative 100%, 125%, 150%, and 200% effective sizes;
 6. attempts to upload test results, the verification report, and UI screenshots; non-tag runs also upload a short-lived package artifact. GitHub Actions storage quota can block these artifacts; the verification summary remains in the workflow run, and a tagged release uploads its ZIP and checksum directly to GitHub Releases.
+
+The Windows checks also observe the first rendered frame after Monitor page, font, layout and viewport changes, rather than only checking settled screenshots. They verify both previews fit immediately, default Current/Next typography matches across four curated fonts, cue sizes remain independent, and the bold override still applies.
 
 The generated screenshots require visual review. Synthetic DPI rendering does not change the runner’s physical display configuration, so mixed-DPI and hotplug behavior remain real-machine checks.
 

@@ -404,7 +404,7 @@ public sealed class MainViewModel : ViewModelBase
     public Brush PreviewAccentBrush => BrushFrom(AccentColor, Brushes.MediumPurple);
     public Brush PreviewNextLineBrush => BrushFrom(NextLineColor, Brushes.White);
     public double PreviewNextLineFontSize => Math.Clamp(NextLineFontSize * 0.55d, 10d, 32d);
-    public System.Windows.FontWeight PreviewNextLineFontWeight => IsNextLineBold ? FontWeights.Bold : FontWeights.Normal;
+    public System.Windows.FontWeight PreviewNextLineFontWeight => IsNextLineBold ? FontWeights.Bold : FontWeights.SemiBold;
     public string CanvaClientId { get => _canvaClientId; set { if (SetProperty(ref _canvaClientId, value)) NotifySecretState(); } }
     public string CanvaConnectionStatus
     {

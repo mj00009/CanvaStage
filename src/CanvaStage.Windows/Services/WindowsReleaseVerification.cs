@@ -157,6 +157,8 @@ internal static class WindowsReleaseVerification
         VerificationWindowSizing.Configure(output);
         try
         {
+            await MonitorTypographyVerification.RunAsync(mainWindow, viewModel, output, coordinator, directory, capture);
+            checks.Add("First-rendered-frame text fit in both previews on short/long slide transitions, appearance/layout changes and resizing; matching Current/Next typography across four fonts, independent cue size and optional bold");
             foreach (MonitorLayout layout in Enum.GetValues<MonitorLayout>())
             {
                 coordinator.SetLayout(layout);
@@ -168,7 +170,7 @@ internal static class WindowsReleaseVerification
                     VerificationWindowSizing.SetSize(output, 1920 / scale, 1080 / scale);
                     await output.Dispatcher.InvokeAsync(() => output.UpdateLayout(), DispatcherPriority.ApplicationIdle);
                     VerificationWindowSizing.CheckSize(output, 1920 / scale, 1080 / scale);
-                    output.VerifyTextFit(scale);
+                    output.VerifyTextFit();
                     capture(output, Path.Combine(directory, $"output-{layout}-{scale:0.00}.png"), scale);
                 }
             }

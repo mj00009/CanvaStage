@@ -6,9 +6,9 @@ CanvaStage is not affiliated with, endorsed by, or sponsored by Canva Pty Ltd. S
 
 ## Download
 
-The latest release is [CanvaStage v0.10.2](https://github.com/mj00009/CanvaStage/releases/tag/v0.10.2). See the [release notes](docs/releases/v0.10.2.md) for changes and suggested acceptance checks.
+The latest release is [CanvaStage v0.10.3](https://github.com/mj00009/CanvaStage/releases/tag/v0.10.3). See the [release notes](docs/releases/v0.10.3.md) for changes and suggested acceptance checks.
 
-This update replaces Mirror preview thumbnails with fresh JPEG exports, makes manual **Check for updates** force a reload when automatic updates are enabled, and preserves spaces stored in separate PowerPoint text runs. Issues #20 and #21 remain open pending testing with the reported Canva slides; see the [operator guide](docs/operator-guide.md) for the updated behavior.
+This update fits Monitor text before its first rendered frame, eliminating the oversized-text flash during slide changes. The Next cue matches the main text's selected font and default weight while retaining its separate size and optional bold setting. Issues #22 and #23 remain open for real-machine confirmation; #20 and #21 were confirmed resolved and closed by the operator. See the [operator guide](docs/operator-guide.md) for the current behavior.
 
 Download `CanvaStage-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
 
