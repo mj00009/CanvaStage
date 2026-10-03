@@ -11,7 +11,7 @@ using TextBlock = System.Windows.Controls.TextBlock;
 
 namespace CanvaStage.Windows.Services;
 
-/// <summary>Observes the real layout before painting, not a manually repaired screenshot.</summary>
+/// <summary>Checks first-frame in-app fitting and settled output typography without manually fitting text.</summary>
 internal static class MonitorTypographyVerification
 {
     public static async Task RunAsync(MainWindow mainWindow, MainViewModel mainViewModel,
@@ -27,16 +27,15 @@ internal static class MonitorTypographyVerification
         coordinator.SetAppearance(MonitorAppearance.Default with { FontSize = 160, NextLineFontSize = 24 });
         await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(), DispatcherPriority.ApplicationIdle);
         ConfidencePreview preview = Descendants(mainWindow).OfType<ConfidencePreview>().First(element => element.IsVisible);
-        FittedTextHost outputHost = (FittedTextHost)output.FindName("PrimaryTextHost");
         FittedTextHost previewHost = (FittedTextHost)preview.FindName("PreviewTextHost");
-        TextBlock primary = (TextBlock)outputHost.Child;
+        TextBlock primary = (TextBlock)output.FindName("PrimaryText");
         TextBlock next = (TextBlock)output.FindName("NextLineText");
         TextBlock previewPrimary = (TextBlock)previewHost.Child;
         TextBlock previewNext = (TextBlock)preview.FindName("PreviewNextLineText");
 
         async Task ObserveChangeAsync(Action change, bool waitForWindowSize = false)
         {
-            TaskCompletionSource<(double OutputSize, double PreviewSize)> firstFrame = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource<double> firstFrame = new(TaskCreationOptions.RunContinuationsAsynchronously);
             Exception? observedFailure = null;
             void ObserveFrame(object? sender, EventArgs args)
             {
@@ -49,9 +48,9 @@ internal static class MonitorTypographyVerification
                     if (primary.Text != ((OutputWindowViewModel)output.DataContext).PrimaryText
                         || previewPrimary.Text != mainViewModel.PreviewPrimaryText)
                         throw new InvalidOperationException("The first rendered frame has stale confidence text.");
-                    if (!outputHost.TextFits || !previewHost.TextFits)
-                        throw new InvalidOperationException("The first rendered frame contains oversized confidence text.");
-                    firstFrame.TrySetResult((primary.FontSize, previewPrimary.FontSize));
+                    if (!previewHost.TextFits)
+                        throw new InvalidOperationException("The first rendered frame contains oversized in-app confidence text.");
+                    firstFrame.TrySetResult(previewPrimary.FontSize);
                 }
                 catch (Exception exception) { observedFailure = exception; firstFrame.TrySetException(exception); }
             }
@@ -59,15 +58,14 @@ internal static class MonitorTypographyVerification
             try
             {
                 change();
-                output.InvalidateVisual();
-                (double outputSize, double previewSize) = await firstFrame.Task.WaitAsync(TimeSpan.FromSeconds(5));
-                await output.Dispatcher.InvokeAsync(() => { output.UpdateLayout(); mainWindow.UpdateLayout(); }, DispatcherPriority.ApplicationIdle);
+                double previewSize = await firstFrame.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                await output.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
                 if (observedFailure is not null) throw observedFailure;
                 // Windows can present multiple intermediate client viewports while resizing.
-                // Every frame must fit; only fixed-viewport changes require an identical
-                // first/settled font size (the regression reported during slide changes).
-                if (!waitForWindowSize && (Math.Abs(primary.FontSize - outputSize) > 0.01 || Math.Abs(previewPrimary.FontSize - previewSize) > 0.01))
-                    throw new InvalidOperationException($"Confidence text changed size after its first rendered frame: output {outputSize:0.00} -> {primary.FontSize:0.00}; preview {previewSize:0.00} -> {previewPrimary.FontSize:0.00}.");
+                // The output deliberately uses v0.10.2's deferred fitter again; only
+                // the in-app preview retains the first-frame size guarantee.
+                if (!waitForWindowSize && Math.Abs(previewPrimary.FontSize - previewSize) > 0.01)
+                    throw new InvalidOperationException($"In-app text changed size after its first rendered frame: {previewSize:0.00} -> {previewPrimary.FontSize:0.00}.");
                 output.VerifyTextFit();
             }
             finally { CompositionTarget.Rendering -= ObserveFrame; }

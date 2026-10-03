@@ -6,9 +6,11 @@ CanvaStage is not affiliated with, endorsed by, or sponsored by Canva Pty Ltd. S
 
 ## Download
 
-The latest release is [CanvaStage v0.10.3](https://github.com/mj00009/CanvaStage/releases/tag/v0.10.3). See the [release notes](docs/releases/v0.10.3.md) for changes and suggested acceptance checks.
+The latest release is [CanvaStage v0.10.4](https://github.com/mj00009/CanvaStage/releases/tag/v0.10.4). See the [release notes](docs/releases/v0.10.4.md) for changes and suggested acceptance checks.
 
-This update fits Monitor text before its first rendered frame, eliminating the oversized-text flash during slide changes. The Next cue matches the main text's selected font and default weight while retaining its separate size and optional bold setting. Issues #22 and #23 remain open for real-machine confirmation; #20 and #21 were confirmed resolved and closed by the operator. See the [operator guide](docs/operator-guide.md) for the current behavior.
+This update restores the separate output window's v0.10.2 text-fitting method as a precaution for the v0.10.3 freeze reported in [#24](https://github.com/mj00009/CanvaStage/issues/24). The improved in-app preview and matching Next typography are retained. It also adds privacy-safe page/render/display diagnostics and consistent UTC timestamps. See the [operator guide](docs/operator-guide.md) for the current behavior.
+
+**Acceptance still needed:** issue #24 occurred with Windows wireless casting to a Samsung TV; its root cause is not confirmed. Test v0.10.4 on the actual presentation computer and receiver before service use, or stay on the previously working [v0.10.2](https://github.com/mj00009/CanvaStage/releases/tag/v0.10.2). The restored output fitter may briefly show oversized text before shrinking it. Issues #22–24 remain open for real-machine confirmation; #20 and #21 were confirmed resolved and closed by the operator.
 
 Download `CanvaStage-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
 

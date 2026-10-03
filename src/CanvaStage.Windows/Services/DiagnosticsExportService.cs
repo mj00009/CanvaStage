@@ -26,7 +26,7 @@ public sealed class DiagnosticsExportService
     {
         var builder = new StringBuilder();
         builder.AppendLine("CanvaStage diagnostic bundle (credentials and presentation content excluded)");
-        builder.AppendLine($"Created: {DateTimeOffset.Now:O}");
+        builder.AppendLine($"Created (UTC): {DiagnosticTimestamp.FormatUtc(DateTimeOffset.UtcNow)}");
         builder.AppendLine($"Version: {Assembly.GetExecutingAssembly().GetName().Version}");
         builder.AppendLine($"Windows: {Environment.OSVersion}");
         builder.AppendLine($"Architecture: {System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture}");
@@ -34,7 +34,7 @@ public sealed class DiagnosticsExportService
         builder.AppendLine($"Selected page: {snapshot.SelectedPage}");
         builder.AppendLine($"Output live: {snapshot.IsOutputLive}");
         builder.AppendLine($"Presenter health: {snapshot.PresenterHealth}");
-        builder.AppendLine($"Last presenter detection: {snapshot.LastPresenterDetection ?? "none"}");
+        builder.AppendLine($"Last presenter detection (operator-local status text): {snapshot.LastPresenterDetection ?? "none"}");
         builder.AppendLine($"Cache: {snapshot.CacheSummary}");
         builder.AppendLine("Displays:");
         foreach (string display in snapshot.Displays) builder.AppendLine($"- {display}");

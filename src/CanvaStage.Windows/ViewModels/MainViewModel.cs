@@ -757,7 +757,7 @@ public sealed class MainViewModel : ViewModelBase
                 && total == document.Pages.Count && DateTimeOffset.UtcNow - _lastPresenterUpdate.ObservedAt <= TimeSpan.FromSeconds(3)
                 ? page : null;
             _coordinator.SetDocument(document, presenterPage);
-            PrivacySafeLog.Write($"Canva content applied: {document.Pages.Count} visible pages; selected page {Snapshot.SelectedPageNumber}; rendered images {document.UsesRenderedPageImages}; source modified {document.SourceModifiedAt:O}.");
+            PrivacySafeLog.Write($"Canva content applied: {document.Pages.Count} visible pages; selected page {Snapshot.SelectedPageNumber}; rendered images {document.UsesRenderedPageImages}; source modified {DiagnosticTimestamp.FormatUtc(document.SourceModifiedAt)}.");
             _lastCanvaContentRefresh = document.RefreshedAt;
             OnPropertyChanged(nameof(LastCanvaContentRefreshText));
             IsPresentationUpdateAvailable = false;
@@ -829,7 +829,7 @@ public sealed class MainViewModel : ViewModelBase
             CanvaPresentation current = await _canva.GetPresentationAsync(applied.Id, _lifetimeCancellation.Token);
             if (_isClosing || !ReferenceEquals(Snapshot.Document, applied)) return;
             _lastContentCheck = DateTimeOffset.UtcNow;
-            PrivacySafeLog.Write($"Canva content check: cached modified {applied.SourceModifiedAt:O}; reported modified {current.ModifiedAt:O}; automatic refresh {_isAutomaticRefreshRunning}; force download {forceDownload}; rendered images {applied.UsesRenderedPageImages}.");
+            PrivacySafeLog.Write($"Canva content check: cached modified {DiagnosticTimestamp.FormatUtc(applied.SourceModifiedAt)}; reported modified {DiagnosticTimestamp.FormatUtc(current.ModifiedAt)}; automatic refresh {_isAutomaticRefreshRunning}; force download {forceDownload}; rendered images {applied.UsesRenderedPageImages}.");
             CanvaPresentation? listed = CanvaPresentations.FirstOrDefault(item => item.Id == current.Id);
             if (listed is not null)
             {
@@ -1053,6 +1053,9 @@ public sealed class MainViewModel : ViewModelBase
     private void ApplyCanvaPresenterTrackingUpdate(CanvaPresenterTrackingUpdate update)
     {
         if (_isClosing || !IsPresenterSyncEnabled || update.Generation != _canvaPresenterAccessibilityTracker.Generation) return;
+        if (_lastPresenterUpdate is null || _lastPresenterUpdate.State != update.State
+            || _lastPresenterUpdate.CurrentPage != update.CurrentPage || _lastPresenterUpdate.TotalPages != update.TotalPages)
+            PrivacySafeLog.Write($"Presenter observation: {update.State}; page {update.CurrentPage?.ToString() ?? "none"}; visible pages {update.TotalPages?.ToString() ?? "none"}; observed {DiagnosticTimestamp.FormatUtc(update.ObservedAt)}; scan ms {update.ScanDuration?.TotalMilliseconds:0}; paused {_isPresenterSyncPaused}.");
         _lastPresenterUpdate = update;
         OnPropertyChanged(nameof(PresenterLastDetectedText));
         ReevaluatePresenterSync();
@@ -1105,7 +1108,10 @@ public sealed class MainViewModel : ViewModelBase
             return;
         }
         if (Snapshot.SelectedPageNumber != update.CurrentPage.Value)
+        {
             _coordinator.SelectPage(update.CurrentPage.Value);
+            PrivacySafeLog.Write($"Presenter page selected: requested {update.CurrentPage.Value}; applied {Snapshot.SelectedPageNumber}; mode {Snapshot.Mode}; live {Snapshot.IsLive}.");
+        }
         SetPresenterState(PresenterSyncState.Following,
             $"Synced to presenter page {update.CurrentPage.Value} at {update.ObservedAt.ToLocalTime():h:mm:ss tt}.");
     }

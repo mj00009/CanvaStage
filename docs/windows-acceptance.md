@@ -23,6 +23,7 @@ Use this checklist before relying on a new release during a service. Automated v
 - [ ] Open a different deck with another visible-page count. Confirm CanvaStage reports a mismatch and holds the last valid page.
 - [ ] Disable automatic sync, restart, and confirm it remains disabled. Temporary pauses should not persist.
 - [ ] Test one-screen Preview and at least one physical Extended display.
+- [ ] If using Windows wireless casting, repeat sustained Presenter navigation on the actual receiver (including the Samsung TV reported in issue #24). Compare with a wired display when available. Test disconnect/reconnect and confirm display changes stop output safely; reselect the display and start output after reconnecting.
 - [ ] Use **Identify displays** and confirm names, numbers, resolution, and Primary/Extended status are understandable.
 - [ ] Test a 1152 × 864 output and mixed monitor scaling at 100%, 125%, 150%, and 200%. Confirm borderless output fills exactly the selected display.
 - [ ] Move and resize the main window at each scale. Confirm its title bar remains reachable.
@@ -39,7 +40,8 @@ Use this checklist before relying on a new release during a service. Automated v
 - [ ] Disconnect the network during a refresh. Confirm the previous deck remains usable, an error is shown, and automatic refresh recovers after connectivity returns. Turning automatic updates off must stop future checks.
 - [ ] Confirm Live control shows a safe refresh error and retry time after failure, clears the error after successful retry or Re-download, and shows checks disabled or reconnection needed when appropriate.
 - [ ] Use a long paragraph on the next slide. Confirm the next cue is one line with an ellipsis in both previews and the confidence window; authored soft line breaks must be preserved in the main text.
-- [ ] Select maximum main font size, then navigate short → long → short slides in Monitor mode. Both previews and the confidence window must show fitted text immediately, with no oversized-text flash. Repeat while resizing Preview, changing layouts and toggling the clock.
+- [ ] Select maximum main font size, then navigate short → long → short slides in Monitor mode. The in-app preview must fit immediately; the separate window may briefly show a larger size with the restored deferred fitter, but must settle without persistent clipping. Repeat while resizing Preview, changing layouts and toggling the clock.
+- [ ] With an unchanged deck, advance at least 40 Presenter pages and navigate backward, then pause/resume and use manual Previous/Next. Compare the operator page/status, in-app preview, separate Preview and physical output: text must keep changing on all surfaces, not just the operator view. If a surface freezes, export diagnostics before restarting. Check the page-change pipeline and explicitly UTC timestamps; older appended entries retain their original offsets.
 - [ ] Try Aptos, Arial, Segoe UI and Verdana. Current and Next text must share the selected family and default semibold weight. Changing Next size must not change current size; Next Bold must remain an independent heavier-weight override.
 - [ ] Open Preview, stop output, then close the main window. Confirm no hidden CanvaStage process remains. Repeat while output is live and approve the close prompt; confirm the confidence window closes.
 - [ ] Check for presentation updates, clean old downloads, and clear the cache.
@@ -59,7 +61,7 @@ The GitHub workflow:
 5. renders every operator section and Monitor layout at representative 100%, 125%, 150%, and 200% effective sizes;
 6. attempts to upload test results, the verification report, and UI screenshots; non-tag runs also upload a short-lived package artifact. GitHub Actions storage quota can block these artifacts; the verification summary remains in the workflow run, and a tagged release uploads its ZIP and checksum directly to GitHub Releases.
 
-The Windows checks also observe the first rendered frame after Monitor page, font, layout and viewport changes, rather than only checking settled screenshots. They verify both previews fit immediately, default Current/Next typography matches across four curated fonts, cue sizes remain independent, and the bold override still applies.
+The Windows checks observe first-frame in-app fitting and settled output fitting, verify default Current/Next typography across four curated fonts, independent cue sizes and the bold override. They also compare the separate output's rendered drawing pixels across 40 Presenter pages, pause/manual/resume transitions and backward jumps. That observation path does not force layout, fitting or redraw before checking pixels, so it cannot deliberately repair a stale visual before inspecting it. It does not replace physical-screen or real-Canva acceptance.
 
 The generated screenshots require visual review. Synthetic DPI rendering does not change the runner’s physical display configuration, so mixed-DPI and hotplug behavior remain real-machine checks.
 
@@ -74,5 +76,7 @@ Include:
 - the exact on-screen status;
 - reproduction steps;
 - the sanitized diagnostic ZIP from **Setup & diagnostics**.
+
+For frozen or blank secondary output, also record the connection type (HDMI/DisplayPort, dock/adapter, or Windows wireless casting), receiver model, whether the mouse remains visible, and whether an unrelated app such as Notepad displays there. Note whether restarting only CanvaStage or reconnecting the display restores content. Export diagnostics before recovery when possible. A visible mouse alone does not establish that app content is rendering correctly.
 
 Do not include the Client Secret, tokens, authorization codes, or screenshots of credential fields.

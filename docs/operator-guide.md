@@ -37,7 +37,7 @@ The dropdown includes the monitor name reported by Windows, resolution, and Prim
 
 ## Monitor typography
 
-The current text automatically shrinks to fit its available area before it is drawn, including when changing slides or resizing Preview. Your selected font size is a maximum, not a guarantee that long slides will use that size.
+The current text automatically shrinks to fit its available area. The in-app preview fits before drawing. The separate Preview/output window uses the earlier deferred fitter again after the v0.10.3 output-freeze report; it may briefly show a larger size before fitting after a slide change. Your selected font size is a maximum, not a guarantee that long slides will use that size. This output-only rollback is currently an unreleased source change.
 
 Current text and the Next cue use the same selected font family and, by default, the same semibold weight. The Next cue retains its independent size and color; its optional **Bold** setting makes that cue heavier without changing the current text. The small in-app preview scales the cue size for its smaller viewport. Next cues remain a single line with an ellipsis when necessary; current text remains complete.
 
@@ -106,6 +106,12 @@ The regular log is stored at:
 ```text
 %LOCALAPPDATA%\CanvaStage\canvastage.log
 ```
+
+New diagnostic entries and embedded observation/content timestamps use ISO 8601 UTC with a `Z` suffix. Existing older entries keep their original explicit timezone offsets; they are not rewritten. The app's operator-facing clock and status times remain Windows-local. The exported summary labels local status text separately from its UTC creation time.
+
+Page-change entries distinguish **Presenter observation**, **Presenter page selected**, **Output snapshot received**, **Output update queued**, and **Output render stage**. Output entries include page, mode, visibility, revision, character counts, text-binding match, font size, viewport and DPI, but never slide text or credentials. Render-stage entries observe WPF's callback; they do not prove that physical screen pixels changed. If output freezes, record whether the page/status, in-app preview, separate Preview, and display output still change, then export diagnostics before restarting.
+
+Placement and display-change entries record output bounds and available displays; **Output graphics state** records WPF rendering capability, the process render-mode setting and DPI when output is shown or its rendering tier changes. These are observations, not a GPU-health check, and do not reset graphics or change rendering mode. They cannot verify delivery to a wireless display. For blank secondary output, note the connection type, whether the mouse is visible, whether an unrelated app displays there, and whether recovery requires restarting CanvaStage or reconnecting the display.
 
 ## Known boundaries
 

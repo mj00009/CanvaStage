@@ -47,6 +47,7 @@ public sealed class OutputWindowManager : IDisposable
 
     public void StopOutput()
     {
+        PrivacySafeLog.Write("Output stopped; window will be hidden.");
         _targetDisplayId = null;
         _coordinator.StopOutput();
         if (_window is not null)
@@ -89,6 +90,10 @@ public sealed class OutputWindowManager : IDisposable
 
         _ = dispatcher.InvokeAsync(() =>
         {
+            if (_disposed) return;
+            string availableDisplays = string.Join("; ", System.Windows.Forms.Screen.AllScreens.Select(screen =>
+                $"{screen.DeviceName} bounds {screen.Bounds} primary {screen.Primary}"));
+            PrivacySafeLog.Write($"Windows display settings changed: live {_coordinator.Snapshot.IsLive}; target {_targetDisplayId ?? "Preview/none"}; available {availableDisplays}.");
             if (_disposed || !_coordinator.Snapshot.IsLive || _targetDisplayId is null
                 || _displayService.FindDisplay(_targetDisplayId) is not null)
             {
@@ -112,6 +117,7 @@ public sealed class OutputWindowManager : IDisposable
         }
 
         _window.Closed -= OnWindowClosed;
+        PrivacySafeLog.Write("Output window closed.");
         if (_window.DataContext is IDisposable disposableViewModel)
         {
             disposableViewModel.Dispose();

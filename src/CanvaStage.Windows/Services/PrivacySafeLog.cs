@@ -20,7 +20,7 @@ public static class PrivacySafeLog
             }
 
             Directory.CreateDirectory(directory);
-            string line = $"[{DateTimeOffset.Now:O}] {SensitiveDataRedactor.Redact(message)}{Environment.NewLine}";
+            string line = $"[{DiagnosticTimestamp.FormatUtc(DateTimeOffset.UtcNow)}] {SensitiveDataRedactor.Redact(message)}{Environment.NewLine}";
             lock (SyncRoot)
             {
                 File.AppendAllText(LogPath, line);

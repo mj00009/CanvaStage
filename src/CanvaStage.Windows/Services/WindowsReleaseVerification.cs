@@ -158,7 +158,9 @@ internal static class WindowsReleaseVerification
         try
         {
             await MonitorTypographyVerification.RunAsync(mainWindow, viewModel, output, coordinator, directory, capture);
-            checks.Add("First-rendered-frame text fit in both previews on short/long slide transitions, appearance/layout changes and resizing; matching Current/Next typography across four fonts, independent cue size and optional bold");
+            checks.Add("First-frame in-app text fit, restored deferred output fit, matching Current/Next typography across four fonts, independent cue size and optional bold");
+            await OutputPageUpdateVerification.RunAsync(mainWindow, viewModel, output, coordinator, directory, capture);
+            checks.Add("Separate output drawing pixels change across 40 Presenter pages, manual navigation and resume; pause holds pixels; no forced redraw or fitting repairs in the observation path");
             foreach (MonitorLayout layout in Enum.GetValues<MonitorLayout>())
             {
                 coordinator.SetLayout(layout);
