@@ -31,6 +31,8 @@ The v0.10.4 follow-up for issue #24 (October 3): the user confirmed that page/st
 
 Additional issue #24 evidence: the operator used Windows wireless casting to a Samsung TV. After one failure, secondary output stayed blank across a CanvaStage restart and recovered after disconnecting/reconnecting the display. The mouse remained visible, but unrelated applications were **not tested**, so do not claim other apps were affected. A subsequent attempt tracked normally. The fitter is therefore not a confirmed root cause; a graphics or wireless-display path problem remains possible. Added read-only placement/display-change/render-capability telemetry and wireless acceptance steps; no render-mode changes, GPU resets or connection control. Synthetic drawing-pixel tests cannot validate a physical receiver.
 
+Publication update: v0.10.4 was released from commit `09baf9b`. Main run `37158270337` and tag run `37158454234` both passed Windows build, 63 Core tests and published runtime/UI verification, including 40-page output drawing checks. Representative CI screenshots were reviewed. This does not confirm real-account or wireless-TV recovery; keep issue #24 open for operator acceptance.
+
 ## User decisions and non-goals
 
 - Typical deployment uses one shared church Canva account and one shared Windows operator account. Secrets are protected **for that Windows user**; another Windows profile needs its own setup.

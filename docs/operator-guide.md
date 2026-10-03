@@ -37,7 +37,7 @@ The dropdown includes the monitor name reported by Windows, resolution, and Prim
 
 ## Monitor typography
 
-The current text automatically shrinks to fit its available area. The in-app preview fits before drawing. The separate Preview/output window uses the earlier deferred fitter again after the v0.10.3 output-freeze report; it may briefly show a larger size before fitting after a slide change. Your selected font size is a maximum, not a guarantee that long slides will use that size. This output-only rollback is currently an unreleased source change.
+The current text automatically shrinks to fit its available area. The in-app preview fits before drawing. In v0.10.4, the separate Preview/output window uses the earlier deferred fitter again after the v0.10.3 output-freeze report; it may briefly show a larger size before fitting after a slide change. Your selected font size is a maximum, not a guarantee that long slides will use that size. See the [v0.10.4 release notes](releases/v0.10.4.md) for the rollback's limitations and acceptance checks.
 
 Current text and the Next cue use the same selected font family and, by default, the same semibold weight. The Next cue retains its independent size and color; its optional **Bold** setting makes that cue heavier without changing the current text. The small in-app preview scales the cue size for its smaller viewport. Next cues remain a single line with an ellipsis when necessary; current text remains complete.
 
