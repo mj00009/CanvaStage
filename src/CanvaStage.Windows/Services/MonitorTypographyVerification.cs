@@ -34,13 +34,17 @@ internal static class MonitorTypographyVerification
         TextBlock previewPrimary = (TextBlock)previewHost.Child;
         TextBlock previewNext = (TextBlock)preview.FindName("PreviewNextLineText");
 
-        async Task ObserveChangeAsync(Action change)
+        async Task ObserveChangeAsync(Action change, bool waitForWindowSize = false)
         {
             TaskCompletionSource<(double OutputSize, double PreviewSize)> firstFrame = new(TaskCreationOptions.RunContinuationsAsynchronously);
             void ObserveFrame(object? sender, EventArgs args)
             {
                 try
                 {
+                    // Native resize messages can arrive after an old-size frame. That
+                    // frame is valid for its old viewport; inspect the first new-size frame.
+                    if (waitForWindowSize && (Math.Abs(output.ActualWidth - output.Width) > 1
+                        || Math.Abs(output.ActualHeight - output.Height) > 1)) return;
                     if (primary.Text != ((OutputWindowViewModel)output.DataContext).PrimaryText
                         || previewPrimary.Text != mainViewModel.PreviewPrimaryText)
                         throw new InvalidOperationException("The first rendered frame has stale confidence text.");
@@ -58,7 +62,7 @@ internal static class MonitorTypographyVerification
                 (double outputSize, double previewSize) = await firstFrame.Task.WaitAsync(TimeSpan.FromSeconds(5));
                 await output.Dispatcher.InvokeAsync(() => { output.UpdateLayout(); mainWindow.UpdateLayout(); }, DispatcherPriority.ApplicationIdle);
                 if (Math.Abs(primary.FontSize - outputSize) > 0.01 || Math.Abs(previewPrimary.FontSize - previewSize) > 0.01)
-                    throw new InvalidOperationException("Confidence text shrank after its first rendered frame.");
+                    throw new InvalidOperationException($"Confidence text changed size after its first rendered frame: output {outputSize:0.00} -> {primary.FontSize:0.00}; preview {previewSize:0.00} -> {previewPrimary.FontSize:0.00}.");
                 output.VerifyTextFit();
             }
             finally { CompositionTarget.Rendering -= ObserveFrame; }
@@ -85,7 +89,7 @@ internal static class MonitorTypographyVerification
         foreach (MonitorLayout layout in Enum.GetValues<MonitorLayout>())
             await ObserveChangeAsync(() => coordinator.SetLayout(layout));
         foreach ((double width, double height) in new[] { (800d, 450d), (1280d, 720d), (1000d, 560d) })
-            await ObserveChangeAsync(() => VerificationWindowSizing.SetSize(output, width, height));
+            await ObserveChangeAsync(() => VerificationWindowSizing.SetSize(output, width, height), waitForWindowSize: true);
         coordinator.SetLayout(MonitorLayout.CurrentAndNext);
         capture(mainWindow, Path.Combine(directory, "operator-LiveControl-matching-fonts.png"), 1);
     }
