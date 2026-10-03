@@ -37,6 +37,7 @@ internal static class MonitorTypographyVerification
         async Task ObserveChangeAsync(Action change, bool waitForWindowSize = false)
         {
             TaskCompletionSource<(double OutputSize, double PreviewSize)> firstFrame = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            Exception? observedFailure = null;
             void ObserveFrame(object? sender, EventArgs args)
             {
                 try
@@ -52,7 +53,7 @@ internal static class MonitorTypographyVerification
                         throw new InvalidOperationException("The first rendered frame contains oversized confidence text.");
                     firstFrame.TrySetResult((primary.FontSize, previewPrimary.FontSize));
                 }
-                catch (Exception exception) { firstFrame.TrySetException(exception); }
+                catch (Exception exception) { observedFailure = exception; firstFrame.TrySetException(exception); }
             }
             CompositionTarget.Rendering += ObserveFrame;
             try
@@ -61,7 +62,11 @@ internal static class MonitorTypographyVerification
                 output.InvalidateVisual();
                 (double outputSize, double previewSize) = await firstFrame.Task.WaitAsync(TimeSpan.FromSeconds(5));
                 await output.Dispatcher.InvokeAsync(() => { output.UpdateLayout(); mainWindow.UpdateLayout(); }, DispatcherPriority.ApplicationIdle);
-                if (Math.Abs(primary.FontSize - outputSize) > 0.01 || Math.Abs(previewPrimary.FontSize - previewSize) > 0.01)
+                if (observedFailure is not null) throw observedFailure;
+                // Windows can present multiple intermediate client viewports while resizing.
+                // Every frame must fit; only fixed-viewport changes require an identical
+                // first/settled font size (the regression reported during slide changes).
+                if (!waitForWindowSize && (Math.Abs(primary.FontSize - outputSize) > 0.01 || Math.Abs(previewPrimary.FontSize - previewSize) > 0.01))
                     throw new InvalidOperationException($"Confidence text changed size after its first rendered frame: output {outputSize:0.00} -> {primary.FontSize:0.00}; preview {previewSize:0.00} -> {previewPrimary.FontSize:0.00}.");
                 output.VerifyTextFit();
             }
