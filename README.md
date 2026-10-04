@@ -20,7 +20,7 @@ Download `CanvaStage-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.W
 
 The application and package are currently unsigned. Windows may show a SmartScreen warning on first launch. Administrator access is not required.
 
-**Unreleased operator simplification:** Setup combines deck loading and display selection into three numbered steps. Saved Canva connection details, Monitor appearance, content-refresh preferences and support tools live in Settings & Diagnostics. Compact view has no Pause Sync button. All previews copy the actual output visual with uniform scaling, sharing wrapping, fitted size, colors, clock and next-line truncation. Opening Preview no longer relocates or starts live output. Windows runtime/UI verification passed for the offline-preview repair; a final sidebar-label wrapping adjustment is being verified. Downloadable v0.10.4 still has the previous UI.
+**Unreleased operator simplification:** Setup combines deck loading and display selection into three numbered steps. Saved Canva connection details, Monitor appearance, content-refresh preferences and support tools live in Settings & Diagnostics. Compact view has no Pause Sync button. All previews copy the actual output visual with uniform scaling, sharing wrapping, fitted size, colors, clock and next-line truncation. Opening Preview no longer relocates or starts live output. [Windows verification passed](https://github.com/mj00009/CanvaStage/actions/runs/37229598823), including offline previews and narrow-sidebar label wrapping; representative screenshots were reviewed. Downloadable v0.10.4 still has the previous UI.
 
 ## Features
 
