@@ -4,7 +4,8 @@
         xmlns:core="clr-namespace:CanvaStage.Core.Models;assembly=CanvaStage.Core"
         xmlns:views="clr-namespace:CanvaStage.Windows.Views"
         xmlns:vm="clr-namespace:CanvaStage.Windows.ViewModels"
-        Title="Canva Stage"
+        xmlns:controls="clr-namespace:CanvaStage.Windows.Controls"
+        Title="{Binding ApplicationVersionLabel}"
         Icon="pack://application:,,,/Assets/canva-stage.ico"
         Width="1380"
         Height="900"
@@ -35,6 +36,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Image Grid.Row="0"
                        Source="pack://application:,,,/Assets/canva-stage-logo-full-option-2.png"
@@ -60,6 +62,7 @@
                         <TextBlock Text="CanvaStage follows the first Canva Presenter page counter exposed by Windows. Manual controls remain available." Style="{StaticResource MutedText}" Margin="0,8,0,0" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
+                <TextBlock x:Name="ApplicationVersionLabel" Grid.Row="4" Text="{Binding ApplicationVersionLabel}" Style="{StaticResource MutedText}" FontSize="12" Margin="12,12,0,0" />
             </Grid>
         </Border>
 
@@ -117,31 +120,27 @@
                             </StackPanel>
                         </StackPanel>
                     </Border>
-                    <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource PanelCard}" Margin="0,0,18,16">
+                    <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource PanelCard}" Padding="16,12" Margin="0,0,18,16">
                         <Grid>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <StackPanel Orientation="Horizontal"><TextBlock Text="CONFIDENCE OUTPUT" Style="{StaticResource EyebrowText}" /><TextBlock Text="  •  " Foreground="{StaticResource MutedTextBrush}" /><TextBlock Text="{Binding OutputMode}" Foreground="{StaticResource AccentHoverBrush}" FontWeight="SemiBold" /></StackPanel>
-                            <Border Grid.Row="1" Style="{StaticResource PreviewFrame}" Padding="0" Margin="0,14,0,18" Height="365">
+                            <controls:RoundedPreviewBorder x:Name="LivePreviewFrame" Grid.Row="1" Style="{StaticResource PreviewFrame}" Padding="0" Margin="0,6,0,8" Height="365">
                                 <views:ConfidencePreview />
-                            </Border>
-                            <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="10" /><ColumnDefinition Width="*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <ToggleButton Grid.Column="0" Content="Mirror" IsChecked="{Binding IsMirrorSelected}" Style="{StaticResource SegmentButton}" Margin="0" />
-                                <ToggleButton Grid.Column="2" Content="Monitor" IsChecked="{Binding IsMonitorSelected}" Style="{StaticResource SegmentButton}" Margin="0" />
-                                <Button Grid.Column="4" Content="Open Preview" Command="{Binding PreviewCommand}" Style="{StaticResource SecondaryButton}" Margin="0" />
-                                <Button Grid.Column="5" Content="Start output" Command="{Binding StartOutputCommand}" Style="{StaticResource PrimaryButton}" Margin="10,0,0,0" />
-                                <Button Grid.Column="6" Content="{Binding BlankOutputButtonText}" Command="{Binding BlankOutputCommand}" Style="{StaticResource DangerButton}" Margin="10,0,0,0" ToolTip="Blank or restore the live confidence display (Ctrl+B)" />
+                            </controls:RoundedPreviewBorder>
+                            <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Content="Open Preview" Command="{Binding PreviewCommand}" Style="{StaticResource SecondaryButton}" Margin="0" />
+                                <Button Grid.Column="1" Content="Start output" Command="{Binding StartOutputCommand}" Style="{StaticResource PrimaryButton}" Margin="10,0,0,0" />
+                                <Button Grid.Column="2" Content="{Binding BlankOutputButtonText}" Command="{Binding BlankOutputCommand}" Style="{StaticResource DangerButton}" Margin="10,0,0,0" ToolTip="Blank or restore the live confidence display (Ctrl+B)" />
                             </Grid>
                         </Grid>
                     </Border>
                     <StackPanel x:Name="LiveOptionsPanel" Grid.Row="1" Grid.Column="1">
                         <Border Style="{StaticResource PanelCard}">
                             <StackPanel><TextBlock Text="Sunday controls" Style="{StaticResource SectionTitle}" />
-                                <TextBlock Text="{Binding PresenterSyncSummary}" Foreground="{Binding PresenterSyncBrush}" FontWeight="SemiBold" Margin="0,12,0,6" TextWrapping="Wrap" />
-                                <TextBlock Text="{Binding CanvaPresenterTrackingStatus}" Style="{StaticResource MutedText}" TextWrapping="Wrap" />
-                                <WrapPanel Margin="0,12,0,12">
-                                    <Button Content="{Binding PresenterSyncButtonText}" Command="{Binding TogglePresenterSyncCommand}" Style="{StaticResource SecondaryButton}" />
-                                    <Button Content="Sync details" Command="{Binding TestSetupCommand}" Style="{StaticResource TextButton}" />
-                                </WrapPanel>
+                                <Grid x:Name="SundayModeControls" Margin="0,12,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="10" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Grid.Column="0" Content="Mirror" IsChecked="{Binding IsMirrorSelected}" Style="{StaticResource SegmentButton}" Margin="0" />
+                                    <ToggleButton Grid.Column="2" Content="Monitor" IsChecked="{Binding IsMonitorSelected}" Style="{StaticResource SegmentButton}" Margin="0" />
+                                </Grid>
                                 <TextBlock Text="Changing pages here pauses sync until you resume." Style="{StaticResource MutedText}" Margin="0,0,0,12" TextWrapping="Wrap" />
                                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <Button Grid.Column="0" Content="‹" Command="{Binding PreviousPageCommand}" Style="{StaticResource IconButton}" />
@@ -296,9 +295,9 @@
             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <WrapPanel><TextBlock Text="{Binding PresenterSyncSummary}" Foreground="{Binding PresenterSyncBrush}" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" ToolTip="{Binding CanvaPresenterTrackingStatus}" Margin="0,0,10,0" /><TextBlock Text="{Binding PageLabel}" Foreground="{StaticResource MutedTextBrush}" FontSize="12" VerticalAlignment="Center" /></WrapPanel>
           </Grid>
-          <Border Grid.Row="2" Style="{StaticResource PreviewFrame}" Padding="0" Margin="0,12">
+          <controls:RoundedPreviewBorder x:Name="CompactPreviewFrame" Grid.Row="2" Style="{StaticResource PreviewFrame}" Padding="0" Margin="0,12">
             <views:ConfidencePreview />
-          </Border>
+          </controls:RoundedPreviewBorder>
           <Grid Grid.Row="3">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="10" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
             <ToggleButton Grid.Column="0" Content="Mirror" IsChecked="{Binding IsMirrorSelected}" Style="{StaticResource SegmentButton}" Margin="0" />

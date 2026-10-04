@@ -15,6 +15,8 @@ namespace CanvaStage.Windows.ViewModels;
 
 public sealed class MainViewModel : ViewModelBase
 {
+    public string ApplicationVersionLabel => ApplicationVersion.Label;
+
     private readonly IOutputCoordinator _coordinator;
     private readonly OutputWindowManager _outputWindowManager;
     private readonly DisplayService _displayService;

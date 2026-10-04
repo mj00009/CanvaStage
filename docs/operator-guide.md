@@ -1,6 +1,6 @@
 # Operator guide
 
-This guide describes v0.11.0, with simplified navigation and shared-output previews. Earlier releases have different navigation and preview behavior.
+This guide describes v0.11.1, with simplified navigation and shared-output previews. Earlier releases have different navigation and preview behavior.
 
 ## Prepare the presentation
 
@@ -58,6 +58,8 @@ CanvaStage reads the first Canva Presenter page counter exposed through Windows 
 Manual Previous or Next navigation pauses automatic following. Choose **Resume sync** to return to the current Presenter page. If tracking becomes unavailable, CanvaStage holds the last page and manual controls remain usable.
 
 ## Start and control output
+
+In **Live control**, Mirror/Monitor are under **Sunday controls**. Pause/Resume sync and Sync details appear once, beside the status at the top. The app version is shown below the sidebar information and in the title bar, including when the sidebar is hidden. Operator previews have rounded corners and tighter spacing; live output retains its full rectangular frame.
 
 - **Mirror** shows the retrieved Canva page image.
 - **Monitor** shows simplified confidence text using the selected layout and appearance.

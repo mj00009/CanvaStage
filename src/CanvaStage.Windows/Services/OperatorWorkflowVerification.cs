@@ -2,12 +2,14 @@ using CanvaStage.Core.Models;
 using CanvaStage.Core.Services;
 using CanvaStage.Windows.ViewModels;
 using CanvaStage.Windows.Views;
+using CanvaStage.Windows.Controls;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using System.Windows.Data;
 using Size = System.Windows.Size;
 using ButtonBase = System.Windows.Controls.Primitives.ButtonBase;
 using ComboBox = System.Windows.Controls.ComboBox;
@@ -24,6 +26,29 @@ internal static class OperatorWorkflowVerification
         FrameworkElement settings = (FrameworkElement)main.FindName("SettingsPanel");
         FrameworkElement compact = (FrameworkElement)main.FindName("CompactViewRoot");
         FrameworkElement live = (FrameworkElement)main.FindName("LiveControlGrid");
+        Require(Descendants(main).OfType<ButtonBase>().Count(button => ReferenceEquals(button.Command, model.TogglePresenterSyncCommand)) == 1,
+            "Sync controls are duplicated instead of remaining beside the main status");
+        Require(!Descendants(live).OfType<ButtonBase>().Any(button => ReferenceEquals(button.Command, model.TestSetupCommand)),
+            "Sunday controls still duplicate Sync details");
+        FrameworkElement modes = (FrameworkElement)main.FindName("SundayModeControls");
+        System.Windows.Controls.Primitives.ToggleButton[] modeButtons = Descendants(live)
+            .OfType<System.Windows.Controls.Primitives.ToggleButton>().ToArray();
+        Require(modeButtons.Length == 2 && Descendants(modes).OfType<System.Windows.Controls.Primitives.ToggleButton>().Count() == 2,
+            "Mirror/Monitor controls are duplicated or missing from Sunday controls");
+        foreach (System.Windows.Controls.Primitives.ToggleButton button in modeButtons)
+        {
+            string? bindingPath = BindingOperations.GetBinding(button, System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty)?.Path.Path;
+            button.SetCurrentValue(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, true);
+            button.GetBindingExpression(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty)?.UpdateSource();
+            Require(model.OutputMode == (bindingPath == nameof(MainViewModel.IsMirrorSelected) ? OutputMode.Mirror : OutputMode.Monitor),
+                "Relocated mode controls do not update the output");
+        }
+        Require(main.Title == model.ApplicationVersionLabel && model.ApplicationVersionLabel == ApplicationVersion.Label
+            && ApplicationVersion.Current.Split('-')[0] == typeof(MainViewModel).Assembly.GetName().Version?.ToString(3),
+            "Visible app version does not match the build version");
+        RoundedPreviewBorder frame = (RoundedPreviewBorder)main.FindName("LivePreviewFrame");
+        Require(frame.Margin.Top <= 6 && frame.Margin.Bottom <= 8, "Preview vertical spacing regressed");
+        VerifyRoundedPreview(model, output, directory, capture);
         Require(!Descendants(setup).OfType<PasswordBox>().Any(), "Setup exposes a secret entry");
         Require(Descendants(settings).OfType<PasswordBox>().Count() == 1, "Settings does not own the secret entry");
         Require(!Descendants(compact).OfType<ButtonBase>().Any(button => ReferenceEquals(button.Command, model.TogglePresenterSyncCommand)),
@@ -93,6 +118,32 @@ internal static class OperatorWorkflowVerification
         capture(model.OutputManagerForVerification.PreviewWindowForVerification!, Path.Combine(directory, "separate-preview-offline.png"), 1);
         await VerifyOfflineImagesAsync(model, output, coordinator, directory, capture);
         model.OutputManagerForVerification.PreviewWindowForVerification!.Close();
+    }
+
+    private static void VerifyRoundedPreview(MainViewModel model, OutputWindow output, string directory,
+        Action<FrameworkElement, string, double> capture)
+    {
+        ConfidencePreview preview = new() { DataContext = model };
+        RoundedPreviewBorder frame = new() { CornerRadius = new CornerRadius(10), BorderThickness = new Thickness(1),
+            Background = System.Windows.Media.Brushes.Black, Child = preview };
+        foreach (Size size in new[] { new Size(320, 180), new Size(640, 360) })
+        {
+            frame.Measure(size);
+            frame.Arrange(new Rect(size));
+            frame.UpdateLayout();
+            Require(preview.Clip is RectangleGeometry clip && clip.RadiusX > 0 && clip.Rect.Size == preview.RenderSize
+                && !clip.FillContains(new System.Windows.Point(0, 0))
+                && clip.FillContains(new System.Windows.Point(preview.ActualWidth / 2, preview.ActualHeight / 2)),
+                "Preview corners are not clipped after resizing");
+            Require(ReferenceEquals(preview.SourceVisual, output.PreviewSurface) && output.PreviewSurface.Clip is null,
+                "Rounded operator preview changed the source output visual");
+            RenderTargetBitmap bitmap = new((int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(frame);
+            byte[] corner = new byte[4];
+            bitmap.CopyPixels(new Int32Rect(0, 0, 1, 1), corner, 4, 0);
+            Require(corner[3] == 0, "Square preview content covers the rounded frame corner");
+        }
+        capture(frame, Path.Combine(directory, "rounded-operator-preview.png"), 1);
     }
 
     private static async Task VerifyOfflineImagesAsync(MainViewModel model, OutputWindow output,

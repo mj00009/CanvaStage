@@ -110,6 +110,10 @@ internal static class WindowsReleaseVerification
                 viewModel.ActiveSection = section;
                 await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(), DispatcherPriority.ApplicationIdle);
                 VerificationWindowSizing.CheckSize(mainWindow, width / scale, height / scale);
+                System.Windows.Controls.TextBlock versionLabel = (System.Windows.Controls.TextBlock)mainWindow.FindName("ApplicationVersionLabel");
+                if (versionLabel.IsVisible)
+                    Require(versionLabel.Text == ApplicationVersion.Label && versionLabel.ActualHeight >= versionLabel.DesiredSize.Height - 1,
+                        "Sidebar app version is missing or clipped");
                 System.Windows.Controls.TextBlock settingsLabel = (System.Windows.Controls.TextBlock)mainWindow.FindName("SettingsNavigationLabel");
                 if (settingsLabel.IsVisible)
                     Require(settingsLabel.TextWrapping == TextWrapping.Wrap && settingsLabel.ActualHeight >= settingsLabel.DesiredSize.Height - 1,
@@ -189,7 +193,7 @@ internal static class WindowsReleaseVerification
             VerificationWindowSizing.CheckSize(output, 1280, 720);
             capture(output, Path.Combine(directory, "output-mirror.png"), 1);
             await OperatorWorkflowVerification.RunAsync(mainWindow, viewModel, output, coordinator, directory, capture);
-            checks.Add("Setup/Settings separation; no compact Pause Sync; independent offline/live Preview; shared visual, 1:1 pixel parity and scaled previews across modes/layouts");
+            checks.Add("Setup/Settings separation; visible build version; unique sync/mode controls; rounded/resized operator previews and reduced spacing; no compact Pause Sync; independent offline/live Preview; shared visual, 1:1 pixel parity and scaled previews across modes/layouts");
         }
         finally { viewModel.OutputManagerForVerification.StopOutput(); }
         checks.Add("All Monitor layouts with long text at maximum requested font size; measured text fit; Mirror output");

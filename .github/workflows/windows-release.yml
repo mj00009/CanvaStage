@@ -137,10 +137,20 @@ jobs:
           }
 
       - name: Create portable ZIP and checksum
+        id: package
         shell: pwsh
         run: |
-          Compress-Archive -Path publish/CanvaStage-win-x64/* -DestinationPath publish/CanvaStage-win-x64.zip -Force
-          $archive = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path publish/CanvaStage-win-x64.zip).Path)
+          $version = (dotnet msbuild "${{ needs.discover.outputs.app_project }}" -getProperty:Version -nologo).Trim()
+          if ($LASTEXITCODE -ne 0 -or $version -notmatch '^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$') {
+            throw 'Could not read a valid application version for packaging.'
+          }
+          if ($env:GITHUB_REF.StartsWith('refs/tags/v') -and $env:GITHUB_REF_NAME -ne "v$version") {
+            throw "Release tag $env:GITHUB_REF_NAME does not match application version $version."
+          }
+          $archivePath = "publish/CanvaStage-v$version-win-x64.zip"
+          "archive_path=$archivePath" >> $env:GITHUB_OUTPUT
+          Compress-Archive -Path publish/CanvaStage-win-x64/* -DestinationPath $archivePath -Force
+          $archive = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $archivePath).Path)
           try {
             foreach ($requiredEntry in @('CanvaStage.Windows.exe', 'LICENSE', 'TRADEMARKS.md')) {
               if (-not $archive.GetEntry($requiredEntry)) {
@@ -150,7 +160,7 @@ jobs:
           } finally {
             $archive.Dispose()
           }
-          (Get-FileHash -Path publish/CanvaStage-win-x64.zip -Algorithm SHA256).Hash | Set-Content -Path publish/CanvaStage-win-x64.zip.sha256 -NoNewline
+          (Get-FileHash -Path $archivePath -Algorithm SHA256).Hash | Set-Content -Path "$archivePath.sha256" -NoNewline
 
       - name: Upload test results
         if: always()
@@ -171,8 +181,8 @@ jobs:
         with:
           name: CanvaStage-win-x64
           path: |
-            publish/CanvaStage-win-x64.zip
-            publish/CanvaStage-win-x64.zip.sha256
+            ${{ steps.package.outputs.archive_path }}
+            ${{ steps.package.outputs.archive_path }}.sha256
           if-no-files-found: error
           retention-days: 3
 
@@ -209,16 +219,18 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          ARCHIVE_PATH: ${{ steps.package.outputs.archive_path }}
         run: |
           $tag = $env:GITHUB_REF_NAME
+          $archivePath = $env:ARCHIVE_PATH
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag publish/CanvaStage-win-x64.zip publish/CanvaStage-win-x64.zip.sha256 --clobber
+            gh release upload $tag $archivePath "$archivePath.sha256" --clobber
           } else {
             $releaseArguments = @(
               'release', 'create', $tag,
-              'publish/CanvaStage-win-x64.zip',
-              'publish/CanvaStage-win-x64.zip.sha256',
+              $archivePath,
+              "$archivePath.sha256",
               '--verify-tag', '--generate-notes', '--title', $tag
             )
             if ($tag.Contains('-')) {

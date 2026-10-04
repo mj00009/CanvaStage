@@ -6,8 +6,6 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $logDirectory = Join-Path $projectRoot 'artifacts\logs'
 $publishDirectory = Join-Path $projectRoot 'artifacts\CanvaStage-win-x64'
-$zipPath = Join-Path $projectRoot "artifacts\CanvaStage-win-x64-$timestamp.zip"
-$checksumPath = "$zipPath.sha256"
 
 New-Item -ItemType Directory -Force -Path $logDirectory | Out-Null
 $logPath = Join-Path $logDirectory "build-$timestamp.log"
@@ -46,6 +44,12 @@ try {
         throw 'The portable package is missing the Apache license text.'
     }
 
+    $version = (dotnet msbuild src\CanvaStage.Windows\CanvaStage.Windows.csproj -getProperty:Version -nologo).Trim()
+    if ($LASTEXITCODE -ne 0 -or $version -notmatch '^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$') {
+        throw 'Could not read a valid application version for packaging.'
+    }
+    $zipPath = Join-Path $projectRoot "artifacts\CanvaStage-v$version-win-x64-$timestamp.zip"
+    $checksumPath = "$zipPath.sha256"
     Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
     Compress-Archive -Path (Join-Path $publishDirectory '*') -DestinationPath $zipPath -Force
     $archive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
