@@ -26,7 +26,9 @@ internal static class OperatorWorkflowVerification
         FrameworkElement settings = (FrameworkElement)main.FindName("SettingsPanel");
         FrameworkElement compact = (FrameworkElement)main.FindName("CompactViewRoot");
         FrameworkElement live = (FrameworkElement)main.FindName("LiveControlGrid");
-        Require(Descendants(main).OfType<ButtonBase>().Count(button => ReferenceEquals(button.Command, model.TogglePresenterSyncCommand)) == 1,
+        // Settings retains its own sync control, but it is not shown on Live control.
+        Require(Descendants(main).OfType<ButtonBase>().Count(button => button.IsVisible
+            && ReferenceEquals(button.Command, model.TogglePresenterSyncCommand)) == 1,
             "Sync controls are duplicated instead of remaining beside the main status");
         Require(!Descendants(live).OfType<ButtonBase>().Any(button => ReferenceEquals(button.Command, model.TestSetupCommand)),
             "Sunday controls still duplicate Sync details");
