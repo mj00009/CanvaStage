@@ -12,6 +12,8 @@ This update simplifies the operator workflow into Setup, Live control and Settin
 
 See the [operator guide](docs/operator-guide.md) for the current behavior.
 
+Development source includes the verified, not-yet-released [v0.11.1 operator polish](docs/releases/v0.11.1.md): visible app version, versioned ZIP names, consolidated controls, rounded preview corners and tighter preview spacing. The operator guide includes these pending changes; use v0.11.0 release notes for the currently published package.
+
 **Acceptance still needed:** the freeze reported in [#24](https://github.com/mj00009/CanvaStage/issues/24) occurred with Windows wireless casting to a Samsung TV; its root cause is not confirmed. Test on the actual presentation computer and receiver before service use, or stay on the previously working [v0.10.2](https://github.com/mj00009/CanvaStage/releases/tag/v0.10.2). This release is not a confirmed fix for that freeze.
 
 Monitor text again fits during layout before drawing, retaining the v0.10.4 diagnostics and output drawing checks. A separate casing report remains unconfirmed; the extractor copies PPTX text without changing its case and needs an affected export to establish the cause.
