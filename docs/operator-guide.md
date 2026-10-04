@@ -1,6 +1,6 @@
 # Operator guide
 
-This guide describes the development source for v0.11.1. Version labels and the latest operator polish are not yet released; v0.11.0 already includes simplified navigation and shared-output previews.
+This guide describes v0.11.1, including simplified navigation, shared-output previews, version labels and the latest operator polish.
 
 ## Prepare the presentation
 
