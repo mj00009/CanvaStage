@@ -24,7 +24,8 @@ Use this checklist before relying on a new release during a service. Automated v
 - [ ] Disable automatic sync, restart, and confirm it remains disabled. Temporary pauses should not persist.
 - [ ] Test one-screen Preview and at least one physical Extended display.
 - [ ] If using Windows wireless casting, repeat sustained Presenter navigation on the actual receiver (including the Samsung TV reported in issue #24). Compare with a wired display when available. Test disconnect/reconnect and confirm display changes stop output safely; reselect the display and start output after reconnecting.
-- [ ] Use **Identify displays** and confirm names, numbers, resolution, and Primary/Extended status are understandable.
+- [ ] Use **Identify displays** and confirm names, numbers, resolution, and Primary/Extended status are understandable. Include 250% Windows scaling and an Extended display to the left/above the primary; each temporary label must stay inside its screen without stealing focus.
+- [ ] For the issue #30 development fix, connect/disconnect a display while Setup is open. Confirm the dropdown updates automatically, refresh/reordering preserves the chosen monitor, disconnect does not silently select the primary, and a renamed reconnect restores the remembered target without restarting output. Choose **Start output** explicitly and verify the actual target screen. Repeat after restarting with the chosen screen disconnected.
 - [ ] Test a 1152 × 864 output and mixed monitor scaling at 100%, 125%, 150%, and 200%. Confirm borderless output fills exactly the selected display.
 - [ ] Move and resize the main window at each scale. Confirm its title bar remains reachable.
 - [ ] Use Setup's numbered steps to load the deck, identify/select the display and start output. Confirm Client ID/Secret and appearance controls are only in Settings & Diagnostics; saved values survive upgrading and reopening.

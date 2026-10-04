@@ -33,6 +33,7 @@ public sealed class DiagnosticsExportService
         builder.AppendLine($"Presentation pages: {snapshot.PresentationPageCount}");
         builder.AppendLine($"Selected page: {snapshot.SelectedPage}");
         builder.AppendLine($"Output live: {snapshot.IsOutputLive}");
+        builder.AppendLine($"Selected confidence display: {snapshot.SelectedDisplay ?? "not recorded"}");
         builder.AppendLine($"Presenter health: {snapshot.PresenterHealth}");
         builder.AppendLine($"Last presenter detection (operator-local status text): {snapshot.LastPresenterDetection ?? "none"}");
         builder.AppendLine($"Cache: {snapshot.CacheSummary}");
@@ -56,4 +57,5 @@ public sealed record DiagnosticsSnapshot(
     string PresenterHealth,
     string? LastPresenterDetection,
     string CacheSummary,
-    IReadOnlyList<string> Displays);
+    IReadOnlyList<string> Displays,
+    string? SelectedDisplay = null);

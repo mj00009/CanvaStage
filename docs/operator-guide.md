@@ -37,6 +37,8 @@ The next-line cue shows only the first authored line of the next page's main tex
 
 The dropdown includes the monitor name reported by Windows, resolution, and Primary or Extended status. CanvaStage remembers the monitor’s hardware identity when Windows provides one.
 
+Development follow-up for [#30](https://github.com/mj00009/CanvaStage/issues/30), not yet released: the dropdown refreshes on Windows display changes and before Identify/Start. Refresh preserves the selected monitor; disconnect keeps its remembered identity instead of choosing another monitor. If that identity is missing or ambiguous, choose a display explicitly. Reconnecting restores an identifiable target but does not restart output—choose **Start output** when ready. Identification labels are positioned using the target monitor's scaling. v0.11.1 does not yet include these fixes; with that version, use **Refresh displays** after connecting a display and reselect the intended Extended display before starting output.
+
 ## Monitor typography
 
 Open **Settings & Diagnostics → Monitor appearance** for font, maximum size, colors, contrast guidance and Next cue styling. Layout, next-line selection and the optional clock are on the same Settings page. Changes apply immediately and remain saved.

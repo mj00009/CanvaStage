@@ -24,6 +24,7 @@ public sealed class OutputWindowManager : IDisposable
     }
 
     public event EventHandler? PreviewSourceChanged;
+    public event EventHandler? DisplaysChanged;
 
     public FrameworkElement? PreviewSurface
     {
@@ -69,17 +70,28 @@ public sealed class OutputWindowManager : IDisposable
 
     public bool ShowOnDisplay(string? displayId)
     {
+        PrivacySafeLog.Write($"Output start requested: Windows device {displayId ?? "none"}.");
         System.Windows.Forms.Screen? display = _displayService.FindDisplay(displayId);
         if (display is null)
         {
+            PrivacySafeLog.Write("Output start rejected: requested display is unavailable or ambiguous; no fallback was used.");
             return false;
         }
 
+        PrivacySafeLog.Write($"Output start resolved: Windows device {display.DeviceName}; primary {display.Primary}; bounds {display.Bounds}.");
         EnsureWindow();
         _targetDisplayId = display.DeviceName;
         _window!.SetDisplayPlacement(display.Bounds);
         _coordinator.StartOutput();
         _window.ShowAndActivate();
+        OutputWindow shownWindow = _window;
+        shownWindow.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, () =>
+        {
+            if (_disposed || !ReferenceEquals(_window, shownWindow) || !shownWindow.IsVisible) return;
+            // Observe the settled placement; do not force layout or conceal a bad move.
+            System.Drawing.Rectangle actualBounds = shownWindow.GetNativeBounds();
+            PrivacySafeLog.Write($"Output placement settled: requested device {display.DeviceName}; target {display.Bounds}; actual {actualBounds}; matches {actualBounds == display.Bounds}.");
+        });
         return true;
     }
 
@@ -153,24 +165,28 @@ public sealed class OutputWindowManager : IDisposable
 
         _ = dispatcher.InvokeAsync(() =>
         {
-            if (_disposed) return;
-            string availableDisplays = string.Join("; ", System.Windows.Forms.Screen.AllScreens.Select(screen =>
-                $"{screen.DeviceName} bounds {screen.Bounds} primary {screen.Primary}"));
-            PrivacySafeLog.Write($"Windows display settings changed: live {_coordinator.Snapshot.IsLive}; target {_targetDisplayId ?? "Preview/none"}; available {availableDisplays}.");
-            QueuePreviewLayout();
-            if (_disposed || !_coordinator.Snapshot.IsLive || _targetDisplayId is null
-                || _displayService.FindDisplay(_targetDisplayId) is not null)
-            {
-                return;
-            }
-
-            StopOutput();
+            bool stopped = RefreshDisplayConfiguration();
+            if (!stopped) return;
             System.Windows.MessageBox.Show(
                 "The selected confidence display is no longer available. Output was stopped safely. Choose a display or open Preview when you are ready.",
                 "Confidence display disconnected",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
         });
+    }
+
+    internal bool RefreshDisplayConfiguration()
+    {
+        if (_disposed) return false;
+        string availableDisplays = string.Join("; ", System.Windows.Forms.Screen.AllScreens.Select(screen =>
+            $"{screen.DeviceName} bounds {screen.Bounds} primary {screen.Primary}"));
+        PrivacySafeLog.Write($"Windows display settings changed: live {_coordinator.Snapshot.IsLive}; target {_targetDisplayId ?? "Preview/none"}; available {availableDisplays}.");
+        bool stopped = _coordinator.Snapshot.IsLive && _targetDisplayId is not null
+            && _displayService.FindDisplay(_targetDisplayId) is null;
+        if (stopped) StopOutput();
+        DisplaysChanged?.Invoke(this, EventArgs.Empty);
+        QueuePreviewLayout();
+        return stopped;
     }
 
     private void OnWindowClosed(object? sender, EventArgs eventArgs)

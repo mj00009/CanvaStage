@@ -199,7 +199,8 @@ public partial class OutputWindow : Window
         if (_displayBounds is not Rectangle bounds) return;
         nint handle = new WindowInteropHelper(this).Handle;
         if (handle == 0) return;
-        SetWindowPos(handle, new nint(-1), bounds.Left, bounds.Top, bounds.Width, bounds.Height, 0x0040);
+        if (!SetWindowPos(handle, new nint(-1), bounds.Left, bounds.Top, bounds.Width, bounds.Height, 0x0040))
+            PrivacySafeLog.Write($"Native output placement failed: Windows error {Marshal.GetLastWin32Error()}; target {bounds}; actual {GetNativeBounds()}.");
     }
 
     [DllImport("user32.dll", SetLastError = true)]

@@ -2,12 +2,6 @@ using System.Runtime.InteropServices;
 
 namespace CanvaStage.Windows.Services;
 
-public sealed record DisplayOption(string Id, string ScreenDeviceName, string FriendlyName, int Number, int Width, int Height, bool IsPrimary)
-{
-    public string Label => $"Display {Number} — {FriendlyName} — {Width} × {Height} ({(IsPrimary ? "Primary" : "Extended")})";
-    public bool MatchesId(string? id) => string.Equals(Id, id, StringComparison.OrdinalIgnoreCase) || string.Equals(ScreenDeviceName, id, StringComparison.OrdinalIgnoreCase);
-}
-
 public sealed class DisplayService
 {
     private const int DisplayDeviceActive = 0x00000001;
@@ -35,8 +29,14 @@ public sealed class DisplayService
 
     public System.Windows.Forms.Screen? FindDisplay(string? id)
     {
-        DisplayOption? option = GetDisplays().FirstOrDefault(display => display.MatchesId(id));
-        string? deviceName = option?.ScreenDeviceName ?? id;
+        if (string.IsNullOrWhiteSpace(id)) return null;
+        // An explicitly selected current Windows device must not be resolved through
+        // a possibly shared saved identity before checking its exact device name.
+        System.Windows.Forms.Screen? exact = System.Windows.Forms.Screen.AllScreens.FirstOrDefault(screen =>
+            string.Equals(screen.DeviceName, id, StringComparison.OrdinalIgnoreCase));
+        if (exact is not null) return exact;
+        DisplayOption? option = DisplaySelection.Resolve(GetDisplays(), id);
+        string? deviceName = option?.ScreenDeviceName;
         return System.Windows.Forms.Screen.AllScreens.FirstOrDefault(screen => string.Equals(screen.DeviceName, deviceName, StringComparison.OrdinalIgnoreCase));
     }
 

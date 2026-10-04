@@ -159,6 +159,9 @@ internal static class WindowsReleaseVerification
         mainWindow.SetCompactViewForAutomation(false);
         viewModel.TogglePresenterSyncCommand.Execute(null);
 
+        await DisplaySetupVerification.RunAsync(mainWindow, viewModel, coordinator, directory, capture);
+        checks.Add("Setup dropdown preserves selection across item reset/reorder, disconnect and renamed reconnect without automatic output; Windows display notifications refresh the UI; real Identify/Start buttons place windows inside each available physical display");
+
         OutputWindow output = viewModel.OutputManagerForVerification.WindowForVerification;
         OutputWindowViewModel outputViewModel = (OutputWindowViewModel)output.DataContext;
         Require(output.Icon is not null, "Output window loads the CanvaStage icon");

@@ -28,6 +28,9 @@ public sealed class MainViewModel : ViewModelBase
     private readonly ICanvaPresenterTracker _canvaPresenterAccessibilityTracker;
     private OutputSnapshot _snapshot;
     private DisplayOption? _selectedDisplay;
+    private string? _preferredDisplayId;
+    private string? _preferredDisplayDeviceName;
+    private bool _isRefreshingDisplays;
     private CanvaPresentation? _selectedCanvaPresentation;
     private bool _isOperatorTopmost;
     private bool _isSaving;
@@ -115,7 +118,7 @@ public sealed class MainViewModel : ViewModelBase
         NextPageCommand = new RelayCommand(() => { PauseForManualNavigation(); _coordinator.GoNext(); }, () => Snapshot.CanGoNext);
         TogglePresenterSyncCommand = new RelayCommand(TogglePresenterSync);
         RefreshDisplaysCommand = new RelayCommand(RefreshDisplays);
-        IdentifyDisplaysCommand = new RelayCommand(_displayIdentificationService.Show);
+        IdentifyDisplaysCommand = new RelayCommand(IdentifyDisplays);
         TestSetupCommand = new RelayCommand(ShowSetupDiagnostics);
         OpenSetupCommand = new RelayCommand(() => ActiveSection = OperatorSection.Setup);
         OpenLiveControlCommand = new RelayCommand(() => ActiveSection = OperatorSection.LiveControl);
@@ -140,7 +143,10 @@ public sealed class MainViewModel : ViewModelBase
             return Task.CompletedTask;
         }, message => CanvaConnectionStatus = message), () => !IsCanvaBusy);
         ReplaceCanvaSecretCommand = new RelayCommand(() => { _isEditingCanvaSecret = true; NotifySecretState(); });
-        SelectedDisplay = Displays.FirstOrDefault(display => display.MatchesId(preferences.SelectedDisplayId)) ?? Displays.FirstOrDefault();
+        _preferredDisplayId = preferences.SelectedDisplayId;
+        SelectedDisplay = DisplaySelection.Resolve(Displays, _preferredDisplayId);
+        _outputWindowManager.DisplaysChanged += OnDisplaysChanged;
+        LogDisplaySelection("Startup");
         _coordinator.SnapshotChanged += OnSnapshotChanged;
         _canva.LoadProgressChanged += OnCanvaLoadProgressChanged;
         _canvaPresenterAccessibilityTracker.TrackingUpdated += OnCanvaPresenterTrackingUpdated;
@@ -161,6 +167,7 @@ public sealed class MainViewModel : ViewModelBase
     public ICommand OpenLiveControlCommand { get; }
     public FrameworkElement? OutputPreviewSurface => _outputWindowManager.PreviewSurface;
     internal OutputWindowManager OutputManagerForVerification => _outputWindowManager;
+    internal DisplayIdentificationService DisplayIdentificationForVerification => _displayIdentificationService;
     public RelayCommand StartOutputCommand { get; }
     public RelayCommand StopOutputCommand { get; }
     public RelayCommand BlankOutputCommand { get; }
@@ -340,8 +347,17 @@ public sealed class MainViewModel : ViewModelBase
         get => _selectedDisplay;
         set
         {
+            // Clearing/replacing dropdown items can send a transient null back
+            // through the binding. It must not erase the user's remembered target.
+            if (_isRefreshingDisplays) return;
             if (!SetProperty(ref _selectedDisplay, value)) return;
-            _outputWindowManager.SetPreviewDisplay(value?.Id);
+            if (value is not null)
+            {
+                _preferredDisplayId = value.Id;
+                _preferredDisplayDeviceName = value.ScreenDeviceName;
+            }
+            _outputWindowManager.SetPreviewDisplay(value?.ScreenDeviceName);
+            LogDisplaySelection("Selection changed");
             Persist();
             StartOutputCommand.RaiseCanExecuteChanged();
             NotifyReadinessChanged();
@@ -531,8 +547,12 @@ public sealed class MainViewModel : ViewModelBase
     public string CanvaDiagnosticDetail => _canva.IsConnected ? "The shared Windows operator account has valid local Canva authorization." : "Open Presentation to configure or reconnect the church Canva integration.";
     public string PresentationDiagnostic => Snapshot.Document.Id == "demo-sunday" ? "WARNING · Demo deck loaded" : "PASS · Canva presentation loaded";
     public string PresentationDiagnosticDetail => Snapshot.Document.Id == "demo-sunday" ? "Select and Apply a Canva presentation before using live content." : $"{Snapshot.Document.Title} is available for manual page selection.";
-    public string DisplayDiagnostic => Displays.Count > 1 && SelectedDisplay is not null ? "PASS · Confidence display available" : "WARNING · Preview-only setup";
-    public string DisplayDiagnosticDetail => Displays.Count > 1 ? $"{SelectedDisplay?.Label ?? "Choose a display"} is available for output." : "Windows currently reports one display. Preview is safe; extend displays for independent output.";
+    public string DisplayDiagnostic => SelectedDisplay is null ? "WARNING · Choose a confidence display"
+        : Displays.Count > 1 ? "PASS · Confidence display available" : "WARNING · Preview-only setup";
+    public string DisplayDiagnosticDetail => SelectedDisplay is null
+        ? "The remembered display is unavailable or ambiguous. Reconnect it or choose a display; output will not be redirected automatically."
+        : Displays.Count > 1 ? $"{SelectedDisplay.Label} is available for output."
+        : "Windows currently reports one display. Preview is safe; extend displays for independent output.";
     public string PreviewDiagnostic => "PASS · Preview is available";
     public string PreviewDiagnosticDetail => "Open Preview to confirm the confidence layout without a second display.";
     public string ManualControlDiagnostic => "PASS · Manual fallback ready";
@@ -598,6 +618,8 @@ public sealed class MainViewModel : ViewModelBase
         _canvaPresenterAccessibilityTracker.TrackingUpdated -= OnCanvaPresenterTrackingUpdated;
         _canvaPresenterAccessibilityTracker.Dispose();
         _outputWindowManager.PreviewSourceChanged -= OnPreviewSourceChanged;
+        _outputWindowManager.DisplaysChanged -= OnDisplaysChanged;
+        _displayIdentificationService.Dispose();
         _outputWindowManager.Dispose();
         try
         {
@@ -614,7 +636,10 @@ public sealed class MainViewModel : ViewModelBase
 
     private void StartOutput()
     {
-        if (!_outputWindowManager.ShowOnDisplay(SelectedDisplay?.Id))
+        RefreshDisplays("Before Start output");
+        LogDisplaySelection("Start output");
+        // Route the current selection by its exact Windows device, not by saved identity.
+        if (!_outputWindowManager.ShowOnDisplay(SelectedDisplay?.ScreenDeviceName))
             System.Windows.MessageBox.Show("That display is no longer available. Refresh the display list and choose another target.", "Display unavailable", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
@@ -637,13 +662,44 @@ public sealed class MainViewModel : ViewModelBase
 
         OnPropertyChanged(nameof(IsCanvaPresenterTracking));
     }
-    private void RefreshDisplays()
+    private void RefreshDisplays() => RefreshDisplays("Manual refresh");
+
+    private void RefreshDisplays(string reason) => ApplyDisplaySnapshot(_displayService.GetDisplays(), reason);
+
+    private void IdentifyDisplays()
     {
-        string? selectedId = SelectedDisplay?.Id;
-        Displays.Clear();
-        foreach (DisplayOption display in _displayService.GetDisplays()) Displays.Add(display);
-        SelectedDisplay = Displays.FirstOrDefault(display => display.MatchesId(selectedId)) ?? Displays.FirstOrDefault();
+        RefreshDisplays("Before Identify displays");
+        _displayIdentificationService.Show();
+    }
+
+    private void OnDisplaysChanged(object? sender, EventArgs args)
+    {
+        if (!_isClosing) RefreshDisplays("Windows display change");
+    }
+
+    internal void ApplyDisplaySnapshot(IReadOnlyList<DisplayOption> available, string reason)
+    {
+        DisplayOption? selection = DisplaySelection.Resolve(available, _preferredDisplayId, _preferredDisplayDeviceName);
+        _isRefreshingDisplays = true;
+        try
+        {
+            Displays.Clear();
+            foreach (DisplayOption display in available) Displays.Add(display);
+        }
+        finally { _isRefreshingDisplays = false; }
+        SelectedDisplay = selection;
+        // Rebind even when record equality says the selection has not changed:
+        // ItemsSource reset may have cleared the ComboBox's SelectedItem.
+        OnPropertyChanged(nameof(SelectedDisplay));
+        StartOutputCommand.RaiseCanExecuteChanged();
+        LogDisplaySelection(reason);
         NotifyReadinessChanged();
+    }
+
+    private void LogDisplaySelection(string reason)
+    {
+        string available = string.Join("; ", Displays.Select(display => $"{display.ScreenDeviceName} id {display.Id} {display.Label}"));
+        PrivacySafeLog.Write($"Display selection ({reason}): selected {SelectedDisplay?.ScreenDeviceName ?? "none"}; remembered id {_preferredDisplayId ?? "none"}; remembered device {_preferredDisplayDeviceName ?? "none"}; available {available}.");
     }
 
     private void ShowSetupDiagnostics()
@@ -934,7 +990,9 @@ public sealed class MainViewModel : ViewModelBase
                 PresenterScanHealth,
                 _lastPresenterUpdate is null ? null : PresenterLastDetectedText,
                 CacheSummary,
-                Displays.Select(display => display.Label).ToArray()));
+                Displays.Select(display => $"{display.Label} · Windows device {display.ScreenDeviceName}").ToArray(),
+                SelectedDisplay is null ? $"Unavailable; remembered id {_preferredDisplayId ?? "none"}"
+                    : $"{SelectedDisplay.Label} · Windows device {SelectedDisplay.ScreenDeviceName}"));
             DiagnosticsExportStatus = $"Saved sanitized diagnostics to {path}";
         }
         catch (Exception exception)
@@ -1185,7 +1243,7 @@ public sealed class MainViewModel : ViewModelBase
         _isSaving = true;
         try
         {
-            _preferencesStore.Save(new AppPreferences(SelectedDisplay?.Id, CurrentPageNumber, Snapshot.Mode, Snapshot.Layout, Snapshot.NextLineOption, Snapshot.Appearance, IsOperatorTopmost, SelectedCanvaPresentation?.Id ?? _savedCanvaPresentationId, SelectedCanvaPresentation?.Title ?? _savedCanvaPresentationTitle, _lastCanvaContentRefresh, IsPresenterSyncEnabled, IsAutomaticContentRefreshEnabled));
+            _preferencesStore.Save(new AppPreferences(_preferredDisplayId, CurrentPageNumber, Snapshot.Mode, Snapshot.Layout, Snapshot.NextLineOption, Snapshot.Appearance, IsOperatorTopmost, SelectedCanvaPresentation?.Id ?? _savedCanvaPresentationId, SelectedCanvaPresentation?.Title ?? _savedCanvaPresentationTitle, _lastCanvaContentRefresh, IsPresenterSyncEnabled, IsAutomaticContentRefreshEnabled));
         }
         finally { _isSaving = false; }
     }

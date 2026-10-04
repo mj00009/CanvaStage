@@ -3,7 +3,7 @@ using System.Windows.Threading;
 
 namespace CanvaStage.Windows.Services;
 
-public sealed class DisplayIdentificationService
+public sealed class DisplayIdentificationService : IDisposable
 {
     private readonly DisplayService _displayService;
     private readonly List<DisplayIdentificationWindow> _windows = [];
@@ -11,25 +11,30 @@ public sealed class DisplayIdentificationService
 
     public DisplayIdentificationService(DisplayService displayService) => _displayService = displayService;
 
+    internal IReadOnlyList<DisplayIdentificationWindow> WindowsForVerification => _windows;
+
     public void Show()
     {
         Close();
-        foreach (DisplayOption display in _displayService.GetDisplays())
+        IReadOnlyList<DisplayOption> displays = _displayService.GetDisplays();
+        PrivacySafeLog.Write($"Identify displays requested: {displays.Count} available displays.");
+        try
         {
-            System.Windows.Forms.Screen? screen = _displayService.FindDisplay(display.Id);
-            if (screen is null) continue;
-            var window = new DisplayIdentificationWindow(new DisplayOptionViewModel(display.Number, display.FriendlyName,
-                $"{display.Width} × {display.Height} · {(display.IsPrimary ? "Primary" : "Extended")}"))
+            foreach (DisplayOption display in displays)
             {
-                WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
-                Left = screen.Bounds.Left + Math.Max(20, (screen.Bounds.Width - 360) / 2d),
-                Top = screen.Bounds.Top + Math.Max(20, (screen.Bounds.Height - 280) / 2d),
-                Width = Math.Min(360, screen.Bounds.Width - 40),
-                Height = Math.Min(280, screen.Bounds.Height - 40)
-            };
-            _windows.Add(window);
-            window.Show();
+                System.Windows.Forms.Screen? screen = _displayService.FindDisplay(display.ScreenDeviceName);
+                if (screen is null)
+                {
+                    PrivacySafeLog.Write($"Display identification skipped: {display.ScreenDeviceName} is no longer available.");
+                    continue;
+                }
+                DisplayIdentificationWindow window = new(new DisplayOptionViewModel(display.Number, display.FriendlyName,
+                    $"{display.Width} × {display.Height} · {(display.IsPrimary ? "Primary" : "Extended")}"));
+                _windows.Add(window);
+                window.ShowOnDisplay(screen.Bounds);
+            }
         }
+        catch { Close(); throw; }
 
         _closeTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
         _closeTimer.Tick += OnCloseTimer;
@@ -37,6 +42,8 @@ public sealed class DisplayIdentificationService
     }
 
     private void OnCloseTimer(object? sender, EventArgs eventArgs) => Close();
+
+    public void Dispose() => Close();
 
     private void Close()
     {
