@@ -1,6 +1,6 @@
 # Operator guide
 
-This guide describes the current development source. Simplified navigation and shared-output previews are not yet released; v0.10.4 still has separate Presentation and Displays pages and a Setup & diagnostics page.
+This guide describes v0.11.0, with simplified navigation and shared-output previews. Earlier releases have different navigation and preview behavior.
 
 ## Prepare the presentation
 
@@ -41,7 +41,7 @@ The dropdown includes the monitor name reported by Windows, resolution, and Prim
 
 Open **Settings & Diagnostics → Monitor appearance** for font, maximum size, colors, contrast guidance and Next cue styling. Layout, next-line selection and the optional clock are on the same Settings page. Changes apply immediately and remain saved.
 
-The current text automatically shrinks to fit its available area. The current development source fits text once on the output surface, before drawing; all previews copy that same visual. This restoration is not yet released: v0.10.4 still uses the older deferred fitter on the separate Preview/output window, which may briefly show a larger size before shrinking it. Your selected font size is a maximum, not a guarantee that long slides will use that size. See the [v0.10.4 release notes](releases/v0.10.4.md) for that release's behavior and acceptance checks.
+The current text automatically shrinks to fit its available area. Text fits once on the output surface, before drawing; all previews copy that same visual. Your selected font size is a maximum, not a guarantee that long slides will use that size. See the [v0.11.0 release notes](releases/v0.11.0.md) for changes and acceptance checks.
 
 Current text and the Next cue use the same selected font family and, by default, the same semibold weight. The Next cue retains its independent size and color; its optional **Bold** setting makes that cue heavier without changing the current text. Every preview uniformly scales the entire output visual, without independently wrapping or resizing text. Letterboxing preserves the display's aspect ratio. Opening or closing the separate Preview does not move, stop or start live output. Before starting output, Preview uses the selected display's dimensions and Windows DPI; while live, it copies the actual output window. This is a content/layout reference, not proof that a physical or wireless display is receiving the frame. Next cues remain a single line with an ellipsis when necessary; current text remains complete.
 
