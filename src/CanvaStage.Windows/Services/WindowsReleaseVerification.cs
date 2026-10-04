@@ -112,8 +112,18 @@ internal static class WindowsReleaseVerification
                 VerificationWindowSizing.CheckSize(mainWindow, width / scale, height / scale);
                 System.Windows.Controls.TextBlock versionLabel = (System.Windows.Controls.TextBlock)mainWindow.FindName("ApplicationVersionLabel");
                 if (versionLabel.IsVisible)
-                    Require(versionLabel.Text == ApplicationVersion.Label && versionLabel.ActualHeight >= versionLabel.DesiredSize.Height - 1,
+                {
+                    // DesiredSize includes Margin; ActualWidth/Height describe only the rendered element.
+                    FrameworkElement sidebar = (FrameworkElement)mainWindow.FindName("Sidebar");
+                    Rect versionBounds = versionLabel.TransformToAncestor(sidebar).TransformBounds(new Rect(versionLabel.RenderSize));
+                    Rect sidebarBounds = new(sidebar.RenderSize);
+                    sidebarBounds.Inflate(1, 1); // Layout rounding tolerance, not an allowance for clipped text.
+                    Require(versionLabel.Text == ApplicationVersion.Label
+                        && versionLabel.ActualHeight + versionLabel.Margin.Top + versionLabel.Margin.Bottom >= versionLabel.DesiredSize.Height - 1
+                        && versionLabel.ActualWidth + versionLabel.Margin.Left + versionLabel.Margin.Right >= versionLabel.DesiredSize.Width - 1
+                        && sidebarBounds.Contains(versionBounds),
                         "Sidebar app version is missing or clipped");
+                }
                 System.Windows.Controls.TextBlock settingsLabel = (System.Windows.Controls.TextBlock)mainWindow.FindName("SettingsNavigationLabel");
                 if (settingsLabel.IsVisible)
                     Require(settingsLabel.TextWrapping == TextWrapping.Wrap && settingsLabel.ActualHeight >= settingsLabel.DesiredSize.Height - 1,
