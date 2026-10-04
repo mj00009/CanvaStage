@@ -110,6 +110,10 @@ internal static class WindowsReleaseVerification
                 viewModel.ActiveSection = section;
                 await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(), DispatcherPriority.ApplicationIdle);
                 VerificationWindowSizing.CheckSize(mainWindow, width / scale, height / scale);
+                System.Windows.Controls.TextBlock settingsLabel = (System.Windows.Controls.TextBlock)mainWindow.FindName("SettingsNavigationLabel");
+                if (settingsLabel.IsVisible)
+                    Require(settingsLabel.TextWrapping == TextWrapping.Wrap && settingsLabel.ActualHeight >= settingsLabel.DesiredSize.Height - 1,
+                        "Settings navigation label remains visible without vertical clipping in the narrow sidebar");
                 capture(mainWindow, Path.Combine(directory, $"operator-{section}-{width}x{height}-{scale:0.00}.png"), scale);
             }
         }

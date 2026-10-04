@@ -50,8 +50,8 @@
                     <RadioButton GroupName="OperatorSection" IsChecked="{Binding IsLiveControlSelected}" Style="{StaticResource SideNavButton}">
                         <StackPanel Orientation="Horizontal"><TextBlock Text="◉" Foreground="{StaticResource AccentHoverBrush}" Margin="0,0,12,0" /><TextBlock Text="Live control" /></StackPanel>
                     </RadioButton>
-                    <RadioButton GroupName="OperatorSection" IsChecked="{Binding IsSettingsDiagnosticsSelected}" Style="{StaticResource SideNavButton}">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="⌕" Foreground="{StaticResource AccentHoverBrush}" Margin="0,0,12,0" /><TextBlock Text="Settings &amp; diagnostics" /></StackPanel>
+                    <RadioButton GroupName="OperatorSection" IsChecked="{Binding IsSettingsDiagnosticsSelected}" Style="{StaticResource SideNavButton}" HorizontalContentAlignment="Stretch">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBlock Text="⌕" Foreground="{StaticResource AccentHoverBrush}" Margin="0,0,12,0" VerticalAlignment="Center" /><TextBlock x:Name="SettingsNavigationLabel" Grid.Column="1" Text="Settings &amp; diagnostics" TextWrapping="Wrap" /></Grid>
                     </RadioButton>
                 </StackPanel>
                 <Border x:Name="SidebarFooter" Grid.Row="3" Background="#111824" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="14" VerticalAlignment="Bottom">

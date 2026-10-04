@@ -8,7 +8,7 @@ CanvaStage is not affiliated with, endorsed by, or sponsored by Canva Pty Ltd. S
 
 The latest release is [CanvaStage v0.10.4](https://github.com/mj00009/CanvaStage/releases/tag/v0.10.4). See the [release notes](docs/releases/v0.10.4.md) for changes and suggested acceptance checks.
 
-This update restores the separate output window's v0.10.2 text-fitting method as a precaution for the v0.10.3 freeze reported in [#24](https://github.com/mj00009/CanvaStage/issues/24). The improved in-app preview and matching Next typography are retained. It also adds privacy-safe page/render/display diagnostics and consistent UTC timestamps. Set up credentials once in **Settings and Diagnostics → Canva connection**. Monitor appearance and other persistent preferences are also there. Return to **Full view** to resume or manage sync; compact view deliberately has no sync toggle.
+This update restores the separate output window's v0.10.2 text-fitting method as a precaution for the v0.10.3 freeze reported in [#24](https://github.com/mj00009/CanvaStage/issues/24). The improved in-app preview and matching Next typography are retained. It also adds privacy-safe page/render/display diagnostics and consistent UTC timestamps.
 
 See the [operator guide](docs/operator-guide.md) for the current behavior.
 
@@ -20,7 +20,7 @@ Download `CanvaStage-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.W
 
 The application and package are currently unsigned. Windows may show a SmartScreen warning on first launch. Administrator access is not required.
 
-**Unreleased operator simplification:** Setup combines deck loading and display selection into three numbered steps. Saved Canva connection details, Monitor appearance, content-refresh preferences and support tools live in Settings and Diagnostics. Compact view has no Pause Sync button. All previews copy the actual output visual with uniform scaling, sharing wrapping, fitted size, colors, clock and next-line truncation. Opening Preview no longer relocates or starts live output. Windows runtime/UI verification is still pending; downloadable v0.10.4 has the previous UI.
+**Unreleased operator simplification:** Setup combines deck loading and display selection into three numbered steps. Saved Canva connection details, Monitor appearance, content-refresh preferences and support tools live in Settings and Diagnostics. Compact view has no Pause Sync button. All previews copy the actual output visual with uniform scaling, sharing wrapping, fitted size, colors, clock and next-line truncation. Opening Preview no longer relocates or starts live output. Windows runtime/UI verification passed for the offline-preview repair; a final sidebar-label wrapping adjustment is being verified. Downloadable v0.10.4 still has the previous UI.
 
 ## Features
 
@@ -63,6 +63,8 @@ Read [Canva setup](docs/canva-setup.md) for the current integration steps and se
 Manual page navigation pauses automatic following. Choose **Resume sync** to return to Canva Presenter’s current page.
 
 See the [operator guide](docs/operator-guide.md) for modes, keyboard shortcuts, cache controls, and troubleshooting.
+
+Set up credentials once in **Settings and Diagnostics → Canva connection**. Monitor appearance and other persistent preferences are also there. Return to **Full view** to resume or manage sync; compact view deliberately has no sync toggle.
 
 ## Privacy and local data
 
