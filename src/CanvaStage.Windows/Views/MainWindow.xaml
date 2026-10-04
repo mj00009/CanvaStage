@@ -44,17 +44,14 @@
                        Margin="2,0,0,30" />
                 <StackPanel Grid.Row="1">
                     <TextBlock Text="SUNDAY WORKFLOW" Style="{StaticResource EyebrowText}" Margin="12,0,0,8" />
+                    <RadioButton GroupName="OperatorSection" IsChecked="{Binding IsSetupSelected}" Style="{StaticResource SideNavButton}">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="▤" Foreground="{StaticResource AccentHoverBrush}" Margin="0,0,12,0" /><TextBlock Text="Setup" /></StackPanel>
+                    </RadioButton>
                     <RadioButton GroupName="OperatorSection" IsChecked="{Binding IsLiveControlSelected}" Style="{StaticResource SideNavButton}">
                         <StackPanel Orientation="Horizontal"><TextBlock Text="◉" Foreground="{StaticResource AccentHoverBrush}" Margin="0,0,12,0" /><TextBlock Text="Live control" /></StackPanel>
                     </RadioButton>
-                    <RadioButton GroupName="OperatorSection" IsChecked="{Binding IsPresentationSelected}" Style="{StaticResource SideNavButton}">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="▤" Foreground="{StaticResource AccentHoverBrush}" Margin="0,0,12,0" /><TextBlock Text="Presentation" /></StackPanel>
-                    </RadioButton>
-                    <RadioButton GroupName="OperatorSection" IsChecked="{Binding IsDisplaysSelected}" Style="{StaticResource SideNavButton}">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="▣" Foreground="{StaticResource AccentHoverBrush}" Margin="0,0,12,0" /><TextBlock Text="Displays" /></StackPanel>
-                    </RadioButton>
-                    <RadioButton GroupName="OperatorSection" IsChecked="{Binding IsSetupDiagnosticsSelected}" Style="{StaticResource SideNavButton}">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="⌕" Foreground="{StaticResource AccentHoverBrush}" Margin="0,0,12,0" /><TextBlock Text="Setup &amp; diagnostics" /></StackPanel>
+                    <RadioButton GroupName="OperatorSection" IsChecked="{Binding IsSettingsDiagnosticsSelected}" Style="{StaticResource SideNavButton}">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="⌕" Foreground="{StaticResource AccentHoverBrush}" Margin="0,0,12,0" /><TextBlock Text="Settings &amp; diagnostics" /></StackPanel>
                     </RadioButton>
                 </StackPanel>
                 <Border x:Name="SidebarFooter" Grid.Row="3" Background="#111824" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="14" VerticalAlignment="Bottom">
@@ -78,10 +75,9 @@
                 </Grid.RowDefinitions>
                 <StackPanel>
                     <ComboBox x:Name="NarrowNavigation" Visibility="Collapsed" SelectedValue="{Binding ActiveSection}" SelectedValuePath="Tag" Margin="0,0,0,10">
+                        <ComboBoxItem Content="Setup" Tag="{x:Static vm:OperatorSection.Setup}" />
                         <ComboBoxItem Content="Live control" Tag="{x:Static vm:OperatorSection.LiveControl}" />
-                        <ComboBoxItem Content="Presentation" Tag="{x:Static vm:OperatorSection.Presentation}" />
-                        <ComboBoxItem Content="Displays" Tag="{x:Static vm:OperatorSection.Displays}" />
-                        <ComboBoxItem Content="Setup &amp; diagnostics" Tag="{x:Static vm:OperatorSection.SetupDiagnostics}" />
+                        <ComboBoxItem Content="Settings &amp; diagnostics" Tag="{x:Static vm:OperatorSection.SettingsDiagnostics}" />
                     </ComboBox>
                     <TextBlock Text="{Binding OperatorPageTitle}" Style="{StaticResource PageTitle}" />
                     <TextBlock Text="{Binding OperatorPageSubtitle}" Style="{StaticResource MutedText}" Margin="0,5,0,0" />
@@ -155,16 +151,67 @@
                                 <TextBlock Text="{Binding SelectedPageTitle}" Foreground="{StaticResource AccentHoverBrush}" FontWeight="SemiBold" Margin="0,18,0,0" TextWrapping="Wrap" />
                             </StackPanel>
                         </Border>
-                        <Border Style="{StaticResource PanelCard}">
-                            <StackPanel><TextBlock Text="Output options" Style="{StaticResource SectionTitle}" />
-                                <TextBlock Text="Layout" Style="{StaticResource FieldLabel}" Margin="0,16,0,7" /><ComboBox SelectedValue="{Binding Layout}" SelectedValuePath="Tag"><ComboBoxItem Content="Current + next" Tag="{x:Static core:MonitorLayout.CurrentAndNext}" /><ComboBoxItem Content="Current only" Tag="{x:Static core:MonitorLayout.CurrentOnly}" /><ComboBoxItem Content="Speaker focused" Tag="{x:Static core:MonitorLayout.SpeakerFocused}" /><ComboBoxItem Content="Current + next compact" Tag="{x:Static core:MonitorLayout.CurrentAndNextCompact}" /></ComboBox>
-                                <TextBlock Text="Next line" Style="{StaticResource FieldLabel}" Margin="0,15,0,7" /><ComboBox SelectedValue="{Binding NextLineOption}" SelectedValuePath="Tag"><ComboBoxItem Content="First non-empty line" Tag="{x:Static core:NextLineOption.FirstNonEmptyLine}" /><ComboBoxItem Content="Next title only" Tag="{x:Static core:NextLineOption.TitleOnly}" /><ComboBoxItem Content="Hidden" Tag="{x:Static core:NextLineOption.Hidden}" /></ComboBox>
-                                <CheckBox Content="Show current time" IsChecked="{Binding ShowClock}" Margin="0,16,0,0" />
-                            </StackPanel>
-                        </Border>
+
                     </StackPanel>
-                    <Border Grid.Row="3" Grid.ColumnSpan="2" Style="{StaticResource PanelCard}" Margin="0">
-                        <StackPanel>
+
+                </Grid>
+
+                <Grid x:Name="SetupPanel">
+                    <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsSetupSelected}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Grid.Style>
+                    <StackPanel>
+                        <Border Style="{StaticResource PanelCard}"><StackPanel>
+                            <TextBlock Text="{Binding CanvaConnectionStatus}" Style="{StaticResource MutedText}" TextWrapping="Wrap" />
+                            <WrapPanel Margin="0,10,0,0"><Button Content="Connect Canva" Command="{Binding ConnectCanvaCommand}" Style="{StaticResource SecondaryButton}" /><Button Content="Connection settings" Command="{Binding TestSetupCommand}" Style="{StaticResource TextButton}" /></WrapPanel>
+                        </StackPanel></Border>
+                        <Border Style="{StaticResource PanelCard}">
+                        <StackPanel><TextBlock Text="1. Load the Canva deck" Style="{StaticResource SectionTitle}" /><TextBlock Text="Apply retrieves page text and Canva page images. Large decks can take several minutes to export. Saved decks reopen automatically." Style="{StaticResource MutedText}" Margin="0,6,0,18" TextWrapping="Wrap" />
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="14" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><ComboBox Grid.Column="0" ItemsSource="{Binding CanvaPresentations}" SelectedItem="{Binding SelectedCanvaPresentation}" DisplayMemberPath="Title" /><Button Grid.Column="2" Content="Refresh" Command="{Binding RefreshCanvaCommand}" Style="{StaticResource SecondaryButton}" /><Button Grid.Column="3" Content="Apply" Command="{Binding ApplyCanvaCommand}" Style="{StaticResource PrimaryButton}" Margin="0" /></Grid>
+                            <TextBlock Text="{Binding SelectedPresentationSummary}" Foreground="{StaticResource AccentHoverBrush}" FontWeight="SemiBold" Margin="0,16,0,0" /><TextBlock Text="{Binding LastCanvaContentRefreshText}" Style="{StaticResource MutedText}" Margin="0,4,0,0" /><TextBlock Text="{Binding PresentationFreshnessText}" Foreground="{StaticResource AccentHoverBrush}" Margin="0,4,0,0" TextWrapping="Wrap" /><TextBlock Text="{Binding CanvaPresentationStatus}" Style="{StaticResource MutedText}" Margin="0,10,0,0" TextWrapping="Wrap" />
+                            <StackPanel Margin="0,12,0,0">
+                                <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsCanvaDownloadProgressVisible}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                                <TextBlock Text="{Binding CanvaDownloadDescription}" Style="{StaticResource MutedText}" Margin="0,0,0,7" />
+                                <ProgressBar Height="10" Minimum="0" Maximum="100" Value="{Binding CanvaDownloadProgressPercent, Mode=OneWay}" IsIndeterminate="{Binding IsCanvaDownloadProgressIndeterminate}" />
+                            </StackPanel>
+                            <WrapPanel Margin="0,12,0,0"><Button Content="Check for updates" Command="{Binding CheckPresentationUpdatesCommand}" Style="{StaticResource SecondaryButton}" /><Button Content="Re-download" Command="{Binding RedownloadCanvaCommand}" Style="{StaticResource SecondaryButton}" /></WrapPanel>
+                        </StackPanel>
+                    </Border>
+                        <Border Style="{StaticResource PanelCard}"><StackPanel><TextBlock Text="2. Choose the confidence display" Style="{StaticResource SectionTitle}" /><TextBlock Text="Choose the extended Windows display used by people on stage. With one display, Preview remains available for safe setup." Style="{StaticResource MutedText}" Margin="0,6,0,20" TextWrapping="Wrap" />
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><ComboBox ItemsSource="{Binding Displays}" SelectedItem="{Binding SelectedDisplay}" DisplayMemberPath="Label" /><Button Grid.Column="1" Content="Identify displays" Command="{Binding IdentifyDisplaysCommand}" Style="{StaticResource SecondaryButton}" Margin="12,0,0,0" /><Button Grid.Column="2" Content="Refresh displays" Command="{Binding RefreshDisplaysCommand}" Style="{StaticResource SecondaryButton}" Margin="12,0,0,0" /></Grid>
+                        <TextBlock Text="{Binding DisplayDiagnostic}" Foreground="{StaticResource AccentHoverBrush}" FontWeight="SemiBold" Margin="0,20,0,0" /><TextBlock Text="{Binding DisplayDiagnosticDetail}" Style="{StaticResource MutedText}" Margin="0,4,0,20" TextWrapping="Wrap" />
+                    </StackPanel></Border>
+                        <Border Style="{StaticResource PanelCard}"><StackPanel>
+                            <TextBlock Text="3. Preview and go live" Style="{StaticResource SectionTitle}" />
+                            <TextBlock Text="Open Preview to check the output. Start on the selected display, then use Live control or Compact view during the service." Style="{StaticResource MutedText}" Margin="0,8,0,16" TextWrapping="Wrap" />
+                            <WrapPanel><Button Content="Open Preview" Command="{Binding PreviewCommand}" Style="{StaticResource SecondaryButton}" /><Button Content="Start output" Command="{Binding StartOutputCommand}" Style="{StaticResource PrimaryButton}" /><Button Content="Live control" Command="{Binding OpenLiveControlCommand}" Style="{StaticResource SecondaryButton}" /><Button Content="Stop output" Command="{Binding StopOutputCommand}" Style="{StaticResource DangerButton}" /></WrapPanel>
+                        </StackPanel></Border>
+                    </StackPanel>
+                </Grid>
+
+
+
+                <Grid x:Name="SettingsPanel">
+                    <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsSettingsDiagnosticsSelected}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Grid.Style>
+                    <StackPanel>
+                        <Expander Header="Canva connection — one-time setup" Margin="0,0,0,16"><Border Style="{StaticResource PanelCard}">
+                        <StackPanel><TextBlock Text="Canva connection" Style="{StaticResource SectionTitle}" /><TextBlock Text="This computer holds the church’s locally protected Canva connection. The client secret is never shown after saving." Style="{StaticResource MutedText}" Margin="0,6,0,18" TextWrapping="Wrap" />
+                            <WrapPanel Margin="0,0,0,16"><Button Content="Open Canva Developers" Command="{Binding OpenCanvaDeveloperPortalCommand}" Style="{StaticResource SecondaryButton}" /><Button Content="Copy redirect URL" Command="{Binding CopyRedirectUrlCommand}" Style="{StaticResource TextButton}" /></WrapPanel>
+                            <TextBox Text="{Binding RedirectUrl, Mode=OneWay}" IsReadOnly="True" Margin="0,0,0,16" />
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0"><TextBlock Text="Client ID" Style="{StaticResource FieldLabel}" /><TextBox Text="{Binding CanvaClientId, UpdateSourceTrigger=PropertyChanged}" /></StackPanel>
+                                <StackPanel Grid.Column="2"><TextBlock Text="Client Secret" Style="{StaticResource FieldLabel}" />
+                                    <TextBlock Text="{Binding SavedSecretDescription}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                                    <PasswordBox x:Name="CanvaSecretInput" PasswordChanged="CanvaSecretChanged">
+                                        <PasswordBox.Style><Style TargetType="PasswordBox" BasedOn="{StaticResource {x:Type PasswordBox}}"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding ShowSecretInput}" Value="False"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></PasswordBox.Style>
+                                    </PasswordBox>
+                                    <Button Content="Replace saved secret" Command="{Binding ReplaceCanvaSecretCommand}" Style="{StaticResource TextButton}" HorizontalAlignment="Left" />
+                                </StackPanel>
+                            </Grid>
+                            <WrapPanel Margin="0,18,0,0"><Button Content="Save configuration" Command="{Binding SaveCanvaConfigurationCommand}" Style="{StaticResource SecondaryButton}" /><Button Content="Test connection" Command="{Binding TestCanvaCommand}" Style="{StaticResource SecondaryButton}" /><Button Content="Connect Canva" Command="{Binding ConnectCanvaCommand}" Style="{StaticResource PrimaryButton}" /><Button Content="Disconnect" Command="{Binding DisconnectCanvaCommand}" Style="{StaticResource DangerButton}" /></WrapPanel>
+                            <TextBlock Text="{Binding CanvaConnectionStatus}" Style="{StaticResource MutedText}" Margin="0,14,0,0" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border></Expander>
+                        <Border Style="{StaticResource PanelCard}">
+                        <StackPanel><TextBlock Text="Monitor appearance" Style="{StaticResource SectionTitle}" Margin="0,0,0,18" />
                             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0" Margin="0,0,18,0"><TextBlock Text="Font" Style="{StaticResource FieldLabel}" /><ComboBox ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding FontFamily}" /></StackPanel>
                                 <StackPanel Grid.Column="1" Margin="0,0,18,0"><TextBlock Text="Size" Style="{StaticResource FieldLabel}" /><ComboBox ItemsSource="{Binding FontSizes}" SelectedItem="{Binding FontSize}" /></StackPanel>
@@ -183,64 +230,23 @@
                             </Grid>
                         </StackPanel>
                     </Border>
-                </Grid>
-
-                <Grid>
-                    <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsPresentationSelected}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Grid.Style>
-                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                    <Border Style="{StaticResource PanelCard}">
-                        <StackPanel><TextBlock Text="1. Connect Canva" Style="{StaticResource SectionTitle}" /><TextBlock Text="This computer holds the church’s locally protected Canva connection. The client secret is never shown after saving." Style="{StaticResource MutedText}" Margin="0,6,0,18" TextWrapping="Wrap" />
-                            <WrapPanel Margin="0,0,0,16"><Button Content="Open Canva Developers" Command="{Binding OpenCanvaDeveloperPortalCommand}" Style="{StaticResource SecondaryButton}" /><Button Content="Copy redirect URL" Command="{Binding CopyRedirectUrlCommand}" Style="{StaticResource TextButton}" /></WrapPanel>
-                            <TextBox Text="{Binding RedirectUrl, Mode=OneWay}" IsReadOnly="True" Margin="0,0,0,16" />
-                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0"><TextBlock Text="Client ID" Style="{StaticResource FieldLabel}" /><TextBox Text="{Binding CanvaClientId, UpdateSourceTrigger=PropertyChanged}" /></StackPanel>
-                                <StackPanel Grid.Column="2"><TextBlock Text="Client Secret" Style="{StaticResource FieldLabel}" />
-                                    <TextBlock Text="{Binding SavedSecretDescription}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8" />
-                                    <PasswordBox x:Name="CanvaSecretInput" PasswordChanged="CanvaSecretChanged">
-                                        <PasswordBox.Style><Style TargetType="PasswordBox" BasedOn="{StaticResource {x:Type PasswordBox}}"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding ShowSecretInput}" Value="False"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></PasswordBox.Style>
-                                    </PasswordBox>
-                                    <Button Content="Replace saved secret" Command="{Binding ReplaceCanvaSecretCommand}" Style="{StaticResource TextButton}" HorizontalAlignment="Left" />
-                                </StackPanel>
-                            </Grid>
-                            <WrapPanel Margin="0,18,0,0"><Button Content="Save configuration" Command="{Binding SaveCanvaConfigurationCommand}" Style="{StaticResource SecondaryButton}" /><Button Content="Test connection" Command="{Binding TestCanvaCommand}" Style="{StaticResource SecondaryButton}" /><Button Content="Connect Canva" Command="{Binding ConnectCanvaCommand}" Style="{StaticResource PrimaryButton}" /><Button Content="Disconnect" Command="{Binding DisconnectCanvaCommand}" Style="{StaticResource DangerButton}" /></WrapPanel>
-                            <TextBlock Text="{Binding CanvaConnectionStatus}" Style="{StaticResource MutedText}" Margin="0,14,0,0" TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-                    <Border Grid.Row="1" Style="{StaticResource PanelCard}" Margin="0">
-                        <StackPanel><TextBlock Text="2. Choose a Canva presentation" Style="{StaticResource SectionTitle}" /><TextBlock Text="Apply retrieves page text and Canva page images. Large decks can take several minutes to export." Style="{StaticResource MutedText}" Margin="0,6,0,18" />
-                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="14" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><ComboBox Grid.Column="0" ItemsSource="{Binding CanvaPresentations}" SelectedItem="{Binding SelectedCanvaPresentation}" DisplayMemberPath="Title" /><Button Grid.Column="2" Content="Refresh" Command="{Binding RefreshCanvaCommand}" Style="{StaticResource SecondaryButton}" /><Button Grid.Column="3" Content="Apply" Command="{Binding ApplyCanvaCommand}" Style="{StaticResource PrimaryButton}" Margin="0" /></Grid>
-                            <TextBlock Text="{Binding SelectedPresentationSummary}" Foreground="{StaticResource AccentHoverBrush}" FontWeight="SemiBold" Margin="0,16,0,0" /><TextBlock Text="{Binding LastCanvaContentRefreshText}" Style="{StaticResource MutedText}" Margin="0,4,0,0" /><TextBlock Text="{Binding PresentationFreshnessText}" Foreground="{StaticResource AccentHoverBrush}" Margin="0,4,0,0" TextWrapping="Wrap" /><TextBlock Text="{Binding CanvaPresentationStatus}" Style="{StaticResource MutedText}" Margin="0,10,0,0" TextWrapping="Wrap" />
-                            <StackPanel Margin="0,12,0,0">
-                                <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsCanvaDownloadProgressVisible}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></StackPanel.Style>
-                                <TextBlock Text="{Binding CanvaDownloadDescription}" Style="{StaticResource MutedText}" Margin="0,0,0,7" />
-                                <ProgressBar Height="10" Minimum="0" Maximum="100" Value="{Binding CanvaDownloadProgressPercent, Mode=OneWay}" IsIndeterminate="{Binding IsCanvaDownloadProgressIndeterminate}" />
+                        <Border Style="{StaticResource PanelCard}">
+                            <StackPanel><TextBlock Text="Monitor layout and next line" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="Layout" Style="{StaticResource FieldLabel}" Margin="0,16,0,7" /><ComboBox SelectedValue="{Binding Layout}" SelectedValuePath="Tag"><ComboBoxItem Content="Current + next" Tag="{x:Static core:MonitorLayout.CurrentAndNext}" /><ComboBoxItem Content="Current only" Tag="{x:Static core:MonitorLayout.CurrentOnly}" /><ComboBoxItem Content="Speaker focused" Tag="{x:Static core:MonitorLayout.SpeakerFocused}" /><ComboBoxItem Content="Current + next compact" Tag="{x:Static core:MonitorLayout.CurrentAndNextCompact}" /></ComboBox>
+                                <TextBlock Text="Next line" Style="{StaticResource FieldLabel}" Margin="0,15,0,7" /><ComboBox SelectedValue="{Binding NextLineOption}" SelectedValuePath="Tag"><ComboBoxItem Content="First non-empty line" Tag="{x:Static core:NextLineOption.FirstNonEmptyLine}" /><ComboBoxItem Content="Next title only" Tag="{x:Static core:NextLineOption.TitleOnly}" /><ComboBoxItem Content="Hidden" Tag="{x:Static core:NextLineOption.Hidden}" /></ComboBox>
+                                <CheckBox Content="Show current time" IsChecked="{Binding ShowClock}" Margin="0,16,0,0" />
                             </StackPanel>
-                            <TextBlock Text="{Binding CacheSummary}" Style="{StaticResource MutedText}" Margin="0,14,0,0" TextWrapping="Wrap" />
+                        </Border>
+                        <Expander Header="Content refresh and local cache" Margin="0,0,0,16"><Border Style="{StaticResource PanelCard}"><StackPanel>                            <TextBlock Text="{Binding CacheSummary}" Style="{StaticResource MutedText}" Margin="0,14,0,0" TextWrapping="Wrap" />
                             <CheckBox Content="Automatically apply Canva content updates" IsChecked="{Binding IsAutomaticContentRefreshEnabled}" Margin="0,14,0,6" />
                             <TextBlock Text="Checks the applied presentation every 30 seconds. Output keeps following the current deck while updates download; the new content appears when ready." Style="{StaticResource MutedText}" TextWrapping="Wrap" />
                             <WrapPanel Margin="0,10,0,0">
-                                <Button Content="Check for updates" Command="{Binding CheckPresentationUpdatesCommand}" Style="{StaticResource SecondaryButton}" />
-                                <Button Content="Re-download" Command="{Binding RedownloadCanvaCommand}" Style="{StaticResource SecondaryButton}" />
                                 <Button Content="Clean old downloads" Command="{Binding CleanOldCacheCommand}" Style="{StaticResource SecondaryButton}" />
                                 <Button Content="Clear cache" Command="{Binding ClearCacheCommand}" Style="{StaticResource DangerButton}" />
                             </WrapPanel>
                             <Button Content="Use local demo deck" Command="{Binding UseDemoDeckCommand}" Style="{StaticResource TextButton}" HorizontalAlignment="Left" Margin="0,12,0,0" />
-                        </StackPanel>
-                    </Border>
-                </Grid>
-
-                <Grid>
-                    <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsDisplaysSelected}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Grid.Style>
-                    <Border Style="{StaticResource PanelCard}"><StackPanel><TextBlock Text="Confidence display" Style="{StaticResource SectionTitle}" /><TextBlock Text="Choose the extended Windows display used by people on stage. With one display, Preview remains available for safe setup." Style="{StaticResource MutedText}" Margin="0,6,0,20" TextWrapping="Wrap" />
-                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><ComboBox ItemsSource="{Binding Displays}" SelectedItem="{Binding SelectedDisplay}" DisplayMemberPath="Label" /><Button Grid.Column="1" Content="Identify displays" Command="{Binding IdentifyDisplaysCommand}" Style="{StaticResource SecondaryButton}" Margin="12,0,0,0" /><Button Grid.Column="2" Content="Refresh displays" Command="{Binding RefreshDisplaysCommand}" Style="{StaticResource SecondaryButton}" Margin="12,0,0,0" /></Grid>
-                        <TextBlock Text="{Binding DisplayDiagnostic}" Foreground="{StaticResource AccentHoverBrush}" FontWeight="SemiBold" Margin="0,20,0,0" /><TextBlock Text="{Binding DisplayDiagnosticDetail}" Style="{StaticResource MutedText}" Margin="0,4,0,20" TextWrapping="Wrap" />
-                        <WrapPanel><Button Content="Open Preview" Command="{Binding PreviewCommand}" Style="{StaticResource SecondaryButton}" /><Button Content="Start on selected display" Command="{Binding StartOutputCommand}" Style="{StaticResource PrimaryButton}" /><Button Content="Stop output" Command="{Binding StopOutputCommand}" Style="{StaticResource DangerButton}" /></WrapPanel>
-                    </StackPanel></Border>
-                </Grid>
-
-                <Grid>
-                    <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsSetupDiagnosticsSelected}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Grid.Style>
-                    <StackPanel><Border Style="{StaticResource PanelCard}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Readiness checks" Style="{StaticResource SectionTitle}" /><TextBlock Text="Checks are independent: laptop-only Preview can pass even when no confidence display is attached." Style="{StaticResource MutedText}" Margin="0,6,0,0" /></StackPanel><Button Grid.Column="1" Content="Refresh checks" Command="{Binding TestSetupCommand}" Style="{StaticResource SecondaryButton}" Margin="12,0,0,0" VerticalAlignment="Top" /></Grid></Border>
+</StackPanel></Border></Expander>
+                        <Border Style="{StaticResource PanelCard}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Readiness checks" Style="{StaticResource SectionTitle}" /><TextBlock Text="Checks are independent: laptop-only Preview can pass even when no confidence display is attached." Style="{StaticResource MutedText}" Margin="0,6,0,0" /></StackPanel><Button Grid.Column="1" Content="Refresh checks" Command="{Binding TestSetupCommand}" Style="{StaticResource SecondaryButton}" Margin="12,0,0,0" VerticalAlignment="Top" /></Grid></Border>
                         <Border Style="{StaticResource PanelCard}">
                             <StackPanel>
                                 <TextBlock Text="Automatic Canva Presenter sync" Style="{StaticResource SectionTitle}" />
@@ -284,17 +290,14 @@
               <TextBlock Text="CanvaStage" Foreground="{StaticResource PrimaryTextBrush}" FontSize="18" FontWeight="SemiBold" />
             </StackPanel>
             <ToggleButton Grid.Column="1" Content="On top" IsChecked="{Binding IsOperatorTopmost}" Style="{StaticResource SecondaryToggle}" Margin="8,0,0,0" Padding="10,7" />
-            <Button Grid.Column="2" Content="Full view" Click="ExitCompactView" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Padding="10,7" />
+            <Button Grid.Column="2" Content="Full view" Click="ExitCompactView" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Padding="10,7" ToolTip="Open full controls to resume or manage sync" />
           </Grid>
           <Grid Grid.Row="1" Margin="0,8,0,0">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-            <TextBlock Text="{Binding PresenterSyncSummary}" Foreground="{Binding PresenterSyncBrush}" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" ToolTip="{Binding CanvaPresenterTrackingStatus}" />
-            <Button Grid.Column="1" Content="{Binding PresenterSyncButtonText}" Command="{Binding TogglePresenterSyncCommand}" Style="{StaticResource SecondaryButton}" Padding="8,5" Margin="8,0,0,0" />
+            <WrapPanel><TextBlock Text="{Binding PresenterSyncSummary}" Foreground="{Binding PresenterSyncBrush}" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" ToolTip="{Binding CanvaPresenterTrackingStatus}" Margin="0,0,10,0" /><TextBlock Text="{Binding PageLabel}" Foreground="{StaticResource MutedTextBrush}" FontSize="12" VerticalAlignment="Center" /></WrapPanel>
           </Grid>
           <Border Grid.Row="2" Style="{StaticResource PreviewFrame}" Padding="0" Margin="0,12">
-            <Viewbox Stretch="Uniform">
-              <Grid Width="560" Height="350"><views:ConfidencePreview /></Grid>
-            </Viewbox>
+            <views:ConfidencePreview />
           </Border>
           <Grid Grid.Row="3">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="10" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>

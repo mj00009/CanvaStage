@@ -8,13 +8,19 @@ CanvaStage is not affiliated with, endorsed by, or sponsored by Canva Pty Ltd. S
 
 The latest release is [CanvaStage v0.10.4](https://github.com/mj00009/CanvaStage/releases/tag/v0.10.4). See the [release notes](docs/releases/v0.10.4.md) for changes and suggested acceptance checks.
 
-This update restores the separate output window's v0.10.2 text-fitting method as a precaution for the v0.10.3 freeze reported in [#24](https://github.com/mj00009/CanvaStage/issues/24). The improved in-app preview and matching Next typography are retained. It also adds privacy-safe page/render/display diagnostics and consistent UTC timestamps. See the [operator guide](docs/operator-guide.md) for the current behavior.
+This update restores the separate output window's v0.10.2 text-fitting method as a precaution for the v0.10.3 freeze reported in [#24](https://github.com/mj00009/CanvaStage/issues/24). The improved in-app preview and matching Next typography are retained. It also adds privacy-safe page/render/display diagnostics and consistent UTC timestamps. Set up credentials once in **Settings and Diagnostics → Canva connection**. Monitor appearance and other persistent preferences are also there. Return to **Full view** to resume or manage sync; compact view deliberately has no sync toggle.
 
-**Acceptance still needed:** issue #24 occurred with Windows wireless casting to a Samsung TV; its root cause is not confirmed. Test v0.10.4 on the actual presentation computer and receiver before service use, or stay on the previously working [v0.10.2](https://github.com/mj00009/CanvaStage/releases/tag/v0.10.2). The restored output fitter may briefly show oversized text before shrinking it. Issues #22–24 remain open for real-machine confirmation; #20 and #21 were confirmed resolved and closed by the operator.
+See the [operator guide](docs/operator-guide.md) for the current behavior.
+
+**Acceptance still needed:** issue #24 occurred with Windows wireless casting to a Samsung TV; its root cause is not confirmed. Test v0.10.4 on the actual presentation computer and receiver before service use, or stay on the previously working [v0.10.2](https://github.com/mj00009/CanvaStage/releases/tag/v0.10.2). The restored output fitter may briefly show oversized text before shrinking it. Issues #23 and #24 remain open; #20, #21 and #22 were confirmed resolved and closed by the operator.
+
+**Unreleased development follow-up:** the operator reported another freeze with other windows also unavailable on the secondary display, and requested restoring the pre-render sizing fix. Current source again fits both Monitor surfaces during layout, retaining the v0.10.4 diagnostics and output drawing checks. This does not diagnose or repair wireless casting. A separate casing report is under investigation; the extractor copies PPTX text without changing its case and needs an affected export to establish the cause.
 
 Download `CanvaStage-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
 
 The application and package are currently unsigned. Windows may show a SmartScreen warning on first launch. Administrator access is not required.
+
+**Unreleased operator simplification:** Setup combines deck loading and display selection into three numbered steps. Saved Canva connection details, Monitor appearance, content-refresh preferences and support tools live in Settings and Diagnostics. Compact view has no Pause Sync button. All previews copy the actual output visual with uniform scaling, sharing wrapping, fitted size, colors, clock and next-line truncation. Opening Preview no longer relocates or starts live output. Windows runtime/UI verification is still pending; downloadable v0.10.4 has the previous UI.
 
 ## Features
 
@@ -47,11 +53,11 @@ Read [Canva setup](docs/canva-setup.md) for the current integration steps and se
 ## Typical Sunday workflow
 
 1. Open CanvaStage using the same Windows account used during setup.
-2. In **Presentation**, confirm the Canva connection, refresh the list, select the presentation, and choose **Apply**.
-3. In **Displays**, choose **Identify displays** and select the Extended confidence display.
+2. In **Setup → 1. Load the Canva deck**, confirm the saved connection, refresh the list, select the presentation, and choose **Apply**.
+3. In **Setup → 2. Choose the confidence display**, choose **Identify displays** and select the Extended confidence display.
 4. Choose **Open Preview** to check content and appearance in a resizable window.
 5. Open one Canva Presenter View and confirm CanvaStage reports **Following Canva**.
-6. Choose **Start on selected display** and confirm output appears on the intended monitor.
+6. In **Setup → 3. Preview and go live**, choose **Start output**, confirm the intended monitor, then use **Live control** or **Compact view**.
 7. Use **Blank output** whenever the stage display should be black.
 
 Manual page navigation pauses automatic following. Choose **Resume sync** to return to Canva Presenter’s current page.

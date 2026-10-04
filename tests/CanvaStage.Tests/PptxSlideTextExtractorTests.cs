@@ -7,6 +7,23 @@ namespace CanvaStage.Tests;
 
 public sealed class PptxSlideTextExtractorTests
 {
+    [Theory]
+    [InlineData("none")]
+    [InlineData("all")]
+    [InlineData("small")]
+    public void Extract_PreservesAuthoredCaseAcrossRunsAndFormatting(string caps)
+    {
+        string paragraphs = $"<a:p><a:pPr><a:defRPr cap=\"{caps}\" /></a:pPr>" +
+            $"<a:r><a:rPr cap=\"{caps}\"/><a:t>Praise the L</a:t></a:r>" +
+            "<a:r><a:t>ord; NASA and iPhone stay as authored.</a:t></a:r></a:p>" +
+            "<a:p><a:r><a:t>HALLELUJAH</a:t></a:r></a:p>";
+        string[] expected = ["Praise the Lord; NASA and iPhone stay as authored.", "HALLELUJAH"];
+
+        Assert.Equal(expected, PptxSlideTextExtractor.Extract(CreatePresentationWithSlides((1, paragraphs)))[0]);
+        Assert.Equal(expected, PptxSlideTextExtractor.Extract(CreatePresentationWithSlides((1,
+            $"<p:sp><p:txBody>{paragraphs}</p:txBody></p:sp>")))[0]);
+    }
+
     [Fact]
     public void Extract_PreservesSoftLineBreaksWithinAParagraph()
     {

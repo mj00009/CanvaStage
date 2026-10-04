@@ -1,6 +1,5 @@
 using CanvaStage.Core.Models;
 using CanvaStage.Core.Services;
-using System.Globalization;
 using System.IO;
 using CanvaStage.Windows.Services;
 using Brush = System.Windows.Media.Brush;
@@ -16,7 +15,6 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
     private OutputSnapshot _snapshot;
     private string _currentTime = DateTime.Now.ToString("h:mm tt");
     private BitmapImage? _fallbackImage;
-    private double _fittedFontSize;
     private string? _loadedImagePath;
 
     public OutputWindowViewModel(IOutputCoordinator coordinator)
@@ -25,7 +23,6 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
         _snapshot = coordinator.Snapshot;
         _loadedImagePath = _snapshot.CurrentPage?.FallbackImagePath;
         _fallbackImage = CreateFallbackImage(_loadedImagePath);
-        _fittedFontSize = EffectiveFontSize;
         coordinator.SnapshotChanged += OnSnapshotChanged;
     }
 
@@ -45,7 +42,6 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
                 _loadedImagePath = imagePath;
                 _fallbackImage = CreateFallbackImage(imagePath);
             }
-            _fittedFontSize = EffectiveFontSize;
             OnPropertyChanged(nameof(IsBlank));
             OnPropertyChanged(nameof(IsOutputBlanked));
             OnPropertyChanged(nameof(IsMirror));
@@ -64,14 +60,15 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(ShowNextLine));
             OnPropertyChanged(nameof(ShowClock));
             OnPropertyChanged(nameof(EffectiveFontSize));
-            OnPropertyChanged(nameof(FittedFontSize));
             OnPropertyChanged(nameof(FallbackImage));
             OnPropertyChanged(nameof(HasFallbackImage));
             OnPropertyChanged(nameof(ShowFallbackImage));
         }
     }
 
-    public bool IsBlank => !Snapshot.IsLive || Snapshot.CurrentPage is null;
+    // The hidden output surface is also the offline preview. Live state controls
+    // window visibility, not whether a prepared deck can be previewed.
+    public bool IsBlank => Snapshot.CurrentPage is null;
     public bool IsOutputBlanked => Snapshot.IsLive && Snapshot.IsBlanked;
     public bool IsMirror => !IsBlank && Snapshot.Mode == OutputMode.Mirror;
     public bool IsMonitor => !IsBlank && Snapshot.Mode == OutputMode.Monitor;
@@ -88,7 +85,6 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
         MonitorLayout.CurrentAndNextCompact => Math.Max(32, Snapshot.Appearance.FontSize * 0.8),
         _ => Snapshot.Appearance.FontSize
     };
-    public double FittedFontSize => _fittedFontSize;
     public string CurrentTime { get => _currentTime; set => SetProperty(ref _currentTime, value); }
     public Brush MirrorBackground => BrushFrom(Page?.MirrorBackground ?? "#0D0E10");
     public Brush MirrorAccent => BrushFrom(Page?.MirrorAccent ?? "#75E6C8");
@@ -106,43 +102,7 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
 
     public void UpdateClock() => CurrentTime = DateTime.Now.ToString("h:mm tt");
 
-    public void FitPrimaryText(double availableWidth, double availableHeight, double pixelsPerDip)
-    {
-        if (availableWidth <= 0d || availableHeight <= 0d || string.IsNullOrWhiteSpace(PrimaryText))
-        {
-            return;
-        }
-
-        double minimumSize = 12d;
-        double low = minimumSize;
-        double high = EffectiveFontSize;
-        double best = minimumSize;
-        for (int iteration = 0; iteration < 12; iteration++)
-        {
-            double candidate = (low + high) / 2d;
-            if (FitsPrimaryText(candidate, availableWidth, availableHeight, pixelsPerDip))
-            {
-                best = candidate;
-                low = candidate;
-            }
-            else
-            {
-                high = candidate;
-            }
-        }
-
-        if (Math.Abs(_fittedFontSize - best) < 0.25d)
-        {
-            return;
-        }
-
-        _fittedFontSize = best;
-        OnPropertyChanged(nameof(FittedFontSize));
-    }
-
     public void Dispose() => _coordinator.SnapshotChanged -= OnSnapshotChanged;
-    internal bool PrimaryTextFits(double width, double height, double pixelsPerDip)
-        => FitsPrimaryText(FittedFontSize, width, height, pixelsPerDip);
 
     private static Brush BrushFrom(string value)
     {
@@ -154,28 +114,6 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
         {
             return Brushes.Black;
         }
-    }
-
-    private bool FitsPrimaryText(double fontSize, double availableWidth, double availableHeight, double pixelsPerDip)
-    {
-        var typeface = new System.Windows.Media.Typeface(
-            new System.Windows.Media.FontFamily(Snapshot.Appearance.FontFamily),
-            System.Windows.FontStyles.Normal,
-            System.Windows.FontWeights.SemiBold,
-            System.Windows.FontStretches.Normal);
-        var formattedText = new System.Windows.Media.FormattedText(
-            PrimaryText,
-            CultureInfo.CurrentCulture,
-            System.Windows.FlowDirection.LeftToRight,
-            typeface,
-            fontSize,
-            TextBrush,
-            pixelsPerDip)
-        {
-            MaxTextWidth = availableWidth,
-            TextAlignment = System.Windows.TextAlignment.Center
-        };
-        return formattedText.Height <= availableHeight && formattedText.Width <= availableWidth;
     }
 
     private static BitmapImage? CreateFallbackImage(string? path)

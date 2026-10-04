@@ -13,18 +13,17 @@ public partial class OutputWindow : Window
 {
     private readonly DispatcherTimer _clockTimer;
     private readonly OutputWindowViewModel _viewModel;
-    private bool _isTextFitQueued;
     private bool _isRenderDiagnosticQueued;
     private bool _isClosed;
     private long _contentRevision;
     private Rectangle? _displayBounds;
+    private Rectangle? _hiddenPreviewBounds;
 
     public OutputWindow(OutputWindowViewModel viewModel)
     {
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = viewModel;
-        SizeChanged += OnOutputSizeChanged;
         Loaded += OnOutputLoaded;
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
         System.Windows.Media.RenderCapability.TierChanged += OnRenderingTierChanged;
@@ -45,8 +44,34 @@ public partial class OutputWindow : Window
         PrivacySafeLog.Write("Output placement requested: resizable Preview.");
     }
 
+    internal void PrepareHiddenPreview(Rectangle bounds)
+    {
+        if (IsVisible || _isClosed) return;
+        WindowStyle = WindowStyle.None;
+        ResizeMode = ResizeMode.NoResize;
+        nint handle = new WindowInteropHelper(this).EnsureHandle();
+        // Move a hidden HWND to the intended monitor to obtain its actual DPI.
+        // Do not show it, activate it, or change the live display's layout.
+        if (_hiddenPreviewBounds != bounds)
+        {
+            if (SetWindowPos(handle, 0, bounds.Left, bounds.Top, bounds.Width, bounds.Height, 0x0014))
+                _hiddenPreviewBounds = bounds;
+            else PrivacySafeLog.Write($"Offline Preview placement failed: Windows error {Marshal.GetLastWin32Error()}.");
+        }
+        double scale = Math.Max(96, GetDpiForWindow(handle)) / 96d;
+        System.Windows.Size viewport = new(bounds.Width / scale, bounds.Height / scale);
+        PreviewSurface.Width = viewport.Width;
+        PreviewSurface.Height = viewport.Height;
+        PreviewSurface.Measure(viewport);
+        PreviewSurface.Arrange(new Rect(viewport));
+        PreviewSurface.UpdateLayout();
+    }
+
     public void SetDisplayPlacement(Rectangle bounds)
     {
+        PreviewSurface.ClearValue(WidthProperty);
+        PreviewSurface.ClearValue(HeightProperty);
+        _hiddenPreviewBounds = null;
         _displayBounds = bounds;
         WindowStyle = WindowStyle.None;
         ResizeMode = ResizeMode.NoResize;
@@ -82,9 +107,8 @@ public partial class OutputWindow : Window
     internal void VerifyTextFit()
     {
         UpdateLayout();
-        double pixelsPerDip = System.Windows.Media.VisualTreeHelper.GetDpi(this).PixelsPerDip;
         if (_viewModel.IsMonitor && !_viewModel.ShowFallbackImage
-            && !_viewModel.PrimaryTextFits(PrimaryTextHost.ActualWidth, PrimaryTextHost.ActualHeight, pixelsPerDip))
+            && !PrimaryTextHost.TextFits)
             throw new InvalidOperationException("Confidence output text is clipped in the verification scenario.");
         if (_viewModel.ShowNextLine && (NextLineText.TextWrapping != TextWrapping.NoWrap
             || NextLineText.TextTrimming != TextTrimming.WordEllipsis || NextLineText.ActualHeight > NextLineText.FontSize * 1.8))
@@ -99,7 +123,6 @@ public partial class OutputWindow : Window
         _isClosed = true;
         System.Windows.Media.CompositionTarget.Rendering -= OnRenderDiagnostic;
         System.Windows.Media.RenderCapability.TierChanged -= OnRenderingTierChanged;
-        SizeChanged -= OnOutputSizeChanged;
         Loaded -= OnOutputLoaded;
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _clockTimer.Stop();
@@ -115,11 +138,8 @@ public partial class OutputWindow : Window
         }
     }
 
-    private void OnOutputSizeChanged(object sender, SizeChangedEventArgs eventArgs) => ScheduleTextFit();
-
     private void OnOutputLoaded(object sender, RoutedEventArgs eventArgs)
     {
-        ScheduleTextFit();
         QueueRenderDiagnostic();
     }
 
@@ -131,31 +151,6 @@ public partial class OutputWindow : Window
             PrivacySafeLog.Write($"Output update queued: revision {_contentRevision}; page {_viewModel.Snapshot.SelectedPageNumber}; visible {IsVisible}; surface {(_displayBounds is null ? "Preview" : "Display")}.");
             QueueRenderDiagnostic();
         }
-        if (eventArgs.PropertyName is nameof(OutputWindowViewModel.PrimaryText)
-            or nameof(OutputWindowViewModel.EffectiveFontSize)
-            or nameof(OutputWindowViewModel.ShowNextLine)
-            or nameof(OutputWindowViewModel.NextLineFontSize)
-            or nameof(OutputWindowViewModel.NextLineFontWeight))
-        {
-            ScheduleTextFit();
-        }
-    }
-
-    private void ScheduleTextFit()
-    {
-        if (_isTextFitQueued)
-        {
-            return;
-        }
-
-        _isTextFitQueued = true;
-        Dispatcher.BeginInvoke(() =>
-        {
-            _isTextFitQueued = false;
-            if (_isClosed) return;
-            var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(this);
-            _viewModel.FitPrimaryText(PrimaryTextHost.ActualWidth, PrimaryTextHost.ActualHeight, dpi.PixelsPerDip);
-        }, DispatcherPriority.Render);
     }
 
     private void QueueRenderDiagnostic()
@@ -214,6 +209,9 @@ public partial class OutputWindow : Window
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetWindowRect(nint hWnd, out NativeRect bounds);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(nint hWnd);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct NativeRect

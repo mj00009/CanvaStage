@@ -68,6 +68,7 @@ public sealed class MainViewModel : ViewModelBase
     {
         _coordinator = coordinator;
         _outputWindowManager = outputWindowManager;
+        _outputWindowManager.PreviewSourceChanged += OnPreviewSourceChanged;
         _displayService = displayService;
         _displayIdentificationService = displayIdentificationService;
         _diagnosticsExportService = diagnosticsExportService;
@@ -77,6 +78,7 @@ public sealed class MainViewModel : ViewModelBase
         _contentRefreshSchedule = contentRefreshSchedule ?? new();
         _canvaPresenterAccessibilityTracker = canvaPresenterAccessibilityTracker;
         _snapshot = coordinator.Snapshot;
+        _activeSection = _snapshot.Document.Id == "demo-sunday" ? OperatorSection.Setup : OperatorSection.LiveControl;
         _isOperatorTopmost = preferences.IsOperatorTopmost;
         _canvaClientId = canva.ConfiguredClientId ?? string.Empty;
         _savedCanvaPresentationId = preferences.SelectedPresentationId;
@@ -113,6 +115,8 @@ public sealed class MainViewModel : ViewModelBase
         RefreshDisplaysCommand = new RelayCommand(RefreshDisplays);
         IdentifyDisplaysCommand = new RelayCommand(_displayIdentificationService.Show);
         TestSetupCommand = new RelayCommand(ShowSetupDiagnostics);
+        OpenSetupCommand = new RelayCommand(() => ActiveSection = OperatorSection.Setup);
+        OpenLiveControlCommand = new RelayCommand(() => ActiveSection = OperatorSection.LiveControl);
         ConnectCanvaCommand = new AsyncRelayCommand(ConnectCanvaAsync, () => !IsCanvaBusy);
         TestCanvaCommand = new AsyncRelayCommand(TestCanvaAsync, () => !IsCanvaBusy);
         DisconnectCanvaCommand = new AsyncRelayCommand(DisconnectCanvaAsync, () => !IsCanvaBusy && _canva.HasSavedConfiguration);
@@ -151,6 +155,10 @@ public sealed class MainViewModel : ViewModelBase
     public IReadOnlyList<double> FontSizes { get; }
     public IReadOnlyList<double> NextLineFontSizes { get; }
     public ICommand PreviewCommand { get; }
+    public ICommand OpenSetupCommand { get; }
+    public ICommand OpenLiveControlCommand { get; }
+    public FrameworkElement? OutputPreviewSurface => _outputWindowManager.PreviewSurface;
+    internal OutputWindowManager OutputManagerForVerification => _outputWindowManager;
     public RelayCommand StartOutputCommand { get; }
     public RelayCommand StopOutputCommand { get; }
     public RelayCommand BlankOutputCommand { get; }
@@ -240,30 +248,26 @@ public sealed class MainViewModel : ViewModelBase
         {
             if (!SetProperty(ref _activeSection, value)) return;
             OnPropertyChanged(nameof(IsLiveControlSelected));
-            OnPropertyChanged(nameof(IsPresentationSelected));
-            OnPropertyChanged(nameof(IsDisplaysSelected));
-            OnPropertyChanged(nameof(IsSetupDiagnosticsSelected));
+            OnPropertyChanged(nameof(IsSetupSelected));
+            OnPropertyChanged(nameof(IsSettingsDiagnosticsSelected));
             OnPropertyChanged(nameof(OperatorPageTitle));
             OnPropertyChanged(nameof(OperatorPageSubtitle));
         }
     }
 
     public bool IsLiveControlSelected { get => ActiveSection == OperatorSection.LiveControl; set { if (value) ActiveSection = OperatorSection.LiveControl; } }
-    public bool IsPresentationSelected { get => ActiveSection == OperatorSection.Presentation; set { if (value) ActiveSection = OperatorSection.Presentation; } }
-    public bool IsDisplaysSelected { get => ActiveSection == OperatorSection.Displays; set { if (value) ActiveSection = OperatorSection.Displays; } }
-    public bool IsSetupDiagnosticsSelected { get => ActiveSection == OperatorSection.SetupDiagnostics; set { if (value) ActiveSection = OperatorSection.SetupDiagnostics; } }
+    public bool IsSetupSelected { get => ActiveSection == OperatorSection.Setup; set { if (value) ActiveSection = OperatorSection.Setup; } }
+    public bool IsSettingsDiagnosticsSelected { get => ActiveSection == OperatorSection.SettingsDiagnostics; set { if (value) ActiveSection = OperatorSection.SettingsDiagnostics; } }
     public string OperatorPageTitle => ActiveSection switch
     {
-        OperatorSection.Presentation => "Presentation",
-        OperatorSection.Displays => "Displays",
-        OperatorSection.SetupDiagnostics => "Setup & diagnostics",
+        OperatorSection.Setup => "Setup",
+        OperatorSection.SettingsDiagnostics => "Settings and Diagnostics",
         _ => "Live control"
     };
     public string OperatorPageSubtitle => ActiveSection switch
     {
-        OperatorSection.Presentation => "Connect Canva, refresh the available presentations, and load Sunday’s content.",
-        OperatorSection.Displays => "Choose where the confidence output appears and test it safely.",
-        OperatorSection.SetupDiagnostics => "Review each readiness check before going live.",
+        OperatorSection.Setup => "1. Load the deck.  2. Choose the display.  3. Preview and go live.",
+        OperatorSection.SettingsDiagnostics => "Saved connection, Monitor appearance, and support tools. Usually set once.",
         _ => "Automatic Canva Presenter sync with manual controls available at all times."
     };
 
@@ -292,24 +296,10 @@ public sealed class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(IsNextLineBold));
             OnPropertyChanged(nameof(NextLineColor));
             OnPropertyChanged(nameof(ShowClock));
-            OnPropertyChanged(nameof(ShowPreviewNextLine));
             OnPropertyChanged(nameof(ContrastMessage));
-            OnPropertyChanged(nameof(PreviewBackgroundBrush));
-            OnPropertyChanged(nameof(PreviewTextBrush));
-            OnPropertyChanged(nameof(PreviewAccentBrush));
-            OnPropertyChanged(nameof(PreviewNextLineBrush));
-            OnPropertyChanged(nameof(PreviewNextLineFontSize));
-            OnPropertyChanged(nameof(PreviewNextLineFontWeight));
-            OnPropertyChanged(nameof(PreviewMirrorBackgroundBrush));
-            OnPropertyChanged(nameof(PreviewMirrorAccentBrush));
-            OnPropertyChanged(nameof(PreviewImagePath));
-            OnPropertyChanged(nameof(HasPreviewImage));
-            OnPropertyChanged(nameof(ShowMonitorPreviewImage));
             OnPropertyChanged(nameof(SelectedPage));
             OnPropertyChanged(nameof(SelectedPageTitle));
             OnPropertyChanged(nameof(PreviewPrimaryText));
-            OnPropertyChanged(nameof(PreviewNextLine));
-            OnPropertyChanged(nameof(CurrentPageText));
             OnPropertyChanged(nameof(IsMirrorSelected));
             OnPropertyChanged(nameof(IsMonitorSelected));
             NotifyReadinessChanged();
@@ -324,7 +314,6 @@ public sealed class MainViewModel : ViewModelBase
     public int CurrentPageNumber { get => Snapshot.SelectedPageNumber; set { if (value != Snapshot.SelectedPageNumber) { PauseForManualNavigation(); _coordinator.SelectPage(value); } } }
     public int PageCount => Snapshot.Document.Pages.Count;
     public string PageLabel => $"Page {CurrentPageNumber} of {PageCount}";
-    public string CurrentPageText => $"Page {CurrentPageNumber} of {PageCount}";
     public bool IsLive => Snapshot.IsLive;
     public bool IsOutputBlanked => Snapshot.IsBlanked;
     public string BlankOutputButtonText => IsOutputBlanked ? "Restore output" : "Blank output";
@@ -341,13 +330,6 @@ public sealed class MainViewModel : ViewModelBase
             return string.IsNullOrWhiteSpace(text) ? "This page has no readable text. Monitor mode will use its Canva page image." : text;
         }
     }
-    public string PreviewNextLine => Snapshot.NextLine ?? string.Empty;
-    public bool ShowPreviewNextLine => Snapshot.Layout is not MonitorLayout.CurrentOnly and not MonitorLayout.SpeakerFocused && !string.IsNullOrWhiteSpace(Snapshot.NextLine);
-    public string? PreviewImagePath => SelectedPage?.FallbackImagePath;
-    public bool HasPreviewImage => !string.IsNullOrWhiteSpace(PreviewImagePath);
-    public bool ShowMonitorPreviewImage => HasPreviewImage && SelectedPage is { HasFormattedText: false };
-    public Brush PreviewMirrorBackgroundBrush => BrushFrom(SelectedPage?.MirrorBackground ?? "#0D0E10", Brushes.Black);
-    public Brush PreviewMirrorAccentBrush => BrushFrom(SelectedPage?.MirrorAccent ?? "#75E6C8", Brushes.MediumPurple);
     public bool IsMirrorSelected { get => OutputMode == OutputMode.Mirror; set { if (value) OutputMode = OutputMode.Mirror; } }
     public bool IsMonitorSelected { get => OutputMode == OutputMode.Monitor; set { if (value) OutputMode = OutputMode.Monitor; } }
 
@@ -357,6 +339,7 @@ public sealed class MainViewModel : ViewModelBase
         set
         {
             if (!SetProperty(ref _selectedDisplay, value)) return;
+            _outputWindowManager.SetPreviewDisplay(value?.Id);
             Persist();
             StartOutputCommand.RaiseCanExecuteChanged();
             NotifyReadinessChanged();
@@ -399,12 +382,6 @@ public sealed class MainViewModel : ViewModelBase
     public bool IsNextLineBold { get => Snapshot.Appearance.IsNextLineBold; set => SetAppearance(Snapshot.Appearance with { IsNextLineBold = value }); }
     public string NextLineColor { get => Snapshot.Appearance.NextLineColor; set => SetAppearance(Snapshot.Appearance with { NextLineColor = value }); }
     public bool ShowClock { get => Snapshot.Appearance.ShowClock; set => SetAppearance(Snapshot.Appearance with { ShowClock = value }); }
-    public Brush PreviewBackgroundBrush => BrushFrom(BackgroundColor, Brushes.Black);
-    public Brush PreviewTextBrush => BrushFrom(TextColor, Brushes.White);
-    public Brush PreviewAccentBrush => BrushFrom(AccentColor, Brushes.MediumPurple);
-    public Brush PreviewNextLineBrush => BrushFrom(NextLineColor, Brushes.White);
-    public double PreviewNextLineFontSize => Math.Clamp(NextLineFontSize * 0.55d, 10d, 32d);
-    public System.Windows.FontWeight PreviewNextLineFontWeight => IsNextLineBold ? FontWeights.Bold : FontWeights.SemiBold;
     public string CanvaClientId { get => _canvaClientId; set { if (SetProperty(ref _canvaClientId, value)) NotifySecretState(); } }
     public string CanvaConnectionStatus
     {
@@ -618,6 +595,7 @@ public sealed class MainViewModel : ViewModelBase
         _canva.LoadProgressChanged -= OnCanvaLoadProgressChanged;
         _canvaPresenterAccessibilityTracker.TrackingUpdated -= OnCanvaPresenterTrackingUpdated;
         _canvaPresenterAccessibilityTracker.Dispose();
+        _outputWindowManager.PreviewSourceChanged -= OnPreviewSourceChanged;
         _outputWindowManager.Dispose();
         try
         {
@@ -628,7 +606,8 @@ public sealed class MainViewModel : ViewModelBase
             PrivacySafeLog.WriteException("Preferences could not be saved while closing", exception);
         }
     }
-    private void ShowPreview() => _outputWindowManager.ShowPreview();
+    private void OnPreviewSourceChanged(object? sender, EventArgs args) => OnPropertyChanged(nameof(OutputPreviewSurface));
+    private void ShowPreview() => _outputWindowManager.ShowPreview(this);
     private bool CanStartOutput() => SelectedDisplay is not null;
 
     private void StartOutput()
@@ -668,7 +647,7 @@ public sealed class MainViewModel : ViewModelBase
     private void ShowSetupDiagnostics()
     {
         RefreshDisplays();
-        ActiveSection = OperatorSection.SetupDiagnostics;
+        ActiveSection = OperatorSection.SettingsDiagnostics;
         NotifyReadinessChanged();
     }
 

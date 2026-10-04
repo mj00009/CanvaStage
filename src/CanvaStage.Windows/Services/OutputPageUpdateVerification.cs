@@ -25,7 +25,7 @@ internal static class OutputPageUpdateVerification
         bool originalSyncEnabled = mainViewModel.IsPresenterSyncEnabled;
         PresentationPage[] pages = Enumerable.Range(1, 87).Select(page => new PresentationPage(page, $"Marker {page}",
             [$"Primary marker {page:00}: this slide must change on the output display.",
-             "A second line tests wrapping without relying on changing panel dimensions."], "#080B11", "#8454F4")).ToArray();
+             "Mixed case stays authored: Praise the Lord, NASA and iPhone."], "#080B11", "#8454F4")).ToArray();
         TextBlock text = (TextBlock)output.FindName("PrimaryText");
         FrameworkElement host = (FrameworkElement)output.FindName("PrimaryTextHost");
         string? previousPixels = null;
@@ -44,9 +44,10 @@ internal static class OutputPageUpdateVerification
                 // Let ordinary binding, fit and layout work settle. Do not call UpdateLayout,
                 // InvalidateVisual or the fitter to repair the very path under test.
                 await output.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+                string expectedText = string.Join(Environment.NewLine, pages[expectedPage - 1].TextBlocks);
                 if (coordinator.Snapshot.SelectedPageNumber != expectedPage || mainViewModel.CurrentPageNumber != expectedPage
                     || ((OutputWindowViewModel)output.DataContext).Snapshot.SelectedPageNumber != expectedPage
-                    || text.Text != string.Join(Environment.NewLine, pages[expectedPage - 1].TextBlocks))
+                    || text.Text != expectedText || mainViewModel.PreviewPrimaryText != expectedText)
                     throw new InvalidOperationException($"Output binding did not follow expected page {expectedPage}.");
                 string pixels = CaptureDrawingFingerprint(host);
                 if (previousPixels is not null && ((pixels == previousPixels) == pixelsShouldChange))

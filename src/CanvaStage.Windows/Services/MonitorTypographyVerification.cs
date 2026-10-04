@@ -11,7 +11,7 @@ using TextBlock = System.Windows.Controls.TextBlock;
 
 namespace CanvaStage.Windows.Services;
 
-/// <summary>Checks first-frame in-app fitting and settled output typography without manually fitting text.</summary>
+/// <summary>Checks first-frame fitting and typography without manually fitting or redrawing text.</summary>
 internal static class MonitorTypographyVerification
 {
     public static async Task RunAsync(MainWindow mainWindow, MainViewModel mainViewModel,
@@ -27,11 +27,11 @@ internal static class MonitorTypographyVerification
         coordinator.SetAppearance(MonitorAppearance.Default with { FontSize = 160, NextLineFontSize = 24 });
         await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(), DispatcherPriority.ApplicationIdle);
         ConfidencePreview preview = Descendants(mainWindow).OfType<ConfidencePreview>().First(element => element.IsVisible);
-        FittedTextHost previewHost = (FittedTextHost)preview.FindName("PreviewTextHost");
+        FittedTextHost outputHost = (FittedTextHost)output.FindName("PrimaryTextHost");
         TextBlock primary = (TextBlock)output.FindName("PrimaryText");
         TextBlock next = (TextBlock)output.FindName("NextLineText");
-        TextBlock previewPrimary = (TextBlock)previewHost.Child;
-        TextBlock previewNext = (TextBlock)preview.FindName("PreviewNextLineText");
+        if (!ReferenceEquals(preview.SourceVisual, output.PreviewSurface))
+            throw new InvalidOperationException("Preview does not copy the actual output surface.");
 
         async Task ObserveChangeAsync(Action change, bool waitForWindowSize = false)
         {
@@ -46,11 +46,11 @@ internal static class MonitorTypographyVerification
                     if (waitForWindowSize && (Math.Abs(output.ActualWidth - output.Width) > 1
                         || Math.Abs(output.ActualHeight - output.Height) > 1)) return;
                     if (primary.Text != ((OutputWindowViewModel)output.DataContext).PrimaryText
-                        || previewPrimary.Text != mainViewModel.PreviewPrimaryText)
+                        || primary.Text != mainViewModel.PreviewPrimaryText)
                         throw new InvalidOperationException("The first rendered frame has stale confidence text.");
-                    if (!previewHost.TextFits)
-                        throw new InvalidOperationException("The first rendered frame contains oversized in-app confidence text.");
-                    firstFrame.TrySetResult(previewPrimary.FontSize);
+                    if (!outputHost.TextFits)
+                        throw new InvalidOperationException("The first rendered frame contains oversized confidence text.");
+                    firstFrame.TrySetResult(primary.FontSize);
                 }
                 catch (Exception exception) { observedFailure = exception; firstFrame.TrySetException(exception); }
             }
@@ -58,14 +58,14 @@ internal static class MonitorTypographyVerification
             try
             {
                 change();
-                double previewSize = await firstFrame.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                double outputSize = await firstFrame.Task.WaitAsync(TimeSpan.FromSeconds(5));
                 await output.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
                 if (observedFailure is not null) throw observedFailure;
                 // Windows can present multiple intermediate client viewports while resizing.
-                // The output deliberately uses v0.10.2's deferred fitter again; only
-                // the in-app preview retains the first-frame size guarantee.
-                if (!waitForWindowSize && Math.Abs(previewPrimary.FontSize - previewSize) > 0.01)
-                    throw new InvalidOperationException($"In-app text changed size after its first rendered frame: {previewSize:0.00} -> {previewPrimary.FontSize:0.00}.");
+                // Every intermediate resize frame must fit; only fixed-viewport
+                // changes require identical first/settled sizes on both surfaces.
+                if (!waitForWindowSize && Math.Abs(primary.FontSize - outputSize) > 0.01)
+                    throw new InvalidOperationException($"Confidence text changed size after its first rendered frame: {outputSize:0.00} -> {primary.FontSize:0.00}.");
                 output.VerifyTextFit();
             }
             finally { CompositionTarget.Rendering -= ObserveFrame; }
@@ -78,15 +78,14 @@ internal static class MonitorTypographyVerification
         {
             await ObserveChangeAsync(() => coordinator.SetAppearance(coordinator.Snapshot.Appearance with { FontFamily = font }));
             if (primary.FontFamily.Source != font || next.FontFamily.Source != font
-                || previewPrimary.FontFamily.Source != font || previewNext.FontFamily.Source != font
-                || primary.FontWeight != next.FontWeight || previewPrimary.FontWeight != previewNext.FontWeight
-                || next.FontSize != 24 || previewNext.FontSize != mainViewModel.PreviewNextLineFontSize
+                || primary.FontWeight != next.FontWeight
+                || next.FontSize != 24
                 || primary.FontSize >= 160)
                 throw new InvalidOperationException("Current/Next typography does not share the selected family/default weight with independent sizes.");
             capture(output, Path.Combine(directory, $"output-font-match-{font.Replace(' ', '-')}.png"), 1);
         }
         await ObserveChangeAsync(() => coordinator.SetAppearance(coordinator.Snapshot.Appearance with { IsNextLineBold = true }));
-        if (next.FontWeight != FontWeights.Bold || previewNext.FontWeight != FontWeights.Bold)
+        if (next.FontWeight != FontWeights.Bold)
             throw new InvalidOperationException("The optional Next bold override was lost.");
         await ObserveChangeAsync(() => coordinator.SetAppearance(coordinator.Snapshot.Appearance with { IsNextLineBold = false, ShowClock = false, FontSize = 96 }));
         foreach (MonitorLayout layout in Enum.GetValues<MonitorLayout>())

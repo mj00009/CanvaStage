@@ -115,22 +115,24 @@ internal static class WindowsReleaseVerification
         }
         checks.Add("All operator sections at 100%, 125%, 150% and 200% effective layout sizes and raster DPI");
 
-        viewModel.ActiveSection = OperatorSection.Presentation;
+        viewModel.ActiveSection = OperatorSection.Setup;
         VerificationWindowSizing.SetSize(mainWindow, 1380, 900);
         await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(), DispatcherPriority.ApplicationIdle);
         mainWindow.ScrollContentToEndForAutomation();
         await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(), DispatcherPriority.ApplicationIdle);
-        capture(mainWindow, Path.Combine(directory, "operator-Presentation-refresh-controls.png"), 1);
+        capture(mainWindow, Path.Combine(directory, "operator-Setup-display-and-output-controls.png"), 1);
         mainWindow.ScrollContentToTopForAutomation();
 
         viewModel.ActiveSection = OperatorSection.LiveControl;
         Feed(1);
         await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(), DispatcherPriority.ApplicationIdle);
         capture(mainWindow, Path.Combine(directory, "operator-LiveControl-single-line-cue.png"), 1);
+        viewModel.ActiveSection = OperatorSection.SettingsDiagnostics;
         VerificationWindowSizing.SetSize(mainWindow, 1380, 900);
-        mainWindow.ScrollContentToEndForAutomation();
+        mainWindow.ScrollContentToTopForAutomation();
         await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(), DispatcherPriority.ApplicationIdle);
-        capture(mainWindow, Path.Combine(directory, "operator-LiveControl-appearance-controls.png"), 1);
+        capture(mainWindow, Path.Combine(directory, "operator-SettingsDiagnostics-appearance-controls.png"), 1);
+        viewModel.ActiveSection = OperatorSection.LiveControl;
         mainWindow.ScrollContentToTopForAutomation();
         mainWindow.SetCompactViewForAutomation(true);
         capture(mainWindow, Path.Combine(directory, "compact-following.png"), 1);
@@ -139,8 +141,8 @@ internal static class WindowsReleaseVerification
         mainWindow.SetCompactViewForAutomation(false);
         viewModel.TogglePresenterSyncCommand.Execute(null);
 
-        using OutputWindowViewModel outputViewModel = new(coordinator);
-        OutputWindow output = new(outputViewModel);
+        OutputWindow output = viewModel.OutputManagerForVerification.WindowForVerification;
+        OutputWindowViewModel outputViewModel = (OutputWindowViewModel)output.DataContext;
         Require(output.Icon is not null, "Output window loads the CanvaStage icon");
         Require(outputViewModel.NextLineFontSize == 48
             && outputViewModel.NextLineFontWeight == FontWeights.Bold,
@@ -158,7 +160,7 @@ internal static class WindowsReleaseVerification
         try
         {
             await MonitorTypographyVerification.RunAsync(mainWindow, viewModel, output, coordinator, directory, capture);
-            checks.Add("First-frame in-app text fit, restored deferred output fit, matching Current/Next typography across four fonts, independent cue size and optional bold");
+            checks.Add("First-frame text fit on both Monitor surfaces without forced redraw, matching Current/Next typography across four fonts, independent cue size and optional bold");
             await OutputPageUpdateVerification.RunAsync(mainWindow, viewModel, output, coordinator, directory, capture);
             checks.Add("Separate output drawing pixels change across 40 Presenter pages, manual navigation and resume; pause holds pixels; no forced redraw or fitting repairs in the observation path");
             foreach (MonitorLayout layout in Enum.GetValues<MonitorLayout>())
@@ -182,8 +184,10 @@ internal static class WindowsReleaseVerification
             await output.Dispatcher.InvokeAsync(() => output.UpdateLayout(), DispatcherPriority.ApplicationIdle);
             VerificationWindowSizing.CheckSize(output, 1280, 720);
             capture(output, Path.Combine(directory, "output-mirror.png"), 1);
+            await OperatorWorkflowVerification.RunAsync(mainWindow, viewModel, output, coordinator, directory, capture);
+            checks.Add("Setup/Settings separation; no compact Pause Sync; independent offline/live Preview; shared visual, 1:1 pixel parity and scaled previews across modes/layouts");
         }
-        finally { coordinator.StopOutput(); output.Close(); }
+        finally { viewModel.OutputManagerForVerification.StopOutput(); }
         checks.Add("All Monitor layouts with long text at maximum requested font size; measured text fit; Mirror output");
         Require(errors.Errors.Count == 0, "No WPF binding errors: " + string.Join(Environment.NewLine, errors.Errors));
         checks.Add("No WPF binding errors");
