@@ -455,7 +455,7 @@ public sealed class MainViewModel : ViewModelBase
         : IsCanvaDownloadProgressVisible ? "The current deck stays available until the full download is ready."
         : _isCheckingContent ? "Checking the applied presentation's modification time; unchanged content is not downloaded."
         : !_canva.IsConnected ? (_contentRefreshError is null ? "" : _contentRefreshError + " ")
-            + "The cached deck remains available. Connect Canva in Presentation to resume checks."
+            + "The cached deck remains available. Connect Canva in Setup to resume checks."
         : _contentRefreshError ?? (IsPresentationUpdateAvailable ? "A newer version is available in Canva."
             : _lastContentCheck is not null ? PresentationFreshnessText : "No content check completed for this deck this session.");
     public string ContentRefreshTimingText
@@ -969,7 +969,7 @@ public sealed class MainViewModel : ViewModelBase
         catch (System.IO.InvalidDataException) { PrivacySafeLog.Write("Canva returned an unreadable presentation export."); setFailureStatus("CanvaStage could not read the PowerPoint export. Try Apply again; the previous presentation remains available."); }
         catch (System.IO.IOException exception) { PrivacySafeLog.WriteException("Canva presentation storage failed", exception); setFailureStatus("CanvaStage could not save the downloaded presentation. Check free disk space and try Apply again. The previous presentation remains available."); }
         catch (UnauthorizedAccessException exception) { PrivacySafeLog.WriteException("Canva storage access denied", exception); setFailureStatus("Windows blocked access to CanvaStage's local storage. Check folder permissions and try again."); }
-        catch (Exception exception) { PrivacySafeLog.Write($"Canva action failed unexpectedly ({exception.GetType().Name})."); setFailureStatus("CanvaStage could not finish this Canva action. Try again; if it repeats, export diagnostics from Setup & diagnostics."); }
+        catch (Exception exception) { PrivacySafeLog.Write($"Canva action failed unexpectedly ({exception.GetType().Name})."); setFailureStatus("CanvaStage could not finish this Canva action. Try again; if it repeats, export diagnostics from Settings and Diagnostics."); }
         finally { IsCanvaBusy = false; NotifyReadinessChanged(); }
         return succeeded;
     }

@@ -21,7 +21,7 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
     {
         _coordinator = coordinator;
         _snapshot = coordinator.Snapshot;
-        _loadedImagePath = _snapshot.CurrentPage?.FallbackImagePath;
+        _loadedImagePath = Page?.FallbackImagePath;
         _fallbackImage = CreateFallbackImage(_loadedImagePath);
         coordinator.SnapshotChanged += OnSnapshotChanged;
     }
@@ -36,7 +36,7 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
                 return;
             }
 
-            string? imagePath = value.CurrentPage?.FallbackImagePath;
+            string? imagePath = Page?.FallbackImagePath;
             if (_loadedImagePath != imagePath)
             {
                 _loadedImagePath = imagePath;
@@ -68,11 +68,13 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
 
     // The hidden output surface is also the offline preview. Live state controls
     // window visibility, not whether a prepared deck can be previewed.
-    public bool IsBlank => Snapshot.CurrentPage is null;
+    public bool IsBlank => Page is null;
     public bool IsOutputBlanked => Snapshot.IsLive && Snapshot.IsBlanked;
     public bool IsMirror => !IsBlank && Snapshot.Mode == OutputMode.Mirror;
     public bool IsMonitor => !IsBlank && Snapshot.Mode == OutputMode.Monitor;
-    public PresentationPage? Page => Snapshot.CurrentPage;
+    public PresentationPage? Page => Snapshot.IsLive
+        ? Snapshot.CurrentPage
+        : Snapshot.Document.FindPage(Snapshot.SelectedPageNumber);
     public string PrimaryText => Page is null
         ? string.Empty
         : string.Join(Environment.NewLine, Page.TextBlocks.Where(static text => !string.IsNullOrWhiteSpace(text)));

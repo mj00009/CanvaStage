@@ -78,8 +78,59 @@ internal static class OperatorWorkflowVerification
         Require(!coordinator.Snapshot.IsLive && !output.IsVisible && output.PreviewSurface.ActualWidth > 0,
             "Offline Preview started a live session or has no viewport");
         Require(((OutputWindowViewModel)output.DataContext).IsMonitor, "Offline Preview does not show the prepared deck");
+        OutputWindowViewModel outputModel = (OutputWindowViewModel)output.DataContext;
+        Require(outputModel.Page == coordinator.Snapshot.Document.FindPage(coordinator.Snapshot.SelectedPageNumber)
+            && !string.IsNullOrWhiteSpace(outputModel.PrimaryText), "Offline Preview lost its cached page text");
+        using (OutputWindowViewModel reopened = new(coordinator))
+            Require(reopened.Page == outputModel.Page && reopened.PrimaryText == outputModel.PrimaryText,
+                "A newly constructed offline renderer lost the cached selected page");
+        coordinator.SelectPage(3);
+        await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+        Require(outputModel.PrimaryText == coordinator.Snapshot.Document.FindPage(3)?.PrimaryText
+            && ((System.Windows.Controls.TextBlock)output.FindName("PrimaryText")).Text == outputModel.PrimaryText,
+            "Offline page navigation did not update the shared output visual");
+        VerifyPixels(fixture, output.PreviewSurface);
         capture(model.OutputManagerForVerification.PreviewWindowForVerification!, Path.Combine(directory, "separate-preview-offline.png"), 1);
+        await VerifyOfflineImagesAsync(model, output, coordinator, directory, capture);
         model.OutputManagerForVerification.PreviewWindowForVerification!.Close();
+    }
+
+    private static async Task VerifyOfflineImagesAsync(MainViewModel model, OutputWindow output,
+        IOutputCoordinator coordinator, string directory, Action<FrameworkElement, string, double> capture)
+    {
+        PresentationDocument original = coordinator.Snapshot.Document;
+        int originalPage = coordinator.Snapshot.SelectedPageNumber;
+        string imagePath = Path.Combine(directory, "isolated-storage", "offline-preview.png");
+        Directory.CreateDirectory(Path.GetDirectoryName(imagePath)!);
+        PngBitmapEncoder encoder = new();
+        encoder.Frames.Add(BitmapFrame.Create(BitmapSource.Create(2, 2, 96, 96, PixelFormats.Bgra32, null,
+            new byte[] { 255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255 }, 8)));
+        using (FileStream stream = File.Create(imagePath)) encoder.Save(stream);
+        try
+        {
+            coordinator.SetDocument(new("offline-preview", "Offline image fixture",
+                [new(1, "Image only", [], "#080B11", "#8454F4", HasFormattedText: false, FallbackImagePath: imagePath)],
+                DateTimeOffset.UtcNow));
+            OutputWindowViewModel outputModel = (OutputWindowViewModel)output.DataContext;
+            foreach (OutputMode mode in Enum.GetValues<OutputMode>())
+            {
+                coordinator.SetOutputMode(mode);
+                await output.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+                Require(!coordinator.Snapshot.IsLive && coordinator.Snapshot.CurrentPage is null && !output.IsVisible
+                    && outputModel.HasFallbackImage && (mode != OutputMode.Monitor || outputModel.ShowFallbackImage),
+                    "Offline Mirror/Monitor fallback did not retain its cached image without starting output");
+                capture(model.OutputManagerForVerification.PreviewWindowForVerification!,
+                    Path.Combine(directory, $"separate-preview-offline-image-{mode}.png"), 1);
+            }
+            using OutputWindowViewModel reopened = new(coordinator);
+            Require(reopened.HasFallbackImage && reopened.ShowFallbackImage,
+                "A newly constructed offline renderer did not load its cached fallback image");
+        }
+        finally
+        {
+            coordinator.SetDocument(original, originalPage);
+            coordinator.SetOutputMode(OutputMode.Monitor);
+        }
     }
 
     private static void VerifyPixels(ConfidencePreview fixture, FrameworkElement source)
