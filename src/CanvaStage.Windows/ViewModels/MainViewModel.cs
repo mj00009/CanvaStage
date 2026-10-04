@@ -261,7 +261,7 @@ public sealed class MainViewModel : ViewModelBase
     public string OperatorPageTitle => ActiveSection switch
     {
         OperatorSection.Setup => "Setup",
-        OperatorSection.SettingsDiagnostics => "Settings and Diagnostics",
+        OperatorSection.SettingsDiagnostics => "Settings & Diagnostics",
         _ => "Live control"
     };
     public string OperatorPageSubtitle => ActiveSection switch
@@ -969,7 +969,7 @@ public sealed class MainViewModel : ViewModelBase
         catch (System.IO.InvalidDataException) { PrivacySafeLog.Write("Canva returned an unreadable presentation export."); setFailureStatus("CanvaStage could not read the PowerPoint export. Try Apply again; the previous presentation remains available."); }
         catch (System.IO.IOException exception) { PrivacySafeLog.WriteException("Canva presentation storage failed", exception); setFailureStatus("CanvaStage could not save the downloaded presentation. Check free disk space and try Apply again. The previous presentation remains available."); }
         catch (UnauthorizedAccessException exception) { PrivacySafeLog.WriteException("Canva storage access denied", exception); setFailureStatus("Windows blocked access to CanvaStage's local storage. Check folder permissions and try again."); }
-        catch (Exception exception) { PrivacySafeLog.Write($"Canva action failed unexpectedly ({exception.GetType().Name})."); setFailureStatus("CanvaStage could not finish this Canva action. Try again; if it repeats, export diagnostics from Settings and Diagnostics."); }
+        catch (Exception exception) { PrivacySafeLog.Write($"Canva action failed unexpectedly ({exception.GetType().Name})."); setFailureStatus("CanvaStage could not finish this Canva action. Try again; if it repeats, export diagnostics from Settings & Diagnostics."); }
         finally { IsCanvaBusy = false; NotifyReadinessChanged(); }
         return succeeded;
     }

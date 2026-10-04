@@ -27,7 +27,7 @@ Use this checklist before relying on a new release during a service. Automated v
 - [ ] Use **Identify displays** and confirm names, numbers, resolution, and Primary/Extended status are understandable.
 - [ ] Test a 1152 × 864 output and mixed monitor scaling at 100%, 125%, 150%, and 200%. Confirm borderless output fills exactly the selected display.
 - [ ] Move and resize the main window at each scale. Confirm its title bar remains reachable.
-- [ ] Use Setup's numbered steps to load the deck, identify/select the display and start output. Confirm Client ID/Secret and appearance controls are only in Settings and Diagnostics; saved values survive upgrading and reopening.
+- [ ] Use Setup's numbered steps to load the deck, identify/select the display and start output. Confirm Client ID/Secret and appearance controls are only in Settings & Diagnostics; saved values survive upgrading and reopening.
 - [ ] In Compact view, confirm there is no Pause Sync button, the page/status remain visible, and Full view restores access to resume/manage sync.
 - [ ] Compare in-app, compact and separate Preview with live output at different window sizes and display aspect ratios/scaling. Current text wrapping, next-line ellipsis, clock, colors, image fallback and blank state must match; previews may letterbox. Opening/resizing/closing Preview must not relocate, stop or reflow the live output. Before output starts, Preview must show the cached deck using the selected display's viewport without starting a live session.
 - [ ] Test every Monitor layout, maximum font sizes, long text, image fallback, colors, next-line styling, and the clock.
@@ -81,7 +81,7 @@ Include:
 - monitor resolution and scaling;
 - the exact on-screen status;
 - reproduction steps;
-- the sanitized diagnostic ZIP from **Settings and Diagnostics**.
+- the sanitized diagnostic ZIP from **Settings & Diagnostics**.
 
 For frozen or blank secondary output, also record the connection type (HDMI/DisplayPort, dock/adapter, or Windows wireless casting), receiver model, whether the mouse remains visible, and whether an unrelated app such as Notepad displays there. Note whether restarting only CanvaStage or reconnecting the display restores content. Export diagnostics before recovery when possible. A visible mouse alone does not establish that app content is rendering correctly.
 

@@ -21,7 +21,7 @@ The **Content refresh** card at the top of **Live control** shows the current st
 
 You do not need to stop and restart CanvaStage output or Presenter tracking to use newly downloaded content. The refresh preserves the current Presenter page when its counter matches the new deck, manual pauses, appearance, output placement, and blank state. If pages were added or removed, tracking can temporarily report a count mismatch until the new copy is ready. A failed refresh keeps the current deck and retries with a longer delay (up to five minutes). Updates still download the complete visible deck; selective image refresh is deferred.
 
-Turn automatic updates off in **Settings and Diagnostics → Content refresh and local cache** to control updates manually. With automatic updates enabled, **Check for updates** reloads the applied deck even if Canva's reported modification time has not advanced. With automatic updates disabled, it only checks the modification time; use **Re-download** to obtain new content. **Re-download** always reloads the applied deck, even if a different presentation is highlighted in the dropdown. Changing to another deck still requires **Apply**.
+Turn automatic updates off in **Settings & Diagnostics → Content refresh and local cache** to control updates manually. With automatic updates enabled, **Check for updates** reloads the applied deck even if Canva's reported modification time has not advanced. With automatic updates disabled, it only checks the modification time; use **Re-download** to obtain new content. **Re-download** always reloads the applied deck, even if a different presentation is highlighted in the dropdown. Changing to another deck still requires **Apply**.
 
 Older cached decks that use preview thumbnails are upgraded once on the next automatic check. If automatic updates are disabled, choose **Re-download** to upgrade. Automatic checks still depend on Canva reporting a newer modification time after that upgrade; if an edit has not appeared, use **Check for updates** with automatic updates enabled or **Re-download**.
 
@@ -39,7 +39,7 @@ The dropdown includes the monitor name reported by Windows, resolution, and Prim
 
 ## Monitor typography
 
-Open **Settings and Diagnostics → Monitor appearance** for font, maximum size, colors, contrast guidance and Next cue styling. Layout, next-line selection and the optional clock are on the same Settings page. Changes apply immediately and remain saved.
+Open **Settings & Diagnostics → Monitor appearance** for font, maximum size, colors, contrast guidance and Next cue styling. Layout, next-line selection and the optional clock are on the same Settings page. Changes apply immediately and remain saved.
 
 The current text automatically shrinks to fit its available area. The current development source fits text once on the output surface, before drawing; all previews copy that same visual. This restoration is not yet released: v0.10.4 still uses the older deferred fitter on the separate Preview/output window, which may briefly show a larger size before shrinking it. Your selected font size is a maximum, not a guarantee that long slides will use that size. See the [v0.10.4 release notes](releases/v0.10.4.md) for that release's behavior and acceptance checks.
 
@@ -90,7 +90,7 @@ Compact view contains the output preview, Mirror/Monitor, blank/restore, Always 
 Closing the app keeps the downloaded presentation, preferences, Client Secret, and Canva authorization.
 The app reuses and renews the saved authorization at startup without opening a browser. Reauthorization is needed if Canva revokes or rejects the saved refresh token, or the integration credentials change; choose **Connect Canva** when the app reports that condition. Content checks never open an authorization browser automatically.
 
-In **Settings and Diagnostics → Content refresh and local cache**:
+In **Settings & Diagnostics → Content refresh and local cache**:
 
 - **Clean old downloads** removes previous immutable download generations while retaining the active presentation.
 - **Clear cache** removes downloaded presentation content and returns to the demo deck. It keeps credentials, preferences, and the saved presentation selection.
@@ -100,7 +100,7 @@ Use **Disconnect** only when the local Canva credentials should be removed.
 
 ## Diagnostics
 
-Open **Settings and Diagnostics** to review:
+Open **Settings & Diagnostics** to review:
 
 - Presenter sync health;
 - the last detected page, observation time, and scan duration;

@@ -20,7 +20,7 @@ Download `CanvaStage-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.W
 
 The application and package are currently unsigned. Windows may show a SmartScreen warning on first launch. Administrator access is not required.
 
-**Unreleased operator simplification:** Setup combines deck loading and display selection into three numbered steps. Saved Canva connection details, Monitor appearance, content-refresh preferences and support tools live in Settings and Diagnostics. Compact view has no Pause Sync button. All previews copy the actual output visual with uniform scaling, sharing wrapping, fitted size, colors, clock and next-line truncation. Opening Preview no longer relocates or starts live output. Windows runtime/UI verification passed for the offline-preview repair; a final sidebar-label wrapping adjustment is being verified. Downloadable v0.10.4 still has the previous UI.
+**Unreleased operator simplification:** Setup combines deck loading and display selection into three numbered steps. Saved Canva connection details, Monitor appearance, content-refresh preferences and support tools live in Settings & Diagnostics. Compact view has no Pause Sync button. All previews copy the actual output visual with uniform scaling, sharing wrapping, fitted size, colors, clock and next-line truncation. Opening Preview no longer relocates or starts live output. Windows runtime/UI verification passed for the offline-preview repair; a final sidebar-label wrapping adjustment is being verified. Downloadable v0.10.4 still has the previous UI.
 
 ## Features
 
@@ -64,7 +64,7 @@ Manual page navigation pauses automatic following. Choose **Resume sync** to ret
 
 See the [operator guide](docs/operator-guide.md) for modes, keyboard shortcuts, cache controls, and troubleshooting.
 
-Set up credentials once in **Settings and Diagnostics → Canva connection**. Monitor appearance and other persistent preferences are also there. Return to **Full view** to resume or manage sync; compact view deliberately has no sync toggle.
+Set up credentials once in **Settings & Diagnostics → Canva connection**. Monitor appearance and other persistent preferences are also there. Return to **Full view** to resume or manage sync; compact view deliberately has no sync toggle.
 
 ## Privacy and local data
 

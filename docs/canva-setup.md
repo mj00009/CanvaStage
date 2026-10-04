@@ -21,7 +21,7 @@ Canva currently offers Public integrations and Enterprise-only Private integrati
 
 ## Create and configure the integration
 
-1. Open CanvaStage and select **Settings and Diagnostics**. Expand **Canva connection — one-time setup**.
+1. Open CanvaStage and select **Settings & Diagnostics**. Expand **Canva connection — one-time setup**.
 2. Choose **Copy redirect URL**. The current URL is:
 
    ```text
