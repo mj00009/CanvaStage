@@ -6,23 +6,23 @@ CanvaStage is not affiliated with, endorsed by, or sponsored by Canva Pty Ltd. S
 
 ## Download
 
-The latest release is [CanvaStage v0.11.2](https://github.com/mj00009/CanvaStage/releases/tag/v0.11.2). See the [release notes](docs/releases/v0.11.2.md) for changes and suggested acceptance checks.
+The latest release is [CanvaStage v0.11.3](https://github.com/mj00009/CanvaStage/releases/tag/v0.11.3). See the [release notes](docs/releases/v0.11.3.md) for changes and suggested acceptance checks.
 
 This update simplifies the operator workflow into Setup, Live control and Settings & Diagnostics. Compact view has no Pause Sync button. Every preview copies the actual output visual, sharing text wrapping, fitted size, colors, clock and next-line truncation. Opening Preview no longer relocates or starts live output; cached text and images remain available before output starts.
 
 See the [operator guide](docs/operator-guide.md) for the current behavior.
 
-v0.11.2 corrects scaled display-identification placement, refreshes display choices automatically and preserves the selected target through display changes without silently switching to the primary display. Reconnecting a display does not restart output automatically. It retains v0.11.1's visible version, versioned ZIP names, consolidated controls, rounded preview corners and tighter spacing.
+v0.11.3 makes Live control and Compact preview containers follow the actual output's aspect ratio, growing Compact view to show the complete frame. On top applies only in Compact view. Canva connection and content/cache Settings cards are always visible, with normal-sized controls. It retains the scaled display-identification and selection recovery fixes from v0.11.2. Reconnecting a display does not restart output automatically.
 
-**Acceptance still needed:** the freeze reported in [#24](https://github.com/mj00009/CanvaStage/issues/24) occurred with Windows wireless casting to a Samsung TV; its root cause is not confirmed. Test on the actual presentation computer and receiver before service use, or stay on the previously working [v0.10.2](https://github.com/mj00009/CanvaStage/releases/tag/v0.10.2). This release is not a confirmed fix for that freeze.
+**Hardware testing:** the freeze reported in [#24](https://github.com/mj00009/CanvaStage/issues/24) occurred with Windows wireless casting to a Samsung TV. The operator has closed the issue, but its root cause is not confirmed. Test on the actual presentation computer and receiver before service use; this release does not claim a casting fix. The audio source reported in [#35](https://github.com/mj00009/CanvaStage/issues/35) still needs confirmation; CanvaStage displays static images/text and does not play or automatically mute media.
 
 Monitor text again fits during layout before drawing, retaining the v0.10.4 diagnostics and output drawing checks. A separate casing report remains unconfirmed; the extractor copies PPTX text without changing its case and needs an affected export to establish the cause.
 
-Download `CanvaStage-v0.11.2-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
+Download `CanvaStage-v0.11.3-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
 
 The application and package are currently unsigned. Windows may show a SmartScreen warning on first launch. Administrator access is not required.
 
-Setup combines deck loading and display selection into three numbered steps. Saved Canva connection details, Monitor appearance, content-refresh preferences and support tools live in Settings & Diagnostics. [Windows release verification passed](https://github.com/mj00009/CanvaStage/actions/runs/37239841928), including Setup display controls, selection recovery, offline previews, pixel parity, visible version and control placement; representative screenshots were reviewed during pre-release verification. The CI runner has only one physical display; confirm secondary-display placement on your hardware.
+Setup combines deck loading and display selection into three numbered steps. Saved Canva connection details, Monitor appearance, content-refresh preferences and support tools live in Settings & Diagnostics. [Windows release verification passed](https://github.com/mj00009/CanvaStage/actions/runs/37841551307), including all 89 unit tests and 16 runtime/UI checks for Setup displays, selection recovery, offline previews, pixel parity, aspect changes, Compact transitions and Settings text sizing. Representative versioned-build screenshots were reviewed. The CI runner has only one physical display; confirm secondary-display placement on your hardware.
 
 ## Features
 
