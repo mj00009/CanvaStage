@@ -9,6 +9,7 @@ public partial class MainWindow : Window
     private readonly MainViewModel _viewModel;
     private WindowState _fullViewWindowState = WindowState.Maximized;
     private Rect _fullViewBounds = Rect.Empty;
+    private double _fullViewMaxHeight = double.PositiveInfinity;
 
     public MainWindow(MainViewModel viewModel)
     {
@@ -98,17 +99,21 @@ public partial class MainWindow : Window
 
             _fullViewWindowState = WindowState;
             _fullViewBounds = RestoreBounds;
+            _fullViewMaxHeight = MaxHeight;
             WindowState = WindowState.Normal;
             MinWidth = 320;
             MinHeight = 300;
 
             Rect workArea = SystemParameters.WorkArea;
             Width = Math.Clamp(workArea.Width * 0.20d, 320d, 400d);
-            Height = Math.Clamp(workArea.Height * 0.25d, 300d, 340d);
+            MinHeight = Math.Min(300, Math.Max(1, workArea.Height - 32));
+            MaxHeight = Math.Max(MinHeight, workArea.Height - 32);
             Left = Math.Max(workArea.Left, workArea.Right - Width - 16d);
             Top = workArea.Top + 16d;
             FullViewRoot.Visibility = Visibility.Collapsed;
             CompactViewRoot.Visibility = Visibility.Visible;
+            _viewModel.SetCompactViewState(true);
+            SizeToContent = SizeToContent.Height;
             return;
         }
 
@@ -119,6 +124,9 @@ public partial class MainWindow : Window
 
         CompactViewRoot.Visibility = Visibility.Collapsed;
         FullViewRoot.Visibility = Visibility.Visible;
+        _viewModel.SetCompactViewState(false);
+        SizeToContent = SizeToContent.Manual;
+        MaxHeight = _fullViewMaxHeight;
         MinWidth = Math.Min(600, SystemParameters.WorkArea.Width);
         MinHeight = Math.Min(420, SystemParameters.WorkArea.Height);
         if (_fullViewWindowState == WindowState.Maximized)

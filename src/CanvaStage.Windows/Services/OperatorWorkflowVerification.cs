@@ -26,6 +26,7 @@ internal static class OperatorWorkflowVerification
         FrameworkElement settings = (FrameworkElement)main.FindName("SettingsPanel");
         FrameworkElement compact = (FrameworkElement)main.FindName("CompactViewRoot");
         FrameworkElement live = (FrameworkElement)main.FindName("LiveControlGrid");
+        Require(!Descendants(output).OfType<MediaElement>().Any(), "Confidence output unexpectedly contains an audio/video player");
         // Settings retains its own sync control, but it is not shown on Live control.
         Require(Descendants(main).OfType<ButtonBase>().Count(button => button.IsVisible
             && ReferenceEquals(button.Command, model.TogglePresenterSyncCommand)) == 1,
@@ -49,7 +50,22 @@ internal static class OperatorWorkflowVerification
             && ApplicationVersion.Current.Split('-')[0] == typeof(MainViewModel).Assembly.GetName().Version?.ToString(3),
             "Visible app version does not match the build version");
         RoundedPreviewBorder frame = (RoundedPreviewBorder)main.FindName("LivePreviewFrame");
-        Require(frame.Margin.Top <= 6 && frame.Margin.Bottom <= 8, "Preview vertical spacing regressed");
+        Require(frame.Margin.Top == 12 && frame.Margin.Bottom <= 8, "Preview label spacing does not match the latest request");
+        Require(!Descendants(settings).OfType<Expander>().Any(), "Settings sections still require expansion");
+        System.Windows.Controls.TextBox settingsInput = Descendants(settings).OfType<System.Windows.Controls.TextBox>().First();
+        ComboBox setupInput = Descendants(setup).OfType<ComboBox>().First();
+        Require(settingsInput.FontSize == setupInput.FontSize, "Settings content inherits oversized text");
+        model.ActiveSection = OperatorSection.SettingsDiagnostics;
+        main.ScrollContentToTopForAutomation();
+        await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+        capture(main, Path.Combine(directory, "settings-always-visible-connection.png"), 1);
+        ((FrameworkElement)main.FindName("ContentCacheSettings")).BringIntoView();
+        await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+        capture(main, Path.Combine(directory, "settings-always-visible-cache.png"), 1);
+        model.ActiveSection = OperatorSection.LiveControl;
+        main.ScrollContentToTopForAutomation();
+        await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+        await VerifyPreviewContainersAsync(main, model, output, directory, capture);
         VerifyRoundedPreview(model, output, directory, capture);
         Require(!Descendants(setup).OfType<PasswordBox>().Any(), "Setup exposes a secret entry");
         Require(Descendants(settings).OfType<PasswordBox>().Count() == 1, "Settings does not own the secret entry");
@@ -120,6 +136,81 @@ internal static class OperatorWorkflowVerification
         capture(model.OutputManagerForVerification.PreviewWindowForVerification!, Path.Combine(directory, "separate-preview-offline.png"), 1);
         await VerifyOfflineImagesAsync(model, output, coordinator, directory, capture);
         model.OutputManagerForVerification.PreviewWindowForVerification!.Close();
+    }
+
+    private static async Task VerifyPreviewContainersAsync(MainWindow main, MainViewModel model,
+        OutputWindow output, string directory, Action<FrameworkElement, string, double> capture)
+    {
+        double originalWidth = main.Width, originalHeight = main.Height;
+        double outputWidth = output.Width, outputHeight = output.Height;
+        bool originalOnTop = model.IsOperatorTopmost;
+        try
+        {
+            model.ActiveSection = OperatorSection.LiveControl;
+            // A saved enabled choice must never make Full view topmost.
+            model.IsOperatorTopmost = true;
+            await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+            Require(!main.Topmost && !model.IsWindowTopmost, "Full view applies the compact on-top preference");
+            Require(!Descendants(main.FindName("FullViewRoot") as DependencyObject ?? main)
+                .OfType<System.Windows.Controls.Primitives.ToggleButton>()
+                .Any(button => BindingOperations.GetBinding(button, System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty)?.Path.Path == nameof(MainViewModel.IsOperatorTopmost)),
+                "Full view still exposes an on-top control");
+
+            foreach ((int width, int height) in new[] { (1280, 720), (1024, 768), (720, 1280) })
+            {
+                VerificationWindowSizing.SetSize(output, width, height);
+                foreach (double operatorWidth in new[] { 1380d, 900d, 640d })
+                {
+                    VerificationWindowSizing.SetSize(main, operatorWidth, 900);
+                    await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+                    VerifyWholeFrame((RoundedPreviewBorder)main.FindName("LivePreviewFrame"), output);
+                }
+                capture(main, Path.Combine(directory, $"live-preview-aspect-{width}x{height}.png"), 1);
+                main.SetCompactViewForAutomation(true);
+                await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+                Require(main.Topmost && model.IsWindowTopmost, "Compact view does not restore its saved on-top choice");
+                RoundedPreviewBorder compactFrame = (RoundedPreviewBorder)main.FindName("CompactPreviewFrame");
+                VerifyWholeFrame(compactFrame, output);
+                Require(main.SizeToContent == SizeToContent.Height && main.ActualHeight <= main.MaxHeight + 1,
+                    "Compact view does not grow to fit within the screen work area");
+                capture(main, Path.Combine(directory, $"compact-preview-aspect-{width}x{height}.png"), 1);
+                main.Width = 360;
+                await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+                VerifyWholeFrame(compactFrame, output);
+                System.Windows.Controls.Primitives.ToggleButton onTop = (System.Windows.Controls.Primitives.ToggleButton)main.FindName("CompactOnTopButton");
+                onTop.SetCurrentValue(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, false);
+                onTop.GetBindingExpression(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty)?.UpdateSource();
+                Require(!main.Topmost && !model.IsOperatorTopmost, "Compact on-top toggle does not disable topmost");
+                model.IsOperatorTopmost = true;
+                main.SetCompactViewForAutomation(false);
+                await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+                Require(!main.Topmost && model.IsOperatorTopmost, "Leaving Compact view does not clear effective topmost while retaining its preference");
+            }
+        }
+        finally
+        {
+            main.SetCompactViewForAutomation(false);
+            model.IsOperatorTopmost = originalOnTop;
+            VerificationWindowSizing.SetSize(output, outputWidth, outputHeight);
+            VerificationWindowSizing.SetSize(main, originalWidth, originalHeight);
+            await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+        }
+    }
+
+    private static void VerifyWholeFrame(RoundedPreviewBorder frame, OutputWindow output)
+    {
+        Require(frame.Child is AspectRatioPreviewHost, "Preview lacks an aspect-ratio container");
+        AspectRatioPreviewHost host = (AspectRatioPreviewHost)frame.Child;
+        Require(host.Child is ConfidencePreview, "Preview does not copy the shared output visual");
+        ConfidencePreview preview = (ConfidencePreview)host.Child;
+        double ratio = output.PreviewSurface.ActualWidth / output.PreviewSurface.ActualHeight;
+        Require(preview.ActualWidth > 0 && preview.ActualHeight > 0
+            && Math.Abs(preview.ActualHeight - preview.ActualWidth / ratio) <= 1
+            && Math.Abs(host.ActualWidth - preview.ActualWidth) <= 1
+            && Math.Abs(host.ActualHeight - preview.ActualHeight) <= 1
+            && ReferenceEquals(preview.SourceVisual, output.PreviewSurface)
+            && host.Clip is RectangleGeometry,
+            "Preview is cropped, letterboxed inside its frame, unrounded or reflows a different source");
     }
 
     private static void VerifyRoundedPreview(MainViewModel model, OutputWindow output, string directory,

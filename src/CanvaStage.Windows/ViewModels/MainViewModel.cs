@@ -33,6 +33,7 @@ public sealed class MainViewModel : ViewModelBase
     private bool _isRefreshingDisplays;
     private CanvaPresentation? _selectedCanvaPresentation;
     private bool _isOperatorTopmost;
+    private bool _isCompactView;
     private bool _isSaving;
     private string _canvaClientId;
     private string _canvaClientSecret = string.Empty;
@@ -387,7 +388,23 @@ public sealed class MainViewModel : ViewModelBase
         }
     }
 
-    public bool IsOperatorTopmost { get => _isOperatorTopmost; set { if (SetProperty(ref _isOperatorTopmost, value)) Persist(); } }
+    // Keep the saved choice, but apply it only while Compact view is visible.
+    public bool IsOperatorTopmost
+    {
+        get => _isOperatorTopmost;
+        set
+        {
+            if (!SetProperty(ref _isOperatorTopmost, value)) return;
+            OnPropertyChanged(nameof(IsWindowTopmost));
+            Persist();
+        }
+    }
+    public bool IsWindowTopmost => _isCompactView && IsOperatorTopmost;
+
+    internal void SetCompactViewState(bool isCompact)
+    {
+        if (SetProperty(ref _isCompactView, isCompact)) OnPropertyChanged(nameof(IsWindowTopmost));
+    }
     public OutputMode OutputMode { get => Snapshot.Mode; set => _coordinator.SetOutputMode(value); }
     public MonitorLayout Layout { get => Snapshot.Layout; set => _coordinator.SetLayout(value); }
     public NextLineOption NextLineOption { get => Snapshot.NextLineOption; set => _coordinator.SetNextLineOption(value); }

@@ -11,7 +11,7 @@
         Height="900"
         MinWidth="600"
         MinHeight="420"
-        Topmost="{Binding IsOperatorTopmost}"
+        Topmost="{Binding IsWindowTopmost, Mode=OneWay}"
         WindowState="Maximized"
         WindowStartupLocation="CenterScreen">
     <Window.InputBindings>
@@ -95,7 +95,6 @@
                         <StackPanel Orientation="Horizontal"><TextBlock Text="●" Foreground="{StaticResource SuccessBrush}" Margin="0,0,8,0" /><TextBlock Text="{Binding LiveReadinessText}" Foreground="{StaticResource PrimaryTextBrush}" FontWeight="SemiBold" /></StackPanel>
                     </Border>
                     <Button Content="Compact view" Click="EnterCompactView" Style="{StaticResource SecondaryButton}" Margin="0,0,12,0" />
-                    <ToggleButton Content="Always on top" IsChecked="{Binding IsOperatorTopmost}" Style="{StaticResource SecondaryToggle}" Margin="0,0,12,0" />
                     <Button Content="Run checks" Command="{Binding TestSetupCommand}" Style="{StaticResource SecondaryButton}" Margin="0" />
                 </WrapPanel>
             </Grid>
@@ -122,10 +121,10 @@
                     </Border>
                     <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource PanelCard}" Padding="16,12" Margin="0,0,18,16">
                         <Grid>
-                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <StackPanel Orientation="Horizontal"><TextBlock Text="CONFIDENCE OUTPUT" Style="{StaticResource EyebrowText}" /><TextBlock Text="  •  " Foreground="{StaticResource MutedTextBrush}" /><TextBlock Text="{Binding OutputMode}" Foreground="{StaticResource AccentHoverBrush}" FontWeight="SemiBold" /></StackPanel>
-                            <controls:RoundedPreviewBorder x:Name="LivePreviewFrame" Grid.Row="1" Style="{StaticResource PreviewFrame}" Padding="0" Margin="0,6,0,8" Height="365">
-                                <views:ConfidencePreview />
+                            <controls:RoundedPreviewBorder x:Name="LivePreviewFrame" Grid.Row="1" Style="{StaticResource PreviewFrame}" Padding="0" Margin="0,12,0,8">
+                                <controls:AspectRatioPreviewHost Source="{Binding OutputPreviewSurface}"><views:ConfidencePreview /></controls:AspectRatioPreviewHost>
                             </controls:RoundedPreviewBorder>
                             <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <Button Grid.Column="0" Content="Open Preview" Command="{Binding PreviewCommand}" Style="{StaticResource SecondaryButton}" Margin="0" />
@@ -191,7 +190,7 @@
                 <Grid x:Name="SettingsPanel">
                     <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsSettingsDiagnosticsSelected}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Grid.Style>
                     <StackPanel>
-                        <Expander Header="Canva connection — one-time setup" Margin="0,0,0,16"><Border Style="{StaticResource PanelCard}">
+                        <Border x:Name="CanvaConnectionSettings" Style="{StaticResource PanelCard}">
                         <StackPanel><TextBlock Text="Canva connection" Style="{StaticResource SectionTitle}" /><TextBlock Text="This computer holds the church’s locally protected Canva connection. The client secret is never shown after saving." Style="{StaticResource MutedText}" Margin="0,6,0,18" TextWrapping="Wrap" />
                             <WrapPanel Margin="0,0,0,16"><Button Content="Open Canva Developers" Command="{Binding OpenCanvaDeveloperPortalCommand}" Style="{StaticResource SecondaryButton}" /><Button Content="Copy redirect URL" Command="{Binding CopyRedirectUrlCommand}" Style="{StaticResource TextButton}" /></WrapPanel>
                             <TextBox Text="{Binding RedirectUrl, Mode=OneWay}" IsReadOnly="True" Margin="0,0,0,16" />
@@ -208,7 +207,7 @@
                             <WrapPanel Margin="0,18,0,0"><Button Content="Save configuration" Command="{Binding SaveCanvaConfigurationCommand}" Style="{StaticResource SecondaryButton}" /><Button Content="Test connection" Command="{Binding TestCanvaCommand}" Style="{StaticResource SecondaryButton}" /><Button Content="Connect Canva" Command="{Binding ConnectCanvaCommand}" Style="{StaticResource PrimaryButton}" /><Button Content="Disconnect" Command="{Binding DisconnectCanvaCommand}" Style="{StaticResource DangerButton}" /></WrapPanel>
                             <TextBlock Text="{Binding CanvaConnectionStatus}" Style="{StaticResource MutedText}" Margin="0,14,0,0" TextWrapping="Wrap" />
                         </StackPanel>
-                    </Border></Expander>
+                    </Border>
                         <Border Style="{StaticResource PanelCard}">
                         <StackPanel><TextBlock Text="Monitor appearance" Style="{StaticResource SectionTitle}" Margin="0,0,0,18" />
                             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
@@ -236,7 +235,9 @@
                                 <CheckBox Content="Show current time" IsChecked="{Binding ShowClock}" Margin="0,16,0,0" />
                             </StackPanel>
                         </Border>
-                        <Expander Header="Content refresh and local cache" Margin="0,0,0,16"><Border Style="{StaticResource PanelCard}"><StackPanel>                            <TextBlock Text="{Binding CacheSummary}" Style="{StaticResource MutedText}" Margin="0,14,0,0" TextWrapping="Wrap" />
+                        <Border x:Name="ContentCacheSettings" Style="{StaticResource PanelCard}"><StackPanel>
+                            <TextBlock Text="Content refresh and local cache" Style="{StaticResource SectionTitle}" />
+                            <TextBlock Text="{Binding CacheSummary}" Style="{StaticResource MutedText}" Margin="0,14,0,0" TextWrapping="Wrap" />
                             <CheckBox Content="Automatically apply Canva content updates" IsChecked="{Binding IsAutomaticContentRefreshEnabled}" Margin="0,14,0,6" />
                             <TextBlock Text="Checks the applied presentation every 30 seconds. Output keeps following the current deck while updates download; the new content appears when ready." Style="{StaticResource MutedText}" TextWrapping="Wrap" />
                             <WrapPanel Margin="0,10,0,0">
@@ -244,7 +245,7 @@
                                 <Button Content="Clear cache" Command="{Binding ClearCacheCommand}" Style="{StaticResource DangerButton}" />
                             </WrapPanel>
                             <Button Content="Use local demo deck" Command="{Binding UseDemoDeckCommand}" Style="{StaticResource TextButton}" HorizontalAlignment="Left" Margin="0,12,0,0" />
-</StackPanel></Border></Expander>
+</StackPanel></Border>
                         <Border Style="{StaticResource PanelCard}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Readiness checks" Style="{StaticResource SectionTitle}" /><TextBlock Text="Checks are independent: laptop-only Preview can pass even when no confidence display is attached." Style="{StaticResource MutedText}" Margin="0,6,0,0" /></StackPanel><Button Grid.Column="1" Content="Refresh checks" Command="{Binding TestSetupCommand}" Style="{StaticResource SecondaryButton}" Margin="12,0,0,0" VerticalAlignment="Top" /></Grid></Border>
                         <Border Style="{StaticResource PanelCard}">
                             <StackPanel>
@@ -276,19 +277,19 @@
         </Grid>
       </Grid>
 
-      <Border x:Name="CompactViewRoot"
-              Visibility="Collapsed"
+      <ScrollViewer x:Name="CompactViewRoot" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <Border
               Style="{StaticResource PanelCard}"
               Margin="12"
               Padding="14">
         <Grid>
-          <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+          <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
           <Grid>
             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <StackPanel>
               <TextBlock Text="CanvaStage" Foreground="{StaticResource PrimaryTextBrush}" FontSize="18" FontWeight="SemiBold" />
             </StackPanel>
-            <ToggleButton Grid.Column="1" Content="On top" IsChecked="{Binding IsOperatorTopmost}" Style="{StaticResource SecondaryToggle}" Margin="8,0,0,0" Padding="10,7" />
+            <ToggleButton x:Name="CompactOnTopButton" Grid.Column="1" Content="On top" IsChecked="{Binding IsOperatorTopmost}" Style="{StaticResource SecondaryToggle}" Margin="8,0,0,0" Padding="10,7" />
             <Button Grid.Column="2" Content="Full view" Click="ExitCompactView" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Padding="10,7" ToolTip="Open full controls to resume or manage sync" />
           </Grid>
           <Grid Grid.Row="1" Margin="0,8,0,0">
@@ -296,7 +297,7 @@
             <WrapPanel><TextBlock Text="{Binding PresenterSyncSummary}" Foreground="{Binding PresenterSyncBrush}" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" ToolTip="{Binding CanvaPresenterTrackingStatus}" Margin="0,0,10,0" /><TextBlock Text="{Binding PageLabel}" Foreground="{StaticResource MutedTextBrush}" FontSize="12" VerticalAlignment="Center" /></WrapPanel>
           </Grid>
           <controls:RoundedPreviewBorder x:Name="CompactPreviewFrame" Grid.Row="2" Style="{StaticResource PreviewFrame}" Padding="0" Margin="0,12">
-            <views:ConfidencePreview />
+            <controls:AspectRatioPreviewHost Source="{Binding OutputPreviewSurface}"><views:ConfidencePreview /></controls:AspectRatioPreviewHost>
           </controls:RoundedPreviewBorder>
           <Grid Grid.Row="3">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="10" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
@@ -306,5 +307,6 @@
           <Button Grid.Row="4" Content="{Binding BlankOutputButtonText}" Command="{Binding BlankOutputCommand}" Style="{StaticResource DangerButton}" Margin="0,10,0,0" ToolTip="Blank or restore output (Ctrl+B)" />
         </Grid>
       </Border>
+      </ScrollViewer>
     </Grid>
 </Window>

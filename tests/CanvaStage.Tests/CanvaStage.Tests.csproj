@@ -17,5 +17,6 @@
     <!-- Pure Windows-adapter policies are linked so they can also run on macOS. -->
     <Compile Include="..\..\src\CanvaStage.Windows\Services\DisplaySelection.cs" Link="WindowsPolicies\DisplaySelection.cs" />
     <Compile Include="..\..\src\CanvaStage.Windows\Services\DisplayIdentificationPlacement.cs" Link="WindowsPolicies\DisplayIdentificationPlacement.cs" />
+    <Compile Include="..\..\src\CanvaStage.Windows\Services\PreviewLayout.cs" Link="WindowsPolicies\PreviewLayout.cs" />
   </ItemGroup>
 </Project>

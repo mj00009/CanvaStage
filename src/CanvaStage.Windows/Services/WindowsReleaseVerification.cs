@@ -206,7 +206,7 @@ internal static class WindowsReleaseVerification
             VerificationWindowSizing.CheckSize(output, 1280, 720);
             capture(output, Path.Combine(directory, "output-mirror.png"), 1);
             await OperatorWorkflowVerification.RunAsync(mainWindow, viewModel, output, coordinator, directory, capture);
-            checks.Add("Setup/Settings separation; visible build version; unique sync/mode controls; rounded/resized operator previews and reduced spacing; no compact Pause Sync; independent offline/live Preview; shared visual, 1:1 pixel parity and scaled previews across modes/layouts");
+            checks.Add("Setup/Settings separation; always-visible Settings with consistent text sizes; visible build version; unique controls; whole-frame aspect-ratio previews at wide/standard/portrait sizes; compact auto-height and compact-only topmost; label spacing and rounded corners; no compact Pause Sync; independent offline/live Preview; shared visual and 1:1 pixel parity across modes/layouts");
         }
         finally { viewModel.OutputManagerForVerification.StopOutput(); }
         checks.Add("All Monitor layouts with long text at maximum requested font size; measured text fit; Mirror output");

@@ -2,6 +2,8 @@
 
 This guide describes v0.11.2, including simplified navigation, shared-output previews, version labels and display-selection recovery.
 
+Unreleased UI follow-up for #29 and #31–34: Live control and Compact preview containers now follow the output's aspect ratio without side letterboxing or cropping. Compact view grows vertically and scrolls if the available screen is too short. Its saved **On top** choice applies only in Compact view; Full view is never topmost. Canva connection and Content refresh/local cache settings are always-visible cards, with the same control text sizing as the rest of the app. These changes require Windows verification and a future release before downloading them from Releases.
+
 ## Prepare the presentation
 
 1. Open CanvaStage using the Windows account used during Canva setup.
@@ -88,6 +90,12 @@ Shortcuts work while the main CanvaStage window has focus:
 ### Compact view
 
 Compact view contains the output preview, Mirror/Monitor, blank/restore, Always on top and Full view. There is no Pause Sync button. To resume or manage following, return to **Full view**. The sync status remains visible; manual navigation and keyboard shortcuts still work in the main window.
+
+### Sound on the confidence TV
+
+CanvaStage renders text and static images; it does not play embedded slide audio or video, change the Windows audio output device, or mute Canva. If a confidence TV plays slide audio, first test the same slide while CanvaStage is closed. Note whether the TV is connected by HDMI or wireless casting.
+
+In Windows 11, open **Settings → System → Sound → Volume mixer** and check the Canva app or presenting browser's output device. Route it to the intended audience sound system rather than the confidence TV if needed. Windows permits per-app output-device selection; see [Microsoft's audio guidance](https://support.microsoft.com/en-au/windows/hardware/audio/fix-app-audio-not-working-while-system-sounds-work-in-windows). Do not mute the presenting browser or disable the TV's audio device during a service without checking the audience audio path. Issue #35 is still under investigation; the reported audio source has not been confirmed.
 
 ## Cache and saved data
 

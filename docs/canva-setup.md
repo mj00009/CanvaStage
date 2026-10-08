@@ -22,6 +22,8 @@ Canva currently offers Public integrations and Enterprise-only Private integrati
 ## Create and configure the integration
 
 1. Open CanvaStage and select **Settings & Diagnostics**. Expand **Canva connection — one-time setup**.
+
+   In the unreleased #34 UI follow-up, this section is an always-visible **Canva connection** card and no expansion is needed. v0.11.2 still uses the expandable section.
 2. Choose **Copy redirect URL**. The current URL is:
 
    ```text
