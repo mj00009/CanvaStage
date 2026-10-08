@@ -1,8 +1,6 @@
 # Operator guide
 
-This guide describes v0.11.2, including simplified navigation, shared-output previews, version labels and display-selection recovery.
-
-Unreleased UI follow-up for #29 and #31–34: Live control and Compact preview containers now follow the output's aspect ratio without side letterboxing or cropping. Compact view grows vertically and scrolls if the available screen is too short. Its saved **On top** choice applies only in Compact view; Full view is never topmost. Canva connection and Content refresh/local cache settings are always-visible cards, with the same control text sizing as the rest of the app. These changes require Windows verification and a future release before downloading them from Releases.
+This guide describes v0.11.3, including complete aspect-ratio previews, compact-only On top, always-visible Settings cards and display-selection recovery.
 
 ## Prepare the presentation
 
@@ -47,7 +45,7 @@ Open **Settings & Diagnostics → Monitor appearance** for font, maximum size, c
 
 The current text automatically shrinks to fit its available area. Text fits once on the output surface, before drawing; all previews copy that same visual. Your selected font size is a maximum, not a guarantee that long slides will use that size. See the [v0.11.0 release notes](releases/v0.11.0.md) for changes and acceptance checks.
 
-Current text and the Next cue use the same selected font family and, by default, the same semibold weight. The Next cue retains its independent size and color; its optional **Bold** setting makes that cue heavier without changing the current text. Every preview uniformly scales the entire output visual, without independently wrapping or resizing text. Letterboxing preserves the display's aspect ratio. Opening or closing the separate Preview does not move, stop or start live output. Before starting output, Preview uses the selected display's dimensions and Windows DPI; while live, it copies the actual output window. This is a content/layout reference, not proof that a physical or wireless display is receiving the frame. Next cues remain a single line with an ellipsis when necessary; current text remains complete.
+Current text and the Next cue use the same selected font family and, by default, the same semibold weight. The Next cue retains its independent size and color; its optional **Bold** setting makes that cue heavier without changing the current text. Every preview uniformly scales the entire output visual, without independently wrapping or resizing text. Live control and Compact containers follow the output's aspect ratio; the freely resizable separate Preview may letterbox. Opening or closing the separate Preview does not move, stop or start live output. Before starting output, Preview uses the selected display's dimensions and Windows DPI; while live, it copies the actual output window. This is a content/layout reference, not proof that a physical or wireless display is receiving the frame. Next cues remain a single line with an ellipsis when necessary; current text remains complete.
 
 ## Start automatic Presenter following
 
@@ -89,7 +87,9 @@ Shortcuts work while the main CanvaStage window has focus:
 
 ### Compact view
 
-Compact view contains the output preview, Mirror/Monitor, blank/restore, Always on top and Full view. There is no Pause Sync button. To resume or manage following, return to **Full view**. The sync status remains visible; manual navigation and keyboard shortcuts still work in the main window.
+Compact view contains the complete output preview, Mirror/Monitor, blank/restore, **On top** and **Full view**. It grows vertically to fit the preview and scrolls if the screen is too short. There is no Pause Sync button. To resume or manage following, return to **Full view**. The sync status remains visible; manual navigation and keyboard shortcuts still work in the main window.
+
+The saved **On top** choice applies only in Compact view. Returning to Full view clears topmost behavior; returning to Compact restores the saved choice. Full view has no Always on top control. In Settings & Diagnostics, Canva connection and Content refresh/local cache are always-visible cards; no expansion is needed.
 
 ### Sound on the confidence TV
 
