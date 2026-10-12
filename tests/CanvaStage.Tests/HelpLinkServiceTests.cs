@@ -6,14 +6,16 @@ namespace CanvaStage.Tests;
 
 public sealed class HelpLinkServiceTests
 {
-    [Fact]
-    public void OpensVersionedPublicGuideOnlyOnRequest()
+    [Theory]
+    [InlineData("0.12.0")]
+    [InlineData("0.12.1")]
+    public void OpensVersionedPublicGuideOnlyOnRequest(string version)
     {
         Uri? opened = null;
-        HelpLinkService service = new("0.12.0", uri => opened = uri);
+        HelpLinkService service = new(version, uri => opened = uri);
         Assert.Null(opened);
         Assert.Null(service.TryOpen());
-        Assert.Equal("https://mj00009.github.io/CanvaStage/v0.12.0/", opened?.AbsoluteUri);
+        Assert.Equal($"https://mj00009.github.io/CanvaStage/v{version}/", opened?.AbsoluteUri);
         Assert.Equal(string.Empty, opened?.Query);
     }
 
