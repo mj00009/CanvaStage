@@ -24,10 +24,23 @@ test('publishes only reviewed help, with working root and versioned guides', asy
   await writeFile(join(source, 'v0.12.0/images/unreviewed.png'), 'Not public');
   const result = await buildHelp(source, output, 'v0.12.0');
   assert.equal(result.latest, 'v0.12.0');
-  assert.equal(result.files, 20);
+  assert.equal(result.files, 22);
   assert.ok(!(await readdir(output)).includes('private.log'));
   assert.ok(!(await readdir(join(output, 'images'))).includes('unreviewed.png'));
   assert.match(await readFile(join(output, 'v0.12.0/quick-start.html'), 'utf8'), /Following Canva/);
+});
+test('each published quick start covers Full and Compact views with reviewed screenshots', async () => {
+  const source = resolve('docs/help');
+  const manifest = JSON.parse(await readFile(join(source, 'manifest.json'), 'utf8'));
+  for (const entry of manifest.versions) {
+    const guide = await readFile(join(source, entry.version, 'quick-start.html'), 'utf8');
+    assert.match(guide, /<h3 id="full-view">Full view<\/h3>/);
+    assert.match(guide, /<h3 id="compact-view">Compact view<\/h3>/);
+    for (const image of ['full-view.png', 'compact.png']) {
+      assert.ok(entry.images[image], `${entry.version} reviews ${image}`);
+      assert.ok(guide.includes(`src="images/${image}"`), `${entry.version} shows ${image}`);
+    }
+  }
 });
 test('rejects release/content version mismatch', async t => {
   const { source, output } = await fixture(t);
