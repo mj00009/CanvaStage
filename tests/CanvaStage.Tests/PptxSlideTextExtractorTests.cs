@@ -14,10 +14,10 @@ public sealed class PptxSlideTextExtractorTests
     public void Extract_PreservesAuthoredCaseAcrossRunsAndFormatting(string caps)
     {
         string paragraphs = $"<a:p><a:pPr><a:defRPr cap=\"{caps}\" /></a:pPr>" +
-            $"<a:r><a:rPr cap=\"{caps}\"/><a:t>Praise the L</a:t></a:r>" +
-            "<a:r><a:t>ord; NASA and iPhone stay as authored.</a:t></a:r></a:p>" +
-            "<a:p><a:r><a:t>HALLELUJAH</a:t></a:r></a:p>";
-        string[] expected = ["Praise the Lord; NASA and iPhone stay as authored.", "HALLELUJAH"];
+            $"<a:r><a:rPr cap=\"{caps}\"/><a:t>Sample t</a:t></a:r>" +
+            "<a:r><a:t>ext; ABC and SampleText stay as authored.</a:t></a:r></a:p>" +
+            "<a:p><a:r><a:t>SAMPLE HEADING</a:t></a:r></a:p>";
+        string[] expected = ["Sample text; ABC and SampleText stay as authored.", "SAMPLE HEADING"];
 
         Assert.Equal(expected, PptxSlideTextExtractor.Extract(CreatePresentationWithSlides((1, paragraphs)))[0]);
         Assert.Equal(expected, PptxSlideTextExtractor.Extract(CreatePresentationWithSlides((1,
@@ -37,11 +37,11 @@ public sealed class PptxSlideTextExtractorTests
     {
         byte[] presentation = CreatePresentationWithSlides((1,
             "<a:p><a:r><a:t>won't w</a:t></a:r><a:r><a:t>aste another minute</a:t></a:r></a:p>" +
-            "<a:p><a:r><a:t>Praise the Lord</a:t></a:r></a:p>"));
+            "<a:p><a:r><a:t>Sample text</a:t></a:r></a:p>"));
 
         IReadOnlyList<IReadOnlyList<string>> slides = PptxSlideTextExtractor.Extract(presentation);
 
-        Assert.Equal(["won't waste another minute", "Praise the Lord"], slides[0]);
+        Assert.Equal(["won't waste another minute", "Sample text"], slides[0]);
     }
 
     [Theory]

@@ -36,7 +36,7 @@ test('each published quick start covers Full and Compact views with reviewed scr
     const guide = await readFile(join(source, entry.version, 'quick-start.html'), 'utf8');
     assert.match(guide, /<h3 id="full-view">Full view<\/h3>/);
     assert.match(guide, /<h3 id="compact-view">Compact view<\/h3>/);
-    for (const image of ['full-view.png', 'compact.png']) {
+    for (const image of ['full-view-neutral.png', 'compact.png']) {
       assert.ok(entry.images[image], `${entry.version} reviews ${image}`);
       assert.ok(guide.includes(`src="images/${image}"`), `${entry.version} shows ${image}`);
     }

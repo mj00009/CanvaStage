@@ -32,6 +32,8 @@ Use an unused output directory name. Open `http://127.0.0.1:8765/`; inspect desk
 
 Use only **synthetic demo screenshots from a successful Windows verification run of the corresponding release tag**. Review each image yourself before committing it. Never publish real presentation text, signed image links, account information, credentials, raw diagnostics, or the isolated test-storage folder. A fake identifier such as `verification-client` is not a credential to give an operator.
 
+Use basic, neutral placeholder slide text such as "Sample slide 1" and "This is sample text" in screenshot fixtures. Do not combine religious wording with organization or product names. Case-preservation tests can use generic text such as "ABC and SampleText" without changing their test coverage. Review the words shown in every screenshot, not just its layout and privacy.
+
 Copy selected PNGs into the version's `images/` directory, use clear names/captions and descriptive alt text, and record their SHA-256 hashes in the manifest. Hashes enforce that a replacement cannot publish without updating the review record; they do not automatically prove the image is private-data-free. Keep screenshots original, without recoloring or manufacturing UI state. Caption synthetic display choices honestly: CI's single physical display does not verify a real Extended screen.
 
 Initial provenance: tag `v0.12.0`, commit `082d8906d656ea2ae1bbd49baea024f96583e790`, successful Windows run [38190044919](https://github.com/mj00009/CanvaStage/actions/runs/38190044919). The five reviewed images are committed so expiring Actions artifacts do not break published help.

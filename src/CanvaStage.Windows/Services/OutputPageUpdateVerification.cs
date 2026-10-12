@@ -23,9 +23,10 @@ internal static class OutputPageUpdateVerification
         int originalPage = coordinator.Snapshot.SelectedPageNumber;
         MonitorAppearance originalAppearance = coordinator.Snapshot.Appearance;
         bool originalSyncEnabled = mainViewModel.IsPresenterSyncEnabled;
-        PresentationPage[] pages = Enumerable.Range(1, 87).Select(page => new PresentationPage(page, $"Marker {page}",
-            [$"Primary marker {page:00}: this slide must change on the output display.",
-             "Mixed case stays authored: Praise the Lord, NASA and iPhone."], "#080B11", "#8454F4")).ToArray();
+        PresentationPage[] pages = Enumerable.Range(1, 87).Select(page => new PresentationPage(page, $"Sample page {page}",
+            [$"Sample slide {page:00}.",
+             "This is sample text.",
+             "Mixed case: ABC and SampleText."], "#080B11", "#8454F4")).ToArray();
         TextBlock text = (TextBlock)output.FindName("PrimaryText");
         FrameworkElement host = (FrameworkElement)output.FindName("PrimaryTextHost");
         string? previousPixels = null;
