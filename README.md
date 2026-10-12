@@ -6,27 +6,28 @@ CanvaStage is not affiliated with, endorsed by, or sponsored by Canva Pty Ltd. S
 
 ## Download
 
-The latest release is [CanvaStage v0.11.3](https://github.com/mj00009/CanvaStage/releases/tag/v0.11.3). See the [release notes](docs/releases/v0.11.3.md) for changes and suggested acceptance checks.
+The latest release is [CanvaStage v0.12.0](https://github.com/mj00009/CanvaStage/releases/tag/v0.12.0). See the [release notes](docs/releases/v0.12.0.md) for changes and suggested acceptance checks.
 
-This update simplifies the operator workflow into Setup, Live control and Settings & Diagnostics. Compact view has no Pause Sync button. Every preview copies the actual output visual, sharing text wrapping, fitted size, colors, clock and next-line truncation. Opening Preview no longer relocates or starts live output; cached text and images remain available before output starts.
+The operator workflow is Setup, Live control and Settings & Diagnostics. Simple Setup checks the last-used deck and saved Extended display, reuses unchanged cached content, and starts output with one action. Advanced retains the numbered controls for first-time setup or changing decks/displays. Compact has no Pause Sync button. Every preview copies the actual output visual, sharing text wrapping, fitted size, colors, clock and next-line truncation. Separate Preview does not relocate or start live output.
 
 See the [operator guide](docs/operator-guide.md) for the current behavior.
 
-v0.11.3 makes Live control and Compact preview containers follow the actual output's aspect ratio, growing Compact view to show the complete frame. On top applies only in Compact view. Canva connection and content/cache Settings cards are always visible, with normal-sized controls. It retains the scaled display-identification and selection recovery fixes from v0.11.2. Reconnecting a display does not restart output automatically.
+v0.12.0 also closes the fullscreen window on Stop, scales Compact smaller without scrollbars, smooths touchpad wheel movement and explains problems with recovery steps. Live control and Compact preserve the output's aspect ratio. On top is Compact-only; connection/cache Settings cards remain always visible. Display-selection recovery is retained, and reconnecting a display does not restart output automatically.
 
 **Hardware testing:** the freeze reported in [#24](https://github.com/mj00009/CanvaStage/issues/24) occurred with Windows wireless casting to a Samsung TV. The operator has closed the issue, but its root cause is not confirmed. Test on the actual presentation computer and receiver before service use; this release does not claim a casting fix. The audio source reported in [#35](https://github.com/mj00009/CanvaStage/issues/35) still needs confirmation; CanvaStage displays static images/text and does not play or automatically mute media.
 
 Monitor text again fits during layout before drawing, retaining the v0.10.4 diagnostics and output drawing checks. A separate casing report remains unconfirmed; the extractor copies PPTX text without changing its case and needs an affected export to establish the cause.
 
-Download `CanvaStage-v0.11.3-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
+Download `CanvaStage-v0.12.0-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
 
 The application and package are currently unsigned. Windows may show a SmartScreen warning on first launch. Administrator access is not required.
 
-Setup combines deck loading and display selection into three numbered steps. Saved Canva connection details, Monitor appearance, content-refresh preferences and support tools live in Settings & Diagnostics. [Windows release verification passed](https://github.com/mj00009/CanvaStage/actions/runs/37841551307), including all 89 unit tests and 16 runtime/UI checks for Setup displays, selection recovery, offline previews, pixel parity, aspect changes, Compact transitions and Settings text sizing. Representative versioned-build screenshots were reviewed. The CI runner has only one physical display; confirm secondary-display placement on your hardware.
+Saved Canva connection details, Monitor appearance, advanced content-refresh controls and support tools live in Settings & Diagnostics. Simple Setup also offers the automatic-update checkbox. [Windows release verification passed](https://github.com/mj00009/CanvaStage/actions/runs/38190044919), including all 110 unit tests and 17 runtime/UI checks for Setup/cache reuse, cancellation, native Stop, high-resolution scrolling, display recovery, small Compact, offline previews and pixel parity. Versioned-build screenshots were reviewed following WPF guidance. The CI runner has one physical display; confirm your actual touchpad and secondary-display behavior before service use.
 
 ## Features
 
 - Connects to a church-managed Canva account and downloads a selected presentation.
+- Offers one-action Simple Setup using the last-applied deck and saved Extended display, with unchanged-cache reuse and safe recovery steps; Advanced retains manual setup controls.
 - Automatically follows the current page in Canva Presenter View through Windows accessibility.
 - Excludes hidden slides so CanvaStage numbering matches Presenter View.
 - Provides manual Previous and Next controls when automatic following is paused or unavailable.
@@ -41,7 +42,7 @@ Setup combines deck loading and display selection into three numbered steps. Sav
 - Loads presentation choices using saved authorization and automatically renews expired or rejected access tokens.
 - Checks the applied deck for edits every 30 seconds and downloads newer content without interrupting live output or page tracking; automatic content refresh can be disabled.
 - Limits next-slide cues to one display line, with an ellipsis for long paragraphs.
-- Provides a compact operator view and a Blank output safety control.
+- Provides a resizable, scrollbar-free compact operator view, smooth Full-view scrolling and Blank/Stop output safety controls.
 
 ## Requirements
 
@@ -55,12 +56,13 @@ Read [Canva setup](docs/canva-setup.md) for the current integration steps and se
 ## Typical Sunday workflow
 
 1. Open CanvaStage using the same Windows account used during setup.
-2. In **Setup → 1. Load the Canva deck**, confirm the saved connection, refresh the list, select the presentation, and choose **Apply**.
-3. In **Setup → 2. Choose the confidence display**, choose **Identify displays** and select the Extended confidence display.
-4. Choose **Open Preview** to check content and appearance in a resizable window.
-5. Open one Canva Presenter View and confirm CanvaStage reports **Following Canva**.
-6. In **Setup → 3. Preview and go live**, choose **Start output**, confirm the intended monitor, then use **Live control** or **Compact view**.
-7. Use **Blank output** whenever the stage display should be black.
+2. Open **Setup → Simple**, confirm the listed deck/display, and choose **Start setup**. An unchanged, verified cache is reused; otherwise wait for download and the synced/ready message.
+3. For first-time setup or a different deck/display, use **Setup → Advanced** to Refresh/Apply the intended deck, Identify/select the Extended confidence display, and Preview/start output.
+4. Open one matching Canva Presenter View and confirm CanvaStage reports **Following Canva**.
+5. Confirm the intended confidence monitor and use **Live control** or **Compact view** during the service.
+6. Use **Blank output** when the stage display should be black, **Restore output** to return content, or **Stop output** in Full view to close the fullscreen window.
+
+Simple **Check slides for updates** only imports reported changes when automatic updates are enabled. Advanced **Check for updates** retains a forced import with automatic updates enabled; **Re-download** is available when Canva's modification metadata lags behind an edit. Simple Setup will not guess an unavailable deck or cover the Primary display; use Advanced to correct its defaults.
 
 Manual page navigation pauses automatic following. Choose **Resume sync** to return to Canva Presenter’s current page.
 
