@@ -12,6 +12,8 @@ After enabling Pages, run **Actions → Public help documentation → Run workfl
 
 ## Author and preview
 
+Use the `humanizer` skill when writing or revising help documentation, as requested by the user. Write plain instructions for church operators. Keep every factual claim, safety warning, button name, version detail, and link target. Remove sales language and filler without changing how the app works. Keep technical and legal notices neutral, and leave code, metadata, and screenshot files unchanged during a prose edit.
+
 - `docs/help/manifest.json` selects the latest guide and lists retained versions, screenshot hashes, reviewed tag commit, and successful Windows run.
 - Each version directory contains four HTML content fragments: `index.html`, `quick-start.html`, `advanced.html`, and `troubleshooting.html`. Shared navigation, version labels, privacy/trademark footer, and stylesheet are supplied by the builder. No JavaScript, analytics, external fonts, or hosted third-party media are needed.
 - `scripts/build-help.mjs` uses only Node's standard library. It publishes an explicit page/screenshot allowlist, never all of `docs/`, CI artifacts, or diagnostic storage. It checks links/anchors, image hashes, publication paths, and release version matching. The output must be a new or empty directory to prevent stale files leaking into a deployment.
