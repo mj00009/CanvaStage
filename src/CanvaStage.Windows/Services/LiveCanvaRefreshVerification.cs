@@ -349,7 +349,7 @@ internal static class LiveCanvaRefreshVerification
                 handler.Version++;
                 handler.FailExport = true;
                 await simple.StartSimpleSetupAsync();
-                Require(!simpleCoordinator.Snapshot.IsLive && !simple.IsCanvaBusy && !simple.IsSimpleSetupRunning
+                Require(!simpleCoordinator.Snapshot.IsLive && !simple.IsCanvaBusy && !simple.IsSimpleSetupRunning && simple.SimpleSetupProgress == 0
                     && ReferenceEquals(working, simpleCoordinator.Snapshot.Document), "Failed Simple Setup discards the cached deck or leaves busy state stuck");
                 capture(mainWindow, Path.Combine(directory, "setup-simple-export-failure.png"), 1);
             }

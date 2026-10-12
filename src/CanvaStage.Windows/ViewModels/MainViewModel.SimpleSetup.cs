@@ -140,6 +140,7 @@ public sealed partial class MainViewModel
             SimpleSetupStatus = $"Presentation is synced and ready; confidence output is live. {(reused ? "No changes — used the cached download." : "Updated content downloaded and cached.")} Open one Canva Presenter View; CanvaStage follows its page counter. Use Live control or Compact view during the service.";
         }, message => SimpleSetupStatus = message);
         IsSimpleSetupRunning = false;
+        if (!succeeded || revision != _outputRequestRevision) SimpleSetupProgress = 0;
         // Use the existing refresh scheduling, not a second background refresh loop.
         if (succeeded && revision == _outputRequestRevision && !_isClosing)
         {

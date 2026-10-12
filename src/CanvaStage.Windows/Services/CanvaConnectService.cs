@@ -585,12 +585,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         string content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            throw new CanvaConnectException(response.StatusCode switch
-            {
-                HttpStatusCode.Unauthorized => "Canva did not accept the saved credentials or connection. Check setup, then connect again.",
-                HttpStatusCode.Forbidden => "Canva denied this request. Confirm the integration has design:meta:read and design:content:read scopes.",
-                _ => $"Canva request failed ({(int)response.StatusCode}). Try again, or use Test setup for the connection details."
-            });
+            throw new CanvaConnectException(CanvaFailureGuidance.ForHttpStatus((int)response.StatusCode));
         }
 
         return JsonSerializer.Deserialize<T>(content, CanvaJson.Options) ?? throw new CanvaConnectException("Canva returned an unreadable response.");
