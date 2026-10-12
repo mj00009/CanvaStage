@@ -17,7 +17,7 @@ You need:
 - permission to create an integration in the Canva Developer Portal;
 - CanvaStage running under the Windows account that will operate it.
 
-Canva currently offers Public integrations and Enterprise-only Private integrations. A Public integration can be used in draft state for individual use and testing; submission for review is required to make it broadly available. A loopback redirect can be used for local development, but it cannot remain when a Public integration is submitted for review. CanvaStage's local flow is intended for a self-managed deployment, not a broadly published Canva integration.
+Canva now unifies its developer surfaces under the Developers SDK. New REST API setup uses **Your apps → Outside Canva**; older integrations can still expose the previous configuration screens. Private apps require Canva Enterprise. Public distribution requires review, and loopback redirects are restricted to development/testing and must be removed afterward. CanvaStage's local flow is self-managed, not a Canva-supported public desktop integration. See the [current quickstart](https://www.canva.dev/docs/apps/quickstart/).
 
 ## Create and configure the integration
 
@@ -30,22 +30,24 @@ Canva currently offers Public integrations and Enterprise-only Private integrati
 
    Use the value displayed by the installed app if it ever differs from this document.
 
-3. Open the [Canva Developer Portal](https://www.canva.dev/developers/integrations) and sign in.
-4. Open **Your integrations**, choose **Create an integration**, accept Canva’s developer terms, and choose the integration type available and appropriate for the church account.
-5. On **Configure your integration**, enter an identifying name.
-6. Copy the **Client ID**.
+3. Open [Your apps in the Canva Developer Portal](https://www.canva.com/developers/apps) and sign in.
+4. Choose **Create an app**, enter a name, choose the appropriate audience, and follow Canva's developer terms.
+5. Open **Outside Canva → Start integrating**. Under **Configuration → Integration methods**, confirm **Canva REST APIs** is enabled.
+6. Under **Credentials**, copy the **Client ID**.
 7. Choose **Generate secret** and save the **Client Secret** immediately. Canva does not show it again.
-8. Open **Scopes** and enable only:
+8. In the REST API **Scopes**, enable **Read** only for design:meta and design:content:
 
    - `design:meta:read`
    - `design:content:read`
 
-9. Open **Authentication**. Under **Authorized redirects**, add the exact CanvaStage redirect URL. Use `127.0.0.1`; Canva does not allow `localhost` for this local redirect.
+9. Open **Outside Canva → Redirect URLs** and enter the exact CanvaStage redirect URL in **URL 1** (or another authorized redirect field). Keep `127.0.0.1`, not `localhost`. Return navigation is not required.
 10. Return to CanvaStage. Enter the Client ID and Client Secret, then choose **Save configuration**.
 11. Choose **Connect Canva**. Complete the authorization prompt in the browser and return to CanvaStage.
 12. Open **Setup → Advanced → 1. Load the Canva deck** and choose **Refresh**. Apply the intended presentation and choose the Extended confidence display in step 2. After this first-time setup, **Setup → Simple → Start setup** reuses those choices and downloads content only when necessary.
 
 CanvaStage uses OAuth 2.0 Authorization Code with PKCE. The browser returns the authorization result to CanvaStage through the loopback address; it does not require an internet-accessible server on the Windows computer.
+
+For an existing integration, the legacy route can be **Your integrations → Configure your integration → Scopes / Authentication → Authorized redirects**. Use the equivalent fields there. Do not recreate a working saved integration simply because the portal labels changed. Do not copy the starter kit's broader scopes, return-navigation configuration, or example redirect: CanvaStage needs only its two Read scopes and displayed loopback URL.
 
 ## Reopening CanvaStage
 
@@ -78,8 +80,7 @@ This is expected. DPAPI protects the credentials for the Windows user that saved
 
 ## Official Canva references
 
-- [Creating integrations](https://www.canva.dev/docs/connect/creating-integrations/)
-- [Authentication](https://www.canva.dev/docs/connect/authentication/)
-- [Connect API scopes](https://www.canva.dev/docs/connect/appendix/scopes/)
-- [Security recommendations](https://www.canva.dev/docs/connect/guidelines/security/)
+- [Creating and configuring REST API apps](https://www.canva.dev/docs/apps/quickstart/)
+- [Authentication](https://www.canva.dev/docs/apps/rest-apis/authentication/)
+- [Security recommendations](https://www.canva.dev/docs/apps/rest-apis/security-recommendations/)
 - [Canva API and App Developer Terms](https://www.canva.com/policies/canva-developer-terms/)
