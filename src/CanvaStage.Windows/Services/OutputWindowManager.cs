@@ -97,13 +97,14 @@ public sealed class OutputWindowManager : IDisposable
 
     public void StopOutput()
     {
-        PrivacySafeLog.Write("Output stopped; window will be hidden.");
+        PrivacySafeLog.Write($"Output stop requested: live {_coordinator.Snapshot.IsLive}; visible {_window?.IsVisible == true}; target {_targetDisplayId ?? "none"}.");
         _targetDisplayId = null;
         _coordinator.StopOutput();
-        if (_window is not null)
-        {
-            _window.Hide();
-        }
+        // Destroy the live HWND rather than retaining a hidden fullscreen window.
+        // Closed rebinds previews to a fresh, hidden renderer; Presenter updates
+        // may continue, but cannot resurrect the stopped live window.
+        _window?.Close();
+        PrivacySafeLog.Write($"Output stop completed: live {_coordinator.Snapshot.IsLive}; visible {_window?.IsVisible == true}.");
         QueuePreviewLayout();
     }
 

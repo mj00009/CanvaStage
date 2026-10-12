@@ -2,6 +2,20 @@
 
 This guide describes v0.11.3, including complete aspect-ratio previews, compact-only On top, always-visible Settings cards and display-selection recovery.
 
+## Upcoming build: Simple Setup and operator fixes (#36–40)
+
+These changes are in the development build, not the published v0.11.3 ZIP:
+
+- **Setup → Simple** is the default tab. **Start setup** connects using saved Canva configuration, checks the last successfully loaded deck for changes, and starts output on the remembered Extended display. First-time operators must use **Advanced** to Apply a deck and choose a display; credentials still live in Settings & Diagnostics. Merely highlighting another deck does not change the Simple default.
+- An unchanged deck with a matching Canva modification time and intact rendered-image cache is reused without another export. Changed, incomplete or unverifiable caches are downloaded before starting output. The status explains whether content is synced/ready, checking, downloading or needs attention. Export preparation has no known percentage; byte/page progress applies to its current phase, not the entire setup duration.
+- **Restart setup** repeats the same checks; it is not a forced re-download. **Check slides for updates** checks the applied deck and imports changes only when automatic updates are enabled and changes are reported. With automatic updates disabled, it reports available changes; use Advanced **Re-download** to fetch them. Advanced **Check for updates** retains its existing force-refresh behavior to work around delayed Canva metadata.
+- A missing/ambiguous deck or unavailable/Primary display produces recovery instructions instead of choosing another target. Stop/Cancel setup start in Full view prevents a late download from starting output, while allowing the cache to finish safely. Simple Setup does not change your automatic-sync preference.
+- Full view shows Presenter problems with counts, possible causes and specific recovery steps rather than only a terse status. Compact keeps the same details in its status tooltip and **Full view** opens the controls; it still has no Pause Sync button.
+- Compact can be resized down to 240 × 240 DIPs. Its controls scale uniformly, and short windows reduce the copied preview first. There are no scrollbars or independent output-text reflow; extremely small previews are reference-only. Full view uses proportional, animated scrolling for small touchpad deltas and retains scrollbar/keyboard navigation.
+- **Stop output** destroys the fullscreen window. Presenter updates and separate Preview remain available but cannot resurrect live output; only an explicit Start action starts it again. Live control's Start button becomes Stop while output is live. Closing a separate Preview still does not stop live output.
+
+Canva's [current design-list API](https://www.canva.dev/docs/apps/rest-apis/reference/designs/list-designs/) does not expose a starred/default design marker, so Simple Setup uses CanvaStage's last-applied deck rather than guessing a Canva favorite.
+
 ## Prepare the presentation
 
 1. Open CanvaStage using the Windows account used during Canva setup.
@@ -95,7 +109,7 @@ The saved **On top** choice applies only in Compact view. Returning to Full view
 
 CanvaStage renders text and static images; it does not play embedded slide audio or video, change the Windows audio output device, or mute Canva. If a confidence TV plays slide audio, first test the same slide while CanvaStage is closed. Note whether the TV is connected by HDMI or wireless casting.
 
-In Windows 11, open **Settings → System → Sound → Volume mixer** and check the Canva app or presenting browser's output device. Route it to the intended audience sound system rather than the confidence TV if needed. Windows permits per-app output-device selection; see [Microsoft's audio guidance](https://support.microsoft.com/en-au/windows/hardware/audio/fix-app-audio-not-working-while-system-sounds-work-in-windows). Do not mute the presenting browser or disable the TV's audio device during a service without checking the audience audio path. Issue #35 is still under investigation; the reported audio source has not been confirmed.
+In Windows 11, open **Settings → System → Sound → Volume mixer** and check the Canva app or presenting browser's output device. Route it to the intended audience sound system rather than the confidence TV if needed. Windows permits per-app output-device selection; see [Microsoft's audio guidance](https://support.microsoft.com/en-au/windows/hardware/audio/fix-app-audio-not-working-while-system-sounds-work-in-windows). Do not mute the presenting browser or disable the TV's audio device during a service without checking the audience audio path. The operator closed issue #35 on October 11 without additional source details; no CanvaStage audio-playback fix is claimed.
 
 ## Cache and saved data
 

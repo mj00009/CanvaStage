@@ -13,13 +13,14 @@ using BrushConverter = System.Windows.Media.BrushConverter;
 
 namespace CanvaStage.Windows.ViewModels;
 
-public sealed class MainViewModel : ViewModelBase
+public sealed partial class MainViewModel : ViewModelBase
 {
     public string ApplicationVersionLabel => ApplicationVersion.Label;
 
     private readonly IOutputCoordinator _coordinator;
     private readonly OutputWindowManager _outputWindowManager;
     private readonly DisplayService _displayService;
+    private readonly Func<IReadOnlyList<DisplayOption>> _getDisplays;
     private readonly DisplayIdentificationService _displayIdentificationService;
     private readonly DiagnosticsExportService _diagnosticsExportService;
     private readonly JsonPreferencesStore _preferencesStore;
@@ -70,12 +71,13 @@ public sealed class MainViewModel : ViewModelBase
     private bool _progressQueued;
     private bool _isAutomaticRefreshRunning;
 
-    public MainViewModel(IOutputCoordinator coordinator, OutputWindowManager outputWindowManager, DisplayService displayService, DisplayIdentificationService displayIdentificationService, DiagnosticsExportService diagnosticsExportService, JsonPreferencesStore preferencesStore, PresentationCacheStore presentationCacheStore, CanvaConnectService canva, ICanvaPresenterTracker canvaPresenterAccessibilityTracker, AppPreferences preferences, AutomaticContentRefreshSchedule? contentRefreshSchedule = null)
+    public MainViewModel(IOutputCoordinator coordinator, OutputWindowManager outputWindowManager, DisplayService displayService, DisplayIdentificationService displayIdentificationService, DiagnosticsExportService diagnosticsExportService, JsonPreferencesStore preferencesStore, PresentationCacheStore presentationCacheStore, CanvaConnectService canva, ICanvaPresenterTracker canvaPresenterAccessibilityTracker, AppPreferences preferences, AutomaticContentRefreshSchedule? contentRefreshSchedule = null, Func<IReadOnlyList<DisplayOption>>? getDisplays = null)
     {
         _coordinator = coordinator;
         _outputWindowManager = outputWindowManager;
         _outputWindowManager.PreviewSourceChanged += OnPreviewSourceChanged;
         _displayService = displayService;
+        _getDisplays = getDisplays ?? displayService.GetDisplays;
         _displayIdentificationService = displayIdentificationService;
         _diagnosticsExportService = diagnosticsExportService;
         _preferencesStore = preferencesStore;
@@ -103,7 +105,7 @@ public sealed class MainViewModel : ViewModelBase
         if (_snapshot.Document.Id != "demo-sunday" && _presentationCacheStore.MissingImageCountOnLoad > 0)
             _canvaPresentationStatus = $"Cached {_snapshot.Document.Title} has {_presentationCacheStore.MissingImageCountOnLoad} missing page image(s). Monitor text is available; Re-download before using Mirror.";
 
-        Displays = new ObservableCollection<DisplayOption>(_displayService.GetDisplays());
+        Displays = new ObservableCollection<DisplayOption>(_getDisplays());
         CanvaPresentations = [];
         FontFamilies = ["Aptos", "Segoe UI", "Arial", "Verdana"];
         FontSizes = [32d, 40d, 48d, 56d, 64d, 72d, 88d, 104d, 120d, 144d, 160d];
@@ -111,7 +113,7 @@ public sealed class MainViewModel : ViewModelBase
 
         PreviewCommand = new RelayCommand(ShowPreview);
         StartOutputCommand = new RelayCommand(StartOutput, CanStartOutput);
-        StopOutputCommand = new RelayCommand(StopOutput, () => Snapshot.IsLive);
+        StopOutputCommand = new RelayCommand(StopOutput, () => Snapshot.IsLive || IsSimpleSetupRunning);
         BlankOutputCommand = new RelayCommand(() => _coordinator.SetBlanked(!Snapshot.IsBlanked), () => Snapshot.IsLive);
         SelectMirrorCommand = new RelayCommand(() => OutputMode = OutputMode.Mirror);
         SelectMonitorCommand = new RelayCommand(() => OutputMode = OutputMode.Monitor);
@@ -144,6 +146,7 @@ public sealed class MainViewModel : ViewModelBase
             return Task.CompletedTask;
         }, message => CanvaConnectionStatus = message), () => !IsCanvaBusy);
         ReplaceCanvaSecretCommand = new RelayCommand(() => { _isEditingCanvaSecret = true; NotifySecretState(); });
+        ConfigureSimpleSetup(preferences);
         _preferredDisplayId = preferences.SelectedDisplayId;
         SelectedDisplay = DisplaySelection.Resolve(Displays, _preferredDisplayId);
         _outputWindowManager.DisplaysChanged += OnDisplaysChanged;
@@ -276,7 +279,7 @@ public sealed class MainViewModel : ViewModelBase
     };
     public string OperatorPageSubtitle => ActiveSection switch
     {
-        OperatorSection.Setup => "1. Load the deck.  2. Choose the display.  3. Preview and go live.",
+        OperatorSection.Setup => "Start with saved defaults, or use Advanced to choose a deck and display.",
         OperatorSection.SettingsDiagnostics => "Saved connection, Monitor appearance, and support tools. Usually set once.",
         _ => "Automatic Canva Presenter sync with manual controls available at all times."
     };
@@ -291,6 +294,8 @@ public sealed class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(PageCount));
             OnPropertyChanged(nameof(PageLabel));
             OnPropertyChanged(nameof(IsLive));
+            OnPropertyChanged(nameof(OutputActionText));
+            OnPropertyChanged(nameof(OutputActionCommand));
             OnPropertyChanged(nameof(IsOutputBlanked));
             OnPropertyChanged(nameof(BlankOutputButtonText));
             OnPropertyChanged(nameof(LiveStatus));
@@ -325,6 +330,8 @@ public sealed class MainViewModel : ViewModelBase
     public int PageCount => Snapshot.Document.Pages.Count;
     public string PageLabel => $"Page {CurrentPageNumber} of {PageCount}";
     public bool IsLive => Snapshot.IsLive;
+    public string OutputActionText => IsSimpleSetupRunning ? "Cancel setup start" : IsLive ? "Stop output" : "Start output";
+    public ICommand OutputActionCommand => IsLive || IsSimpleSetupRunning ? StopOutputCommand : StartOutputCommand;
     public bool IsOutputBlanked => Snapshot.IsBlanked;
     public string BlankOutputButtonText => IsOutputBlanked ? "Restore output" : "Blank output";
     public string LiveStatus => IsLive ? $"{(IsOutputBlanked ? "BLANKED" : "LIVE")}  •  {Snapshot.Document.Title}  •  {PageLabel}" : $"OUTPUT OFF  •  {Snapshot.Document.Title} is ready";
@@ -437,7 +444,13 @@ public sealed class MainViewModel : ViewModelBase
     public bool IsCanvaDownloadProgressVisible
     {
         get => _isCanvaDownloadProgressVisible;
-        private set => SetProperty(ref _isCanvaDownloadProgressVisible, value);
+        private set
+        {
+            if (!SetProperty(ref _isCanvaDownloadProgressVisible, value)) return;
+            OnPropertyChanged(nameof(SimpleSetupProgressIndeterminate));
+            OnPropertyChanged(nameof(SimpleSetupProgress));
+            OnPropertyChanged(nameof(SimpleSetupStatus));
+        }
     }
     public bool IsCanvaDownloadProgressIndeterminate => _canvaDownloadProgress is null;
     public double CanvaDownloadProgressPercent => (_canvaDownloadProgress ?? 0d) * 100d;
@@ -561,7 +574,7 @@ public sealed class MainViewModel : ViewModelBase
             ? "Ready — Presenter sync available"
             : "Ready — connect Canva when you are ready";
     public string CanvaDiagnostic => _canva.IsConnected ? "PASS · Canva connected" : _canva.HasSavedConfiguration ? "WARNING · Canva needs authorization" : "WARNING · Canva not configured";
-    public string CanvaDiagnosticDetail => _canva.IsConnected ? "The shared Windows operator account has valid local Canva authorization." : "Open Presentation to configure or reconnect the church Canva integration.";
+    public string CanvaDiagnosticDetail => _canva.IsConnected ? "The shared Windows operator account has valid local Canva authorization." : "Open Settings & Diagnostics → Canva connection to save credentials or reconnect the church Canva integration.";
     public string PresentationDiagnostic => Snapshot.Document.Id == "demo-sunday" ? "WARNING · Demo deck loaded" : "PASS · Canva presentation loaded";
     public string PresentationDiagnosticDetail => Snapshot.Document.Id == "demo-sunday" ? "Select and Apply a Canva presentation before using live content." : $"{Snapshot.Document.Title} is available for manual page selection.";
     public string DisplayDiagnostic => SelectedDisplay is null ? "WARNING · Choose a confidence display"
@@ -587,6 +600,8 @@ public sealed class MainViewModel : ViewModelBase
             ApplyCanvaCommand.RaiseCanExecuteChanged();
             RedownloadCanvaCommand.RaiseCanExecuteChanged();
             CheckPresentationUpdatesCommand.RaiseCanExecuteChanged();
+            StartSimpleSetupCommand.RaiseCanExecuteChanged();
+            CheckSimpleSlidesCommand.RaiseCanExecuteChanged();
             ((RelayCommand)CleanOldCacheCommand).RaiseCanExecuteChanged();
             ((RelayCommand)ClearCacheCommand).RaiseCanExecuteChanged();
             ((RelayCommand)UseDemoDeckCommand).RaiseCanExecuteChanged();
@@ -649,7 +664,7 @@ public sealed class MainViewModel : ViewModelBase
     }
     private void OnPreviewSourceChanged(object? sender, EventArgs args) => OnPropertyChanged(nameof(OutputPreviewSurface));
     private void ShowPreview() => _outputWindowManager.ShowPreview(this);
-    private bool CanStartOutput() => SelectedDisplay is not null;
+    private bool CanStartOutput() => SelectedDisplay is not null && !IsSimpleSetupRunning;
 
     private void StartOutput()
     {
@@ -660,7 +675,14 @@ public sealed class MainViewModel : ViewModelBase
             System.Windows.MessageBox.Show("That display is no longer available. Refresh the display list and choose another target.", "Display unavailable", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
-    private void StopOutput() => _outputWindowManager.StopOutput();
+    private void StopOutput()
+    {
+        _outputRequestRevision++;
+        _simpleSetupOutputCancelled = true;
+        if (IsSimpleSetupRunning) SimpleSetupStatus = "Setup start cancelled. The current Canva action may finish caching, but output will stay off. Choose Start setup when ready.";
+        else SimpleSetupStatus = "Output stopped. The cached presentation remains available. Choose Start setup to check it and start again.";
+        _outputWindowManager.StopOutput();
+    }
 
     private void ApplyPresenterSyncPreference()
     {
@@ -669,7 +691,7 @@ public sealed class MainViewModel : ViewModelBase
         if (IsPresenterSyncEnabled)
         {
             _canvaPresenterAccessibilityTracker.Start();
-            SetPresenterState(PresenterSyncState.Waiting, "Waiting for Canva Presenter View…");
+            SetPresenterState(PresenterSyncState.Waiting, "Open one Canva Presenter View on this computer, with its page counter visible. CanvaStage follows it automatically when its visible-page count matches the loaded deck. Use Setup to load the deck; manual pages remain available.");
         }
         else
         {
@@ -681,7 +703,7 @@ public sealed class MainViewModel : ViewModelBase
     }
     private void RefreshDisplays() => RefreshDisplays("Manual refresh");
 
-    private void RefreshDisplays(string reason) => ApplyDisplaySnapshot(_displayService.GetDisplays(), reason);
+    private void RefreshDisplays(string reason) => ApplyDisplaySnapshot(_getDisplays(), reason);
 
     private void IdentifyDisplays()
     {
@@ -799,6 +821,9 @@ public sealed class MainViewModel : ViewModelBase
         CanvaDownloadDescription = "Preparing Canva presentation…";
         OnPropertyChanged(nameof(IsCanvaDownloadProgressIndeterminate));
         OnPropertyChanged(nameof(CanvaDownloadProgressPercent));
+        OnPropertyChanged(nameof(SimpleSetupProgress));
+        OnPropertyChanged(nameof(SimpleSetupStatus));
+        OnPropertyChanged(nameof(SimpleSetupProgressIndeterminate));
         try
         {
             CanvaPresentationStatus = $"Preparing and reading {presentation.Title}. Text and Mirror image exports can take several minutes.";
@@ -811,6 +836,7 @@ public sealed class MainViewModel : ViewModelBase
                 && total == document.Pages.Count && DateTimeOffset.UtcNow - _lastPresenterUpdate.ObservedAt <= TimeSpan.FromSeconds(3)
                 ? page : null;
             _coordinator.SetDocument(document, presenterPage);
+            RememberAppliedPresentation(presentation);
             PrivacySafeLog.Write($"Canva content applied: {document.Pages.Count} visible pages; selected page {Snapshot.SelectedPageNumber}; rendered images {document.UsesRenderedPageImages}; source modified {DiagnosticTimestamp.FormatUtc(document.SourceModifiedAt)}.");
             _lastCanvaContentRefresh = document.RefreshedAt;
             OnPropertyChanged(nameof(LastCanvaContentRefreshText));
@@ -1092,6 +1118,17 @@ public sealed class MainViewModel : ViewModelBase
         CanvaDownloadDescription = progress.Message;
         OnPropertyChanged(nameof(IsCanvaDownloadProgressIndeterminate));
         OnPropertyChanged(nameof(CanvaDownloadProgressPercent));
+        OnPropertyChanged(nameof(SimpleSetupProgress));
+        OnPropertyChanged(nameof(SimpleSetupStatus));
+        OnPropertyChanged(nameof(SimpleSetupProgressIndeterminate));
+        if (IsSimpleSetupRunning && !_simpleSetupOutputCancelled)
+        {
+            // Canva preparation has no measurable percentage; do not invent one.
+            // Download phases retain their actual byte/page progress in the UI.
+            SimpleSetupStatus = "3 of 4 · " + progress.Message;
+            if (progress.Fraction is double fraction) SimpleSetupProgress = 100 * Math.Clamp(fraction, 0, 1);
+            OnPropertyChanged(nameof(SimpleSetupProgressIndeterminate));
+        }
     }
 
     private async void OnCanvaPresenterTrackingUpdated(object? sender, CanvaPresenterTrackingUpdate update)
@@ -1133,12 +1170,13 @@ public sealed class MainViewModel : ViewModelBase
         CanvaPresenterTrackingUpdate? update = _lastPresenterUpdate;
         if (update is null || DateTimeOffset.UtcNow - update.ObservedAt > TimeSpan.FromSeconds(3))
         {
-            SetPresenterState(PresenterSyncState.Waiting, "Waiting for a fresh Presenter update…");
+            SetPresenterState(PresenterSyncState.Waiting, "No fresh Canva Presenter counter has been received. Open one Canva Presenter View on this computer, keep its page counter visible, and run Canva and CanvaStage at the same Windows privilege level. Manual page controls remain available.");
             return;
         }
         if (update.State != CanvaPresenterTrackingState.PageDetected)
         {
-            SetPresenterState(update.State == CanvaPresenterTrackingState.Error ? PresenterSyncState.Recovering : PresenterSyncState.Waiting, update.Message);
+            SetPresenterState(update.State == CanvaPresenterTrackingState.Error ? PresenterSyncState.Recovering : PresenterSyncState.Waiting,
+                update.Message + " Open one Canva Presenter View with its page counter visible, at the same Windows privilege level as CanvaStage. The scanner retries automatically; use manual pages while waiting. If it persists, export diagnostics in Settings & Diagnostics.");
             return;
         }
         if (Snapshot.Document.Id == "demo-sunday")
@@ -1148,19 +1186,19 @@ public sealed class MainViewModel : ViewModelBase
         }
         if (update.CurrentPage is null || update.TotalPages is null)
         {
-            SetPresenterState(PresenterSyncState.Waiting, "Waiting for a complete Presenter page counter…");
+            SetPresenterState(PresenterSyncState.Waiting, "Canva Presenter has not exposed a complete page counter. Keep one Presenter View open with the counter visible. Use manual page controls until it can be read.");
             return;
         }
         int pageCount = Snapshot.Document.Pages.Count;
         if (update.TotalPages.Value != pageCount)
         {
             SetPresenterState(PresenterSyncState.Mismatch,
-                $"Canva Presenter reports {update.TotalPages.Value} visible pages; CanvaStage has {pageCount}. Refresh and apply the matching presentation.");
+                $"Canva Presenter reports {update.TotalPages.Value} visible pages; the loaded deck ‘{Snapshot.Document.Title}’ has {pageCount}. They may be different decks, or slides/hidden-slide settings changed after download. In Setup → Advanced, select the matching deck and Apply (or Re-download the current deck). Close other Presenter Views. The last page is held safely; manual pages remain available.");
             return;
         }
         if (Snapshot.Document.FindPage(update.CurrentPage.Value) is null)
         {
-            SetPresenterState(PresenterSyncState.Mismatch, "The Presenter page is outside the applied presentation. Waiting for a valid page.");
+            SetPresenterState(PresenterSyncState.Mismatch, $"Canva reports page {update.CurrentPage.Value}, which is outside the loaded deck's {pageCount} pages. Open the matching Presenter View and Re-download in Setup → Advanced if slides changed. The last page is held safely; manual pages remain available.");
             return;
         }
         if (Snapshot.SelectedPageNumber != update.CurrentPage.Value)
@@ -1194,6 +1232,7 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(PresenterSyncBrush));
         OnPropertyChanged(nameof(PresenterSyncButtonText));
         OnPropertyChanged(nameof(PresenterScanHealth));
+        OnPropertyChanged(nameof(HasPresenterAttention));
     }
 
     private void PauseForManualNavigation()
@@ -1252,6 +1291,8 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(PreviewDiagnosticDetail));
         OnPropertyChanged(nameof(ManualControlDiagnostic));
         OnPropertyChanged(nameof(ManualControlDiagnosticDetail));
+        CheckSimpleSlidesCommand.RaiseCanExecuteChanged();
+        OnPropertyChanged(nameof(SimpleSetupDefaultsText));
     }
 
     private void Persist()
@@ -1260,7 +1301,7 @@ public sealed class MainViewModel : ViewModelBase
         _isSaving = true;
         try
         {
-            _preferencesStore.Save(new AppPreferences(_preferredDisplayId, CurrentPageNumber, Snapshot.Mode, Snapshot.Layout, Snapshot.NextLineOption, Snapshot.Appearance, IsOperatorTopmost, SelectedCanvaPresentation?.Id ?? _savedCanvaPresentationId, SelectedCanvaPresentation?.Title ?? _savedCanvaPresentationTitle, _lastCanvaContentRefresh, IsPresenterSyncEnabled, IsAutomaticContentRefreshEnabled));
+            _preferencesStore.Save(new AppPreferences(_preferredDisplayId, CurrentPageNumber, Snapshot.Mode, Snapshot.Layout, Snapshot.NextLineOption, Snapshot.Appearance, IsOperatorTopmost, SelectedCanvaPresentation?.Id ?? _savedCanvaPresentationId, SelectedCanvaPresentation?.Title ?? _savedCanvaPresentationTitle, _lastCanvaContentRefresh, IsPresenterSyncEnabled, IsAutomaticContentRefreshEnabled, _defaultPresentationId, _defaultPresentationTitle));
         }
         finally { _isSaving = false; }
     }

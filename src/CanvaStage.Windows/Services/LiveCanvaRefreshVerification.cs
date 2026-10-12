@@ -170,6 +170,7 @@ internal static class LiveCanvaRefreshVerification
         }
         finally { viewModel.PrepareToClose(); }
 
+        await VerifySimpleSetupAsync();
         await VerifyScheduledChecksAsync();
         handler.RejectRefreshToken = true;
         store.Save(store.Load()! with { AccessTokenExpiresAt = DateTimeOffset.UtcNow.AddHours(-1) });
@@ -266,6 +267,98 @@ internal static class LiveCanvaRefreshVerification
             {
                 handler.FailMetadata = false;
                 scheduled.PrepareToClose();
+            }
+        }
+
+        async Task VerifySimpleSetupAsync()
+        {
+            // Exercise the real view-model/service path. The runner has one actual
+            // monitor; an injected list treats that physical target as an Extended
+            // test adapter. This is not proof of multi-display hardware behavior.
+            DisplayOption physical = displays.GetDisplays()[0];
+            DisplayOption target = physical with { IsPrimary = false };
+            IReadOnlyList<DisplayOption> available = [target];
+            PresentationDocument current = await service.LoadAsync("live-deck");
+            AppPreferences simplePreferences = preferences with { SelectedDisplayId = target.Id };
+            OutputCoordinator simpleCoordinator = new(current, simplePreferences);
+            OutputWindowManager simpleManager = new(simpleCoordinator);
+            JsonPreferencesStore simpleStore = new(Path.Combine(storage, "simple-setup"));
+            MainViewModel simple = new(simpleCoordinator, simpleManager, displays, new DisplayIdentificationService(displays),
+                new DiagnosticsExportService(), simpleStore, cache, service, new WindowsReleaseVerification.DemoTracker(),
+                simplePreferences, getDisplays: () => available);
+            object previousContext = mainWindow.DataContext;
+            try
+            {
+                mainWindow.DataContext = simple;
+                simple.ActiveSection = OperatorSection.Setup;
+                mainWindow.SetCompactViewForAutomation(false);
+                mainWindow.ScrollContentToTopForAutomation();
+                Require(simple.IsSimpleSetup && !simple.IsAdvancedSetup, "Simple Setup is the initial tab");
+                int exports = handler.ExportRequests;
+                await simple.StartSimpleSetupAsync();
+                Require(simpleCoordinator.Snapshot.IsLive && simpleManager.WindowForVerification.IsVisible
+                    && handler.ExportRequests == exports && simple.SimpleSetupStatus.Contains("No changes"),
+                    "Simple Setup cannot reuse unchanged intact cache and start the saved target without exports");
+                Require(simpleStore.Load().LastAppliedPresentationId == "live-deck", "Simple Setup does not remember the applied deck");
+                await mainWindow.Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                capture(mainWindow, Path.Combine(directory, "setup-simple-cached-ready.png"), 1);
+                simple.StopOutputCommand.Execute(null);
+                Require(!simpleCoordinator.Snapshot.IsLive && !simpleManager.WindowForVerification.IsVisible,
+                    "Stop after Simple Setup does not stop live output");
+                await simple.CheckSimpleSlidesAsync();
+                Require(handler.ExportRequests == exports && !simpleCoordinator.Snapshot.IsLive,
+                    "Simple Check slides downloads unchanged content or starts output");
+
+                available = [];
+                await simple.StartSimpleSetupAsync();
+                Require(!simpleCoordinator.Snapshot.IsLive && handler.ExportRequests == exports
+                    && simple.SimpleSetupStatus.Contains("Extend"), "Missing saved display starts an arbitrary target");
+                available = [physical];
+                await simple.StartSimpleSetupAsync();
+                Require(!simpleCoordinator.Snapshot.IsLive && simple.SimpleSetupStatus.Contains("primary screen"),
+                    "Simple Setup starts output on Primary without an explicit Advanced action");
+                available = [target];
+
+                // Highlighting a different entry must not change the last-used default.
+                simple.SelectedCanvaPresentation = new("other-deck", "Not applied", 1);
+                await simple.StartSimpleSetupAsync();
+                Require(simple.SelectedCanvaPresentation?.Id == "live-deck" && handler.ExportRequests == exports,
+                    "Simple Setup uses a highlighted but never-applied presentation");
+                simple.StopOutputCommand.Execute(null);
+
+                handler.Version++;
+                handler.BlockDownload();
+                Task setup = simple.StartSimpleSetupAsync();
+                await handler.DownloadStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                await mainWindow.Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                Require(simple.IsSimpleSetupRunning && simple.IsCanvaDownloadProgressVisible
+                    && simple.SimpleSetupStatus.Contains("3 of 4") && simple.StopOutputCommand.CanExecute(null),
+                    "Simple Setup does not expose download stage/progress or cancellation");
+                capture(mainWindow, Path.Combine(directory, "setup-simple-downloading.png"), 1);
+                simple.StopOutputCommand.Execute(null);
+                handler.ReleaseDownload.TrySetResult();
+                await setup;
+                Require(!simpleCoordinator.Snapshot.IsLive && !simpleManager.WindowForVerification.IsVisible
+                    && simple.SimpleSetupStatus.Contains("cancelled"), "Late Simple Setup completion restarts cancelled output");
+
+                await simple.StartSimpleSetupAsync();
+                Require(simpleCoordinator.Snapshot.IsLive && simple.SimpleSetupStatus.Contains("No changes"),
+                    "Restart setup cannot use the newly cached deck after cancelling output start");
+                simple.StopOutputCommand.Execute(null);
+                PresentationDocument working = simpleCoordinator.Snapshot.Document;
+                handler.Version++;
+                handler.FailExport = true;
+                await simple.StartSimpleSetupAsync();
+                Require(!simpleCoordinator.Snapshot.IsLive && !simple.IsCanvaBusy && !simple.IsSimpleSetupRunning
+                    && ReferenceEquals(working, simpleCoordinator.Snapshot.Document), "Failed Simple Setup discards the cached deck or leaves busy state stuck");
+                capture(mainWindow, Path.Combine(directory, "setup-simple-export-failure.png"), 1);
+            }
+            finally
+            {
+                handler.FailExport = false;
+                handler.ReleaseDownload.TrySetResult();
+                simple.PrepareToClose();
+                mainWindow.DataContext = previousContext;
             }
         }
     }

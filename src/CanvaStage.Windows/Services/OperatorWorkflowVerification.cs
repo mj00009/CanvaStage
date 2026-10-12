@@ -26,6 +26,21 @@ internal static class OperatorWorkflowVerification
         FrameworkElement settings = (FrameworkElement)main.FindName("SettingsPanel");
         FrameworkElement compact = (FrameworkElement)main.FindName("CompactViewRoot");
         FrameworkElement live = (FrameworkElement)main.FindName("LiveControlGrid");
+        Require(!model.IsAdvancedSetup && !Descendants(compact).OfType<ScrollViewer>().Any(),
+            "Simple Setup is not the default or Compact still has a scrollbar");
+        model.ActiveSection = OperatorSection.Setup;
+        main.ScrollContentToTopForAutomation();
+        await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+        Require(((FrameworkElement)main.FindName("SimpleSetupCard")).IsVisible
+            && !((FrameworkElement)main.FindName("AdvancedSetupPanel")).IsVisible,
+            "Simple Setup is not visible by default");
+        capture(main, Path.Combine(directory, "setup-simple-default.png"), 1);
+        model.IsAdvancedSetup = true;
+        await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+        capture(main, Path.Combine(directory, "setup-advanced.png"), 1);
+        model.IsAdvancedSetup = false;
+        model.ActiveSection = OperatorSection.LiveControl;
+        await VerifySmoothScrollAsync(main);
         Require(!Descendants(output).OfType<MediaElement>().Any(), "Confidence output unexpectedly contains an audio/video player");
         // Settings retains its own sync control, but it is not shown on Live control.
         Require(Descendants(main).OfType<ButtonBase>().Count(button => button.IsVisible
@@ -116,6 +131,7 @@ internal static class OperatorWorkflowVerification
         VerifyPixels(fixture, output.PreviewSurface);
         coordinator.SetBlanked(false);
         model.OutputManagerForVerification.StopOutput();
+        output = model.OutputManagerForVerification.WindowForVerification;
         model.PreviewCommand.Execute(null);
         await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
         Require(!coordinator.Snapshot.IsLive && !output.IsVisible && output.PreviewSurface.ActualWidth > 0,
@@ -177,6 +193,20 @@ internal static class OperatorWorkflowVerification
                 main.Width = 360;
                 await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
                 VerifyWholeFrame(compactFrame, output);
+                main.SizeToContent = SizeToContent.Manual;
+                main.MinWidth = 240;
+                main.MinHeight = 240;
+                main.Width = 260;
+                main.Height = 260;
+                await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+                VerifyWholeFrame(compactFrame, output);
+                FrameworkElement compactRoot = (FrameworkElement)main.FindName("CompactViewRoot");
+                Rect compactBounds = new(compactRoot.RenderSize);
+                compactBounds.Inflate(1, 1);
+                foreach (ButtonBase control in Descendants(compactRoot).OfType<ButtonBase>())
+                    Require(compactBounds.Contains(control.TransformToAncestor(compactRoot).TransformBounds(new Rect(control.RenderSize))),
+                        "Small Compact view clips a control instead of scaling it");
+                capture(main, Path.Combine(directory, $"compact-small-no-scroll-{width}x{height}.png"), 1);
                 System.Windows.Controls.Primitives.ToggleButton onTop = (System.Windows.Controls.Primitives.ToggleButton)main.FindName("CompactOnTopButton");
                 onTop.SetCurrentValue(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, false);
                 onTop.GetBindingExpression(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty)?.UpdateSource();
@@ -195,6 +225,30 @@ internal static class OperatorWorkflowVerification
             VerificationWindowSizing.SetSize(main, originalWidth, originalHeight);
             await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
         }
+    }
+
+    private static async Task VerifySmoothScrollAsync(MainWindow main)
+    {
+        SmoothScrollViewer viewer = (SmoothScrollViewer)main.FindName("ContentScrollViewer");
+        // A loaded fixture has deterministic extent and avoids relying on whichever
+        // application tab happens to need scrolling at the runner's current size.
+        SmoothScrollViewer fixture = new() { Height = 160, Width = 240,
+            Content = new Border { Height = 1200, Background = System.Windows.Media.Brushes.Black } };
+        Window window = new() { Content = fixture, Width = 260, Height = 200, ShowInTaskbar = false };
+        try
+        {
+            window.Show();
+            await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+            fixture.ScrollWheelForVerification(-15);
+            await Task.Delay(220);
+            Require(!viewer.CanContentScroll && fixture.VerticalOffset > 0 && fixture.VerticalOffset < 25,
+                "High-resolution touchpad delta jumps by full wheel lines or animation never advances");
+            fixture.ScrollToVerticalOffset(200);
+            await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+            await Task.Delay(80);
+            Require(Math.Abs(fixture.VerticalOffset - 200) < 1, "Wheel animation overrides programmatic or scrollbar navigation");
+        }
+        finally { window.Close(); }
     }
 
     private static void VerifyWholeFrame(RoundedPreviewBorder frame, OutputWindow output)

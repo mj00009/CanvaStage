@@ -9,6 +9,8 @@ using System.Windows.Controls;
 using System.Windows.Threading;
 using Button = System.Windows.Controls.Button;
 using ComboBox = System.Windows.Controls.ComboBox;
+using System.Windows.Interop;
+using System.Runtime.InteropServices;
 
 namespace CanvaStage.Windows.Services;
 
@@ -24,6 +26,7 @@ internal static class DisplaySetupVerification
         bool originalIsLive = coordinator.Snapshot.IsLive;
         ComboBox selector = (ComboBox)main.FindName("SetupDisplaySelector");
         model.ActiveSection = OperatorSection.Setup;
+        model.IsAdvancedSetup = true;
         model.OutputManagerForVerification.StopOutput();
         DisplayOption receiver = new("verification-receiver", "VERIFICATION5", "Synthetic receiver", 2, 2880, 1800, false);
         try
@@ -81,8 +84,19 @@ internal static class DisplaySetupVerification
                 Require(coordinator.Snapshot.IsLive && output.IsVisible
                     && output.GetNativeBounds() == service.FindDisplay(display.ScreenDeviceName)!.Bounds,
                     "Setup Start output does not reach the selected physical display");
-                model.OutputManagerForVerification.StopOutput();
+                nint liveHandle = new WindowInteropHelper(output).Handle;
+                Invoke((Button)main.FindName("SetupStopOutputButton"));
                 await Idle(main);
+                model.ReceivePresenterUpdateForVerification(new(CanvaPresenterTrackingState.PageDetected, 2,
+                    coordinator.Snapshot.Document.Pages.Count, "Synthetic Presenter after Stop", DateTimeOffset.UtcNow));
+                model.PreviewCommand.Execute(null);
+                await Idle(main);
+                Require(!IsWindow(liveHandle) && !output.IsVisible && !coordinator.Snapshot.IsLive
+                    && !model.OutputManagerForVerification.WindowForVerification.IsVisible,
+                    "Stop output retains a live HWND or Presenter/Preview resurrects the fullscreen window");
+                Require(model.OutputManagerForVerification.PreviewWindowForVerification!.IsVisible,
+                    "Stopping output prevents independent offline Preview");
+                model.OutputManagerForVerification.PreviewWindowForVerification!.Close();
             }
         }
         finally
@@ -92,6 +106,7 @@ internal static class DisplaySetupVerification
             model.ApplyDisplaySnapshot(actual, "Verification restore");
             model.SelectedDisplay = original;
             model.ActiveSection = OperatorSection.LiveControl;
+            model.IsAdvancedSetup = false;
             main.ScrollContentToTopForAutomation();
             if (originalIsLive) coordinator.StartOutput();
         }
@@ -111,4 +126,8 @@ internal static class DisplaySetupVerification
     {
         if (!condition) throw new InvalidOperationException(message);
     }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsWindow(nint handle);
 }

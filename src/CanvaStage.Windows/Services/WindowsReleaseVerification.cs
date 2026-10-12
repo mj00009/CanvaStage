@@ -50,6 +50,9 @@ internal static class WindowsReleaseVerification
         Require(viewModel.CurrentPageNumber == 3, "Resume uses current fresh Presenter page");
         Feed(1, 4);
         Require(viewModel.CurrentPageNumber == 3 && viewModel.PresenterSyncSummary == "Presentation mismatch", "Mismatched page count holds the last page");
+        Require(viewModel.HasPresenterAttention && viewModel.CanvaPresenterTrackingStatus.Contains("4 visible pages")
+            && viewModel.CanvaPresenterTrackingStatus.Contains("3") && viewModel.CanvaPresenterTrackingStatus.Contains("Re-download")
+            && viewModel.CanvaPresenterTrackingStatus.Contains("Advanced"), "Mismatch explains actual counts and recovery steps");
         Feed(2);
         Require(viewModel.CurrentPageNumber == 2 && viewModel.PresenterSyncSummary == "Following Canva", "Matching counter resumes direct following");
         viewModel.IsPresenterSyncEnabled = false;
@@ -84,6 +87,7 @@ internal static class WindowsReleaseVerification
         await MirrorImageExportVerification.RunAsync(directory);
         checks.Add("DPAPI reuse, fresh rendered images instead of preview thumbnails, preview API schema guard, immutable refresh and cache save/recovery checks");
         checks.Add("Saved-token startup, concurrent token rotation, 401 retry, live refresh navigation, page-count change, failed export, pause/blank preservation, opt-out and shutdown cancellation");
+        checks.Add("Simple Setup saved-deck/display defaults, unchanged-cache reuse without exports, changed-deck download progress, missing/Primary display guards, cancelled-start protection, restart and failed-export recovery");
         checks.Add("Mirror pixels change after refresh with unchanged thumbnails; manual refresh bypasses lagging metadata; hidden-page render mapping, bounded image size, signed URL preservation and invalid/failed image guards");
         checks.Add("Real content timer checks in Live control without repeated unchanged exports; refresh health, download/error screenshots, opt-out, retry recovery and timer shutdown");
         viewModel.CanvaClientId = "verification-client";
@@ -134,11 +138,13 @@ internal static class WindowsReleaseVerification
         checks.Add("All operator sections at 100%, 125%, 150% and 200% effective layout sizes and raster DPI");
 
         viewModel.ActiveSection = OperatorSection.Setup;
+        viewModel.IsAdvancedSetup = true;
         VerificationWindowSizing.SetSize(mainWindow, 1380, 900);
         await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(), DispatcherPriority.ApplicationIdle);
         mainWindow.ScrollContentToEndForAutomation();
         await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(), DispatcherPriority.ApplicationIdle);
         capture(mainWindow, Path.Combine(directory, "operator-Setup-display-and-output-controls.png"), 1);
+        viewModel.IsAdvancedSetup = false;
         mainWindow.ScrollContentToTopForAutomation();
 
         viewModel.ActiveSection = OperatorSection.LiveControl;
@@ -160,7 +166,7 @@ internal static class WindowsReleaseVerification
         viewModel.TogglePresenterSyncCommand.Execute(null);
 
         await DisplaySetupVerification.RunAsync(mainWindow, viewModel, coordinator, directory, capture);
-        checks.Add("Setup dropdown preserves selection across item reset/reorder, disconnect and renamed reconnect without automatic output; Windows display notifications refresh the UI; real Identify/Start buttons place windows inside each available physical display");
+        checks.Add("Setup dropdown preserves selection across reset/reconnect; real Identify/Start buttons place windows; Stop destroys the live HWND and Presenter/Preview cannot resurrect it");
 
         OutputWindow output = viewModel.OutputManagerForVerification.WindowForVerification;
         OutputWindowViewModel outputViewModel = (OutputWindowViewModel)output.DataContext;
@@ -206,7 +212,7 @@ internal static class WindowsReleaseVerification
             VerificationWindowSizing.CheckSize(output, 1280, 720);
             capture(output, Path.Combine(directory, "output-mirror.png"), 1);
             await OperatorWorkflowVerification.RunAsync(mainWindow, viewModel, output, coordinator, directory, capture);
-            checks.Add("Setup/Settings separation; always-visible Settings with consistent text sizes; visible build version; unique controls; whole-frame aspect-ratio previews at wide/standard/portrait sizes; compact auto-height and compact-only topmost; label spacing and rounded corners; no compact Pause Sync; independent offline/live Preview; shared visual and 1:1 pixel parity across modes/layouts");
+            checks.Add("Simple/Advanced Setup and Settings separation; smooth high-resolution wheel deltas; whole-frame previews; small scrollbar-free uniformly scaled Compact with compact-only topmost; no compact Pause Sync; independent offline/live Preview and shared pixel parity");
         }
         finally { viewModel.OutputManagerForVerification.StopOutput(); }
         checks.Add("All Monitor layouts with long text at maximum requested font size; measured text fit; Mirror output");

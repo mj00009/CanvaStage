@@ -39,6 +39,7 @@ public sealed class AppPreferencesTests
         Assert.NotNull(preferences);
         Assert.True(preferences.IsPresenterSyncEnabled);
         Assert.True(preferences.IsAutomaticContentRefreshEnabled);
+        Assert.Null(preferences.LastAppliedPresentationId);
         Assert.Equal(30, preferences.Appearance.NextLineFontSize);
         Assert.False(preferences.Appearance.IsNextLineBold);
         Assert.Equal("#F8F8FC", preferences.Appearance.NextLineColor);
@@ -49,6 +50,17 @@ public sealed class AppPreferencesTests
     {
         AppPreferences expected = AppPreferences.Default with { IsAutomaticContentRefreshEnabled = false };
         Assert.False(JsonSerializer.Deserialize<AppPreferences>(JsonSerializer.Serialize(expected))!.IsAutomaticContentRefreshEnabled);
+    }
+
+    [Fact]
+    public void LastAppliedDeckSurvivesRestartIndependentlyOfHighlightedSelection()
+    {
+        AppPreferences expected = AppPreferences.Default with
+        {
+            SelectedPresentationId = "highlighted-but-not-applied", LastAppliedPresentationId = "last-used",
+            LastAppliedPresentationTitle = "Sunday"
+        };
+        Assert.Equal(expected, JsonSerializer.Deserialize<AppPreferences>(JsonSerializer.Serialize(expected)));
     }
 
     [Fact]

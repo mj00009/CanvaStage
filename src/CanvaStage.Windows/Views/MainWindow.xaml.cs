@@ -101,18 +101,19 @@ public partial class MainWindow : Window
             _fullViewBounds = RestoreBounds;
             _fullViewMaxHeight = MaxHeight;
             WindowState = WindowState.Normal;
-            MinWidth = 320;
-            MinHeight = 300;
+            MinWidth = 240;
+            MinHeight = 240;
 
             Rect workArea = SystemParameters.WorkArea;
             Width = Math.Clamp(workArea.Width * 0.20d, 320d, 400d);
-            MinHeight = Math.Min(300, Math.Max(1, workArea.Height - 32));
+            MinHeight = Math.Min(240, Math.Max(1, workArea.Height - 32));
             MaxHeight = Math.Max(MinHeight, workArea.Height - 32);
             Left = Math.Max(workArea.Left, workArea.Right - Width - 16d);
             Top = workArea.Top + 16d;
             FullViewRoot.Visibility = Visibility.Collapsed;
             CompactViewRoot.Visibility = Visibility.Visible;
             _viewModel.SetCompactViewState(true);
+            CompactPreviewFrame.MaxHeight = double.PositiveInfinity;
             SizeToContent = SizeToContent.Height;
             return;
         }
@@ -148,6 +149,13 @@ public partial class MainWindow : Window
 
     private void UpdateResponsiveLayout(double width, double height)
     {
+        if (CompactViewRoot.Visibility == Visibility.Visible && SizeToContent == SizeToContent.Manual)
+        {
+            // Short windows reduce the copied preview first, so portrait sources
+            // do not shrink the operator buttons to unreadable sizes.
+            double widthScale = Math.Min(1, Math.Max(0.1, (width - 16) / 324));
+            CompactPreviewFrame.MaxHeight = Math.Max(48, (height - 40) / widthScale - 220);
+        }
         bool narrow = width < 900;
         SidebarColumn.Width = new GridLength(narrow ? 0 : width < 1250 ? 230 : 286);
         Sidebar.Visibility = narrow ? Visibility.Collapsed : Visibility.Visible;

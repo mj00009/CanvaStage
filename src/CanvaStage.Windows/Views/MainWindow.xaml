@@ -89,6 +89,9 @@
                         <Button Content="{Binding PresenterSyncButtonText}" Command="{Binding TogglePresenterSyncCommand}" Style="{StaticResource SecondaryButton}" Padding="12,6" />
                         <Button Content="Sync details" Command="{Binding TestSetupCommand}" Style="{StaticResource TextButton}" />
                     </WrapPanel>
+                    <TextBlock Text="{Binding CanvaPresenterTrackingStatus}" TextWrapping="Wrap" Margin="0,6,0,0" MaxWidth="760" HorizontalAlignment="Left">
+                        <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource MutedText}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding HasPresenterAttention}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                    </TextBlock>
                 </StackPanel>
                 <WrapPanel Grid.Row="1" Margin="0,14,0,0" HorizontalAlignment="Right">
                     <Border Style="{StaticResource LiveStatusCard}" Margin="0,0,12,0">
@@ -99,7 +102,7 @@
                 </WrapPanel>
             </Grid>
 
-            <ScrollViewer x:Name="ContentScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <controls:SmoothScrollViewer x:Name="ContentScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <Grid>
                 <Grid x:Name="LiveControlGrid">
                     <Grid.Style>
@@ -128,7 +131,7 @@
                             </controls:RoundedPreviewBorder>
                             <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <Button Grid.Column="0" Content="Open Preview" Command="{Binding PreviewCommand}" Style="{StaticResource SecondaryButton}" Margin="0" />
-                                <Button Grid.Column="1" Content="Start output" Command="{Binding StartOutputCommand}" Style="{StaticResource PrimaryButton}" Margin="10,0,0,0" />
+                                <Button x:Name="LiveOutputActionButton" Grid.Column="1" Content="{Binding OutputActionText}" Command="{Binding OutputActionCommand}" Style="{StaticResource PrimaryButton}" Margin="10,0,0,0" />
                                 <Button Grid.Column="2" Content="{Binding BlankOutputButtonText}" Command="{Binding BlankOutputCommand}" Style="{StaticResource DangerButton}" Margin="10,0,0,0" ToolTip="Blank or restore the live confidence display (Ctrl+B)" />
                             </Grid>
                         </Grid>
@@ -157,6 +160,28 @@
                 <Grid x:Name="SetupPanel">
                     <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsSetupSelected}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Grid.Style>
                     <StackPanel>
+                        <WrapPanel Margin="0,0,0,16">
+                            <RadioButton Content="Simple" GroupName="SetupMode" IsChecked="{Binding IsSimpleSetup}" Style="{StaticResource SideNavButton}" Padding="18,10" />
+                            <RadioButton Content="Advanced" GroupName="SetupMode" IsChecked="{Binding IsAdvancedSetup}" Style="{StaticResource SideNavButton}" Padding="18,10" />
+                        </WrapPanel>
+                        <Border x:Name="SimpleSetupCard">
+                            <Border.Style><Style TargetType="Border" BasedOn="{StaticResource PanelCard}"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding IsAdvancedSetup}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Border.Style>
+                            <StackPanel>
+                                <TextBlock Text="Ready for Sunday" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="{Binding SimpleSetupDefaultsText}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,10,0,16" />
+                                <Button x:Name="SimpleSetupStartButton" Content="Start setup" Command="{Binding StartSimpleSetupCommand}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" />
+                                <TextBlock x:Name="SimpleSetupStatusText" Text="{Binding SimpleSetupStatus}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,12,0,8" />
+                                <ProgressBar x:Name="SimpleSetupProgressBar" Height="10" Minimum="0" Maximum="100" Value="{Binding SimpleSetupProgress, Mode=OneWay}" IsIndeterminate="{Binding SimpleSetupProgressIndeterminate}" />
+                                <TextBlock Text="During download, the bar shows progress for the current export/download phase, not an estimated total time." Style="{StaticResource MutedText}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,16" />
+                                <WrapPanel>
+                                    <Button Content="Check slides for updates" Command="{Binding CheckSimpleSlidesCommand}" Style="{StaticResource SecondaryButton}" />
+                                    <Button Content="Restart setup" Command="{Binding StartSimpleSetupCommand}" Style="{StaticResource SecondaryButton}" />
+                                </WrapPanel>
+                                <CheckBox Content="Automatically apply Canva content updates" IsChecked="{Binding IsAutomaticContentRefreshEnabled}" Margin="0,8,0,0" />
+                            </StackPanel>
+                        </Border>
+                        <StackPanel x:Name="AdvancedSetupPanel">
+                            <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsAdvancedSetup}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></StackPanel.Style>
                         <Border Style="{StaticResource PanelCard}"><StackPanel>
                             <TextBlock Text="{Binding CanvaConnectionStatus}" Style="{StaticResource MutedText}" TextWrapping="Wrap" />
                             <WrapPanel Margin="0,10,0,0"><Button Content="Connect Canva" Command="{Binding ConnectCanvaCommand}" Style="{StaticResource SecondaryButton}" /><Button Content="Connection settings" Command="{Binding TestSetupCommand}" Style="{StaticResource TextButton}" /></WrapPanel>
@@ -171,6 +196,7 @@
                                 <ProgressBar Height="10" Minimum="0" Maximum="100" Value="{Binding CanvaDownloadProgressPercent, Mode=OneWay}" IsIndeterminate="{Binding IsCanvaDownloadProgressIndeterminate}" />
                             </StackPanel>
                             <WrapPanel Margin="0,12,0,0"><Button Content="Check for updates" Command="{Binding CheckPresentationUpdatesCommand}" Style="{StaticResource SecondaryButton}" /><Button Content="Re-download" Command="{Binding RedownloadCanvaCommand}" Style="{StaticResource SecondaryButton}" /></WrapPanel>
+                            <TextBlock Text="{Binding SimpleSetupDefaultsText}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,8,0,0" />
                         </StackPanel>
                     </Border>
                         <Border Style="{StaticResource PanelCard}"><StackPanel><TextBlock Text="2. Choose the confidence display" Style="{StaticResource SectionTitle}" /><TextBlock Text="Choose the extended Windows display used by people on stage. With one display, Preview remains available for safe setup." Style="{StaticResource MutedText}" Margin="0,6,0,20" TextWrapping="Wrap" />
@@ -180,8 +206,9 @@
                         <Border Style="{StaticResource PanelCard}"><StackPanel>
                             <TextBlock Text="3. Preview and go live" Style="{StaticResource SectionTitle}" />
                             <TextBlock Text="Open Preview to check the output. Start on the selected display, then use Live control or Compact view during the service." Style="{StaticResource MutedText}" Margin="0,8,0,16" TextWrapping="Wrap" />
-                            <WrapPanel><Button Content="Open Preview" Command="{Binding PreviewCommand}" Style="{StaticResource SecondaryButton}" /><Button x:Name="SetupStartOutputButton" Content="Start output" Command="{Binding StartOutputCommand}" Style="{StaticResource PrimaryButton}" /><Button Content="Live control" Command="{Binding OpenLiveControlCommand}" Style="{StaticResource SecondaryButton}" /><Button Content="Stop output" Command="{Binding StopOutputCommand}" Style="{StaticResource DangerButton}" /></WrapPanel>
+                            <WrapPanel><Button Content="Open Preview" Command="{Binding PreviewCommand}" Style="{StaticResource SecondaryButton}" /><Button x:Name="SetupStartOutputButton" Content="Start output" Command="{Binding StartOutputCommand}" Style="{StaticResource PrimaryButton}" /><Button Content="Live control" Command="{Binding OpenLiveControlCommand}" Style="{StaticResource SecondaryButton}" /><Button x:Name="SetupStopOutputButton" Content="Stop output" Command="{Binding StopOutputCommand}" Style="{StaticResource DangerButton}" /></WrapPanel>
                         </StackPanel></Border>
+                        </StackPanel>
                     </StackPanel>
                 </Grid>
 
@@ -273,13 +300,14 @@
                     </StackPanel>
                 </Grid>
                 </Grid>
-            </ScrollViewer>
+            </controls:SmoothScrollViewer>
         </Grid>
       </Grid>
 
-      <ScrollViewer x:Name="CompactViewRoot" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <Viewbox x:Name="CompactViewRoot" Visibility="Collapsed" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Top">
       <Border
               Style="{StaticResource PanelCard}"
+              Width="300"
               Margin="12"
               Padding="14">
         <Grid>
@@ -296,7 +324,7 @@
             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <WrapPanel><TextBlock Text="{Binding PresenterSyncSummary}" Foreground="{Binding PresenterSyncBrush}" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" ToolTip="{Binding CanvaPresenterTrackingStatus}" Margin="0,0,10,0" /><TextBlock Text="{Binding PageLabel}" Foreground="{StaticResource MutedTextBrush}" FontSize="12" VerticalAlignment="Center" /></WrapPanel>
           </Grid>
-          <controls:RoundedPreviewBorder x:Name="CompactPreviewFrame" Grid.Row="2" Style="{StaticResource PreviewFrame}" Padding="0" Margin="0,12">
+          <controls:RoundedPreviewBorder x:Name="CompactPreviewFrame" Grid.Row="2" Style="{StaticResource PreviewFrame}" Padding="0" Margin="0,12" HorizontalAlignment="Center">
             <controls:AspectRatioPreviewHost Source="{Binding OutputPreviewSurface}"><views:ConfidencePreview /></controls:AspectRatioPreviewHost>
           </controls:RoundedPreviewBorder>
           <Grid Grid.Row="3">
@@ -307,6 +335,6 @@
           <Button Grid.Row="4" Content="{Binding BlankOutputButtonText}" Command="{Binding BlankOutputCommand}" Style="{StaticResource DangerButton}" Margin="0,10,0,0" ToolTip="Blank or restore output (Ctrl+B)" />
         </Grid>
       </Border>
-      </ScrollViewer>
+      </Viewbox>
     </Grid>
 </Window>
