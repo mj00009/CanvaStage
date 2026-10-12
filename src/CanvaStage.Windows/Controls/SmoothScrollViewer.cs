@@ -44,7 +44,8 @@ public sealed class SmoothScrollViewer : System.Windows.Controls.ScrollViewer
     }
 
     internal void ScrollWheelForVerification(int delta)
-        => OnMouseWheel(new MouseWheelEventArgs(Mouse.PrimaryDevice, Environment.TickCount, delta));
+        => OnMouseWheel(new MouseWheelEventArgs(Mouse.PrimaryDevice, Environment.TickCount, delta)
+            { RoutedEvent = Mouse.MouseWheelEvent, Source = this });
 
     private void OnTick(object? sender, EventArgs args)
     {

@@ -322,7 +322,12 @@
           </Grid>
           <Grid Grid.Row="1" Margin="0,8,0,0">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-            <WrapPanel><TextBlock Text="{Binding PresenterSyncSummary}" Foreground="{Binding PresenterSyncBrush}" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" ToolTip="{Binding CanvaPresenterTrackingStatus}" Margin="0,0,10,0" /><TextBlock Text="{Binding PageLabel}" Foreground="{StaticResource MutedTextBrush}" FontSize="12" VerticalAlignment="Center" /></WrapPanel>
+            <WrapPanel>
+              <TextBlock Text="{Binding PresenterSyncSummary}" Foreground="{Binding PresenterSyncBrush}" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0">
+                <TextBlock.ToolTip><ToolTip Background="#111824" Foreground="{StaticResource PrimaryTextBrush}" BorderBrush="{StaticResource BorderBrush}" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"><TextBlock Text="{Binding CanvaPresenterTrackingStatus}" Foreground="{StaticResource PrimaryTextBrush}" TextWrapping="Wrap" MaxWidth="360" FontSize="12" /></ToolTip></TextBlock.ToolTip>
+              </TextBlock>
+              <TextBlock Text="{Binding PageLabel}" Foreground="{StaticResource MutedTextBrush}" FontSize="12" VerticalAlignment="Center" />
+            </WrapPanel>
           </Grid>
           <controls:RoundedPreviewBorder x:Name="CompactPreviewFrame" Grid.Row="2" Style="{StaticResource PreviewFrame}" Padding="0" Margin="0,12" HorizontalAlignment="Center">
             <controls:AspectRatioPreviewHost Source="{Binding OutputPreviewSurface}"><views:ConfidencePreview /></controls:AspectRatioPreviewHost>
