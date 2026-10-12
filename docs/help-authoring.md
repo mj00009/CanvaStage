@@ -4,6 +4,8 @@ The public operator help lives in this repository, under `docs/help/`, and is ho
 
 ## Enable hosting once
 
+Hosting was enabled by the owner on October 12, 2026. The [initial deployment](https://github.com/mj00009/CanvaStage/actions/runs/38254507700) and [current-portal documentation update](https://github.com/mj00009/CanvaStage/actions/runs/38254957162) both passed. Root and archived routes, demo images, and current portal instructions were verified in the live browser. The setup below is retained for recovery or a future move.
+
 The repository owner must open **Settings → Pages → Build and deployment → Source → GitHub Actions**. The current collaborator can push but cannot administer Pages. No custom domain or cross-repository token is needed. In **Settings → Environments → github-pages**, allow deployment from `main` and release tags (`v*`) if branch restrictions are enabled.
 
 After enabling Pages, run **Actions → Public help documentation → Run workflow** on `main`, or rerun its deployment job. Verify both the root and `/v0.12.0/` routes in a browser. A passing build/upload alone does not mean the site is live. The workflow will not enable Pages by silently escalating permissions.

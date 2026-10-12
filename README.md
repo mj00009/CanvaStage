@@ -6,7 +6,7 @@ CanvaStage is not affiliated with, endorsed by, or sponsored by Canva Pty Ltd. S
 
 ## Help
 
-The public [CanvaStage Help](https://mj00009.github.io/CanvaStage/) site provides a screenshot-based Sunday quick start, first-time/advanced setup, and troubleshooting. Guides are retained by app version. The in-app **Help** button and **F1** shortcut are implemented in development source for the next app release, not the existing v0.12.0 download. See [help maintenance](docs/help-authoring.md) for publishing and screenshot rules. Initial hosting requires the repository owner to enable Pages with GitHub Actions.
+The public [CanvaStage Help](https://mj00009.github.io/CanvaStage/) site provides a screenshot-based Sunday quick start, first-time/advanced setup, and troubleshooting. Guides are retained by app version. The in-app **Help** button and **F1** shortcut are implemented in development source for the next app release, not the existing v0.12.0 download. See [help maintenance](docs/help-authoring.md) for publishing and screenshot rules. GitHub Pages hosting is enabled and the initial guides are live.
 
 ## Download
 
