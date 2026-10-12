@@ -2,6 +2,8 @@
 
 This guide describes v0.12.0, including Simple Setup, cached-deck reuse, smaller scrollbar-free Compact view, smoother scrolling and actionable recovery guidance.
 
+For a shorter guide with screenshots, use the public [CanvaStage Help](https://mj00009.github.io/CanvaStage/v0.12.0/). Development source adds Help/F1 for a subsequent release; v0.12.0 users can bookmark the website.
+
 ## Simple Setup
 
 For a computer that already has a saved Canva connection, presentation and Extended confidence display, open **Setup → Simple** and choose **Start setup**. Wait for the synced/ready message, then use Live control or Compact view. Open one Canva Presenter View and confirm **Following Canva** before service use.

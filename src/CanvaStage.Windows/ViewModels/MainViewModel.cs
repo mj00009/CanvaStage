@@ -18,6 +18,7 @@ public sealed partial class MainViewModel : ViewModelBase
     public string ApplicationVersionLabel => ApplicationVersion.Label;
 
     private readonly IOutputCoordinator _coordinator;
+    private readonly HelpLinkService _helpLinks;
     private readonly OutputWindowManager _outputWindowManager;
     private readonly DisplayService _displayService;
     private readonly Func<IReadOnlyList<DisplayOption>> _getDisplays;
@@ -71,9 +72,10 @@ public sealed partial class MainViewModel : ViewModelBase
     private bool _progressQueued;
     private bool _isAutomaticRefreshRunning;
 
-    public MainViewModel(IOutputCoordinator coordinator, OutputWindowManager outputWindowManager, DisplayService displayService, DisplayIdentificationService displayIdentificationService, DiagnosticsExportService diagnosticsExportService, JsonPreferencesStore preferencesStore, PresentationCacheStore presentationCacheStore, CanvaConnectService canva, ICanvaPresenterTracker canvaPresenterAccessibilityTracker, AppPreferences preferences, AutomaticContentRefreshSchedule? contentRefreshSchedule = null, Func<IReadOnlyList<DisplayOption>>? getDisplays = null)
+    public MainViewModel(IOutputCoordinator coordinator, OutputWindowManager outputWindowManager, DisplayService displayService, DisplayIdentificationService displayIdentificationService, DiagnosticsExportService diagnosticsExportService, JsonPreferencesStore preferencesStore, PresentationCacheStore presentationCacheStore, CanvaConnectService canva, ICanvaPresenterTracker canvaPresenterAccessibilityTracker, AppPreferences preferences, AutomaticContentRefreshSchedule? contentRefreshSchedule = null, Func<IReadOnlyList<DisplayOption>>? getDisplays = null, HelpLinkService? helpLinks = null)
     {
         _coordinator = coordinator;
+        _helpLinks = helpLinks ?? new HelpLinkService(ApplicationVersion.Current);
         _outputWindowManager = outputWindowManager;
         _outputWindowManager.PreviewSourceChanged += OnPreviewSourceChanged;
         _displayService = displayService;
@@ -112,6 +114,11 @@ public sealed partial class MainViewModel : ViewModelBase
         NextLineFontSizes = [16d, 18d, 20d, 24d, 28d, 30d, 32d, 36d, 40d, 48d, 56d, 64d];
 
         PreviewCommand = new RelayCommand(ShowPreview);
+        OpenHelpCommand = new RelayCommand(() =>
+        {
+            if (_helpLinks.TryOpen() is { } error)
+                System.Windows.MessageBox.Show(error, "CanvaStage Help", MessageBoxButton.OK, MessageBoxImage.Information);
+        });
         StartOutputCommand = new RelayCommand(StartOutput, CanStartOutput);
         StopOutputCommand = new RelayCommand(StopOutput, () => Snapshot.IsLive || IsSimpleSetupRunning);
         BlankOutputCommand = new RelayCommand(() => _coordinator.SetBlanked(!Snapshot.IsBlanked), () => Snapshot.IsLive);
@@ -167,6 +174,7 @@ public sealed partial class MainViewModel : ViewModelBase
     public IReadOnlyList<double> FontSizes { get; }
     public IReadOnlyList<double> NextLineFontSizes { get; }
     public ICommand PreviewCommand { get; }
+    public ICommand OpenHelpCommand { get; }
     public ICommand OpenSetupCommand { get; }
     public ICommand OpenLiveControlCommand { get; }
     public FrameworkElement? OutputPreviewSurface => _outputWindowManager.PreviewSurface;

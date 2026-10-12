@@ -10,6 +10,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using System.Windows.Data;
+using System.Windows.Input;
 using Size = System.Windows.Size;
 using ButtonBase = System.Windows.Controls.Primitives.ButtonBase;
 using ComboBox = System.Windows.Controls.ComboBox;
@@ -64,6 +65,15 @@ internal static class OperatorWorkflowVerification
         Require(main.Title == model.ApplicationVersionLabel && model.ApplicationVersionLabel == ApplicationVersion.Label
             && ApplicationVersion.Current.Split('-')[0] == typeof(MainViewModel).Assembly.GetName().Version?.ToString(3),
             "Visible app version does not match the build version");
+        Require(((ButtonBase)main.FindName("HelpButton")).IsVisible
+            && ReferenceEquals(((ButtonBase)main.FindName("HelpButton")).Command, model.OpenHelpCommand)
+            && main.InputBindings.OfType<KeyBinding>().Any(binding => binding.Key == Key.F1
+                && binding.Modifiers == ModifierKeys.None && ReferenceEquals(binding.Command, model.OpenHelpCommand)),
+            "Help button/F1 does not bind to the public documentation command");
+        OutputSnapshot beforeHelp = coordinator.Snapshot;
+        // The screenshot fixture injects a no-op browser launcher, never an external browser.
+        model.OpenHelpCommand.Execute(null);
+        Require(coordinator.Snapshot == beforeHelp, "Opening Help changed the live output session");
         RoundedPreviewBorder frame = (RoundedPreviewBorder)main.FindName("LivePreviewFrame");
         Require(frame.Margin.Top == 12 && frame.Margin.Bottom <= 8, "Preview label spacing does not match the latest request");
         Require(!Descendants(settings).OfType<Expander>().Any(), "Settings sections still require expansion");
@@ -180,10 +190,22 @@ internal static class OperatorWorkflowVerification
                     VerificationWindowSizing.SetSize(main, operatorWidth, 900);
                     await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
                     VerifyWholeFrame((RoundedPreviewBorder)main.FindName("LivePreviewFrame"), output);
+                    ButtonBase help = (ButtonBase)main.FindName("HelpButton");
+                    Rect windowBounds = new(main.RenderSize);
+                    windowBounds.Inflate(1, 1);
+                    Require(help.IsVisible && windowBounds.Contains(help.TransformToAncestor(main).TransformBounds(new Rect(help.RenderSize))),
+                        "Help is missing or clipped at a narrow operator size");
                 }
                 capture(main, Path.Combine(directory, $"live-preview-aspect-{width}x{height}.png"), 1);
                 main.SetCompactViewForAutomation(true);
                 await main.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+                KeyBinding helpShortcut = main.InputBindings.OfType<KeyBinding>().Single(binding => binding.Key == Key.F1);
+                Require(ReferenceEquals(helpShortcut.Command, model.OpenHelpCommand) && helpShortcut.Command.CanExecute(null),
+                    "F1 Help is unavailable in Compact view");
+                OutputSnapshot compactBeforeHelp = model.Snapshot;
+                helpShortcut.Command.Execute(null);
+                Require(model.Snapshot == compactBeforeHelp && ((FrameworkElement)main.FindName("CompactViewRoot")).IsVisible,
+                    "Compact Help changed the output or view");
                 Require(main.Topmost && model.IsWindowTopmost, "Compact view does not restore its saved on-top choice");
                 RoundedPreviewBorder compactFrame = (RoundedPreviewBorder)main.FindName("CompactPreviewFrame");
                 VerifyWholeFrame(compactFrame, output);

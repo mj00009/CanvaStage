@@ -1,0 +1,52 @@
+<h1>First-time &amp; advanced setup</h1>
+<p class="lead">For the person maintaining the presentation computer. Most of these settings only need to be changed once.</p>
+<h2 id="connection">Configure the Canva connection</h2>
+<aside class="notice warning"><strong>Important deployment limitation:</strong> Canva's <a href="https://www.canva.dev/docs/apps/rest-apis/security-recommendations/">official security recommendations</a> do not support desktop REST API integrations that store client credentials. CanvaStage uses locally protected credentials for a self-managed computer; Windows protection does not make this a Canva-supported integration. Publishing this application's source does not authorize broader distribution of a Canva integration or sharing its credentials.</aside>
+<p>You need access to the intended Canva account, multi-factor authentication, and permission to configure an integration. Use the Windows account that will operate CanvaStage.</p>
+<ol>
+  <li>In CanvaStage, open <strong>Settings &amp; Diagnostics → Canva connection</strong>. Choose <strong>Copy redirect URL</strong>.</li>
+  <li>Open <a href="https://www.canva.dev/developers/integrations">the Canva Developer Portal</a>, sign in, and open <strong>Your integrations</strong>. Create an integration appropriate for your account and intended use.</li>
+  <li>On the integration's configuration page, copy its <strong>Client ID</strong>. Generate and save its <strong>Client Secret</strong> privately; Canva does not show the secret again.</li>
+  <li>Under <strong>Scopes</strong>, enable only <code>design:meta:read</code> and <code>design:content:read</code>.</li>
+  <li>Under <strong>Authentication → Authorized redirects</strong>, add the exact URL copied from CanvaStage. The current value is <code>http://127.0.0.1:27843/callback/</code>, including its trailing slash. Use the app's value if it differs. Do not substitute <code>localhost</code>.</li>
+  <li>Return to CanvaStage, enter the Client ID and Client Secret, and choose <strong>Save configuration</strong>.</li>
+  <li>Choose <strong>Connect Canva</strong>, authorize the intended account in the browser, then return to the app.</li>
+</ol>
+<p>A Public integration can be used in draft state for individual testing; broader availability requires Canva's review. Private integrations require Canva Enterprise. A development loopback redirect cannot remain when submitting a Public integration for review. Consult <a href="https://www.canva.dev/docs/connect/creating-integrations/">Canva's integration guidance</a> and terms for your deployment.</p>
+<details><summary>Show the connection settings</summary><figure><a href="images/connection.png"><img src="images/connection.png" alt="Settings and Diagnostics contains the Canva connection card, redirect URL, Client ID, saved-secret indicator, and Connect Canva." width="1380" height="900" loading="lazy"></a><figcaption>Synthetic screenshot: “verification-client” is a fake test identifier, not a value to enter. Never share your own secret in a screenshot.</figcaption></figure></details>
+<p>The secret and tokens are protected for the current Windows user and reused after closing the app. Another Windows account must configure its own connection. <strong>Replace saved secret</strong> is for an intentional credential change. <strong>Disconnect</strong> removes the local protected connection; it is not a shutdown button.</p>
+<h2 id="deck">Load the presentation</h2>
+<ol>
+  <li>Open <strong>Setup → Advanced → 1. Load the Canva deck</strong>.</li>
+  <li>Choose <strong>Refresh</strong> to list presentations accessible to the connected account.</li>
+  <li>Select the intended deck and choose <strong>Apply</strong>. Wait for the import to finish.</li>
+</ol>
+<p>Simple Setup remembers the last <em>successfully applied</em> presentation. Highlighting another item without applying it does not change that default. Large exports take time; export preparation has no known percentage. Byte progress appears when the download's size is available, followed by page-image progress.</p>
+<details><summary>Show Advanced Setup</summary><figure><a href="images/advanced.png"><img src="images/advanced.png" alt="Advanced Setup separates loading the Canva deck from choosing the confidence display." width="1380" height="900" loading="lazy"></a><figcaption>Demo before authorization and deck selection; unavailable actions are disabled.</figcaption></figure></details>
+<h2 id="display">Choose the confidence display</h2>
+<ol>
+  <li>In Windows, open <strong>Settings → System → Display</strong> and set the screens to <strong>Extend</strong>.</li>
+  <li>In <strong>Setup → Advanced → 2. Choose the confidence display</strong>, choose <strong>Identify displays</strong>.</li>
+  <li>Match the temporary on-screen number to the dropdown's name, resolution, and Primary/Extended label. Choose the stage's <strong>Extended</strong> display.</li>
+  <li>Choose <strong>Open Preview</strong> to inspect content, then <strong>Start output</strong> to verify placement on the physical screen.</li>
+</ol>
+<p>Simple Setup refuses a missing, ambiguous, or Primary remembered display. Advanced allows explicit selection; with only one display, Preview is safest. Disconnecting the selected display stops output rather than moving it onto the operator screen. Reconnecting may restore its selection, but you must explicitly start output again.</p>
+<h2 id="appearance">Adjust Monitor appearance</h2>
+<p>In <strong>Settings &amp; Diagnostics</strong>, choose the Monitor font, maximum size, colors, layout, next-line behavior, and optional clock. Changes apply immediately to output and previews and are saved locally.</p>
+<ul>
+  <li>The main text shrinks when necessary; the selected font size is a maximum.</li>
+  <li>The Next cue shares the selected font family, with its own size, color, and optional Bold setting. Long cues use an ellipsis rather than multiple display lines.</li>
+  <li>Use contrast guidance and test from the stage. Mirror images are static, reference-quality JPEGs; no embedded media plays.</li>
+</ul>
+<details><summary>Show appearance settings</summary><figure><a href="images/appearance.png"><img src="images/appearance.png" alt="Settings shows the Monitor appearance card with font, maximum size, colors, and contrast guidance." width="1380" height="900" loading="lazy"></a><figcaption>v0.12.0 demo settings. Scroll within the app to reach the remaining appearance and layout controls.</figcaption></figure></details>
+<h2 id="updates">Content updates during a service</h2>
+<p><strong>Automatically apply Canva content updates</strong> checks the applied deck after each check completes, normally about every 30 seconds. Failures back off. A complete new download is applied without requiring you to stop and restart Presenter View or output. Until it succeeds, the working cached deck stays active.</p>
+<p>Canva may publish edits or its modification timestamp with a delay. With automatic updates enabled, Advanced <strong>Check for updates</strong> explicitly imports fresh content. With automatic updates disabled, it checks metadata and reports changes without applying them. Simple <strong>Check slides for updates</strong> avoids an unchanged download. <strong>Re-download</strong> always imports the applied deck, regardless of a different highlighted dropdown item.</p>
+<p>For a predictable service, finalize edits beforehand, check the preview, and disable automatic application if you do not want content changed mid-service. Presenter page following is separate from content refresh; disabling updates does not pause following.</p>
+<h2 id="cache">Cache and housekeeping</h2>
+<ul>
+  <li><strong>Clean old downloads</strong> removes obsolete download generations but keeps the current presentation.</li>
+  <li><strong>Clear cache</strong> removes downloaded presentation content and returns to the demo. It retains connection credentials, preferences, and the saved presentation selection; content must be downloaded again.</li>
+  <li>Normal app closing keeps the presentation and protected connection. Updating the extracted application files does not intentionally erase this per-user data.</li>
+</ul>
+<p><a href="troubleshooting.html">Connection, following, and display recovery →</a></p>

@@ -212,6 +212,7 @@ internal static class WindowsReleaseVerification
             VerificationWindowSizing.CheckSize(output, 1280, 720);
             capture(output, Path.Combine(directory, "output-mirror.png"), 1);
             await OperatorWorkflowVerification.RunAsync(mainWindow, viewModel, output, coordinator, directory, capture);
+            checks.Add("Help button and F1 open public versioned documentation without changing output or sync; no browser launched in verification");
             checks.Add("Simple/Advanced Setup and Settings separation; smooth high-resolution wheel deltas; whole-frame previews; small scrollbar-free uniformly scaled Compact with compact-only topmost; no compact Pause Sync; independent offline/live Preview and shared pixel parity");
         }
         finally { viewModel.OutputManagerForVerification.StopOutput(); }

@@ -1,0 +1,105 @@
+name: Public help documentation
+
+on:
+  push:
+    branches: [main]
+    paths: ['docs/help/**', 'scripts/build-help*', '.github/workflows/help-pages.yml']
+  pull_request:
+    paths: ['docs/help/**', 'scripts/build-help*', '.github/workflows/help-pages.yml']
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      release_tag:
+        description: Verified Windows release tag; must match the latest help guide
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.release.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Validate publication boundaries, screenshots, and links
+        run: node --test scripts/build-help.test.mjs
+      - name: Check release guide readiness
+        id: guide
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          const manifest = JSON.parse(readFileSync('docs/help/manifest.json'));
+          const ready = !process.env.RELEASE_TAG || manifest.latest === process.env.RELEASE_TAG;
+          appendFileSync(process.env.GITHUB_OUTPUT, `ready=${ready}\n`);
+          if (!ready) {
+            console.log('::notice::Matching help is awaiting post-tag screenshot review. Current published help remains unchanged.');
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY, 'Help deployment deferred: update the matching version guide and reviewed tag screenshots on main. See docs/help-authoring.md.\n');
+          }
+          NODE
+      - name: Build public help only
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          if [ -n "$RELEASE_TAG" ] && [ '${{ steps.guide.outputs.ready }}' = 'true' ]; then
+            node scripts/build-help.mjs --release-tag "$RELEASE_TAG"
+          else
+            node scripts/build-help.mjs
+          fi
+      - name: Confirm guide versions are published releases
+        id: release
+        if: github.event_name != 'pull_request' && steps.guide.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          import { execFileSync } from 'node:child_process';
+          const manifest = JSON.parse(readFileSync('docs/help/manifest.json'));
+          for (const entry of manifest.versions) {
+            const release = JSON.parse(execFileSync('gh', ['release', 'view', entry.version, '--json', 'isDraft,isPrerelease,tagName']));
+            if (release.isDraft || release.isPrerelease || release.tagName !== entry.version)
+              throw new Error(`Guide ${entry.version} is not a published stable release.`);
+            // Archived files retain their reviewed hashes; old run records may later be removed.
+            if (entry.version !== manifest.latest) continue;
+            const run = JSON.parse(execFileSync('gh', ['api', `repos/${process.env.GH_REPO}/actions/runs/${entry.screenshotRun}`]));
+            if (run.conclusion !== 'success' || run.head_sha !== entry.screenshotCommit || run.head_branch !== entry.version)
+              throw new Error(`Screenshot provenance does not match the verified tag run for ${entry.version}.`);
+          }
+          appendFileSync(process.env.GITHUB_OUTPUT, 'deploy=true\n');
+          NODE
+      - name: Upload allowlisted site for Pages
+        if: steps.release.outputs.deploy == 'true'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+          retention-days: 1
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Read repository Pages configuration
+        uses: actions/configure-pages@v6
+      - name: Publish help
+        id: deployment
+        uses: actions/deploy-pages@v5

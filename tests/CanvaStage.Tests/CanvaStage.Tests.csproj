@@ -19,5 +19,6 @@
     <Compile Include="..\..\src\CanvaStage.Windows\Services\DisplayIdentificationPlacement.cs" Link="WindowsPolicies\DisplayIdentificationPlacement.cs" />
     <Compile Include="..\..\src\CanvaStage.Windows\Services\PreviewLayout.cs" Link="WindowsPolicies\PreviewLayout.cs" />
     <Compile Include="..\..\src\CanvaStage.Windows\Services\WheelScrollPolicy.cs" Link="WindowsPolicies\WheelScrollPolicy.cs" />
+    <Compile Include="..\..\src\CanvaStage.Windows\Services\HelpLinkService.cs" Link="WindowsPolicies\HelpLinkService.cs" />
   </ItemGroup>
 </Project>

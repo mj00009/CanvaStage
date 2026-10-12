@@ -15,6 +15,7 @@
         WindowState="Maximized"
         WindowStartupLocation="CenterScreen">
     <Window.InputBindings>
+        <KeyBinding Key="F1" Command="{Binding OpenHelpCommand}" />
         <KeyBinding Key="Left" Modifiers="Control" Command="{Binding PreviousPageCommand}" />
         <KeyBinding Key="Right" Modifiers="Control" Command="{Binding NextPageCommand}" />
         <KeyBinding Key="Space" Modifiers="Control" Command="{Binding TogglePresenterSyncCommand}" />
@@ -98,7 +99,8 @@
                         <StackPanel Orientation="Horizontal"><TextBlock Text="●" Foreground="{StaticResource SuccessBrush}" Margin="0,0,8,0" /><TextBlock Text="{Binding LiveReadinessText}" Foreground="{StaticResource PrimaryTextBrush}" FontWeight="SemiBold" /></StackPanel>
                     </Border>
                     <Button Content="Compact view" Click="EnterCompactView" Style="{StaticResource SecondaryButton}" Margin="0,0,12,0" />
-                    <Button Content="Run checks" Command="{Binding TestSetupCommand}" Style="{StaticResource SecondaryButton}" Margin="0" />
+                    <Button Content="Run checks" Command="{Binding TestSetupCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,12,0" />
+                    <Button x:Name="HelpButton" Content="Help" Command="{Binding OpenHelpCommand}" Style="{StaticResource SecondaryButton}" Margin="0" ToolTip="Open the public help guide in your browser (F1). Internet access required." />
                 </WrapPanel>
             </Grid>
 

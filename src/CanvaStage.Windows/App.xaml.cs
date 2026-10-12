@@ -47,7 +47,8 @@ public partial class App : System.Windows.Application
             var canva = new CanvaConnectService(credentialsStore);
             ICanvaPresenterTracker canvaPresenterAccessibilityTracker = screenshotPath is null
                 ? new CanvaPresenterAccessibilityTracker() : new WindowsReleaseVerification.DemoTracker();
-            var viewModel = new MainViewModel(coordinator, _outputWindowManager, displayService, displayIdentificationService, diagnosticsExportService, preferencesStore, presentationCacheStore, canva, canvaPresenterAccessibilityTracker, preferences);
+            var viewModel = new MainViewModel(coordinator, _outputWindowManager, displayService, displayIdentificationService, diagnosticsExportService, preferencesStore, presentationCacheStore, canva, canvaPresenterAccessibilityTracker, preferences,
+                helpLinks: screenshotPath is null ? null : new HelpLinkService(ApplicationVersion.Current, _ => { }));
             PrivacySafeLog.Write("Startup: services created.");
 
             var mainWindow = new MainWindow(viewModel);

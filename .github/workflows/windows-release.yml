@@ -241,3 +241,16 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "GitHub release creation or upload failed for $tag."
           }
+
+  help:
+    name: Publish matching help after verified release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
+    permissions:
+      contents: read
+      actions: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/help-pages.yml
+    with:
+      release_tag: ${{ github.ref_name }}

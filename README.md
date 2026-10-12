@@ -4,6 +4,10 @@ CanvaStage is an independent Windows confidence-monitor application for presenta
 
 CanvaStage is not affiliated with, endorsed by, or sponsored by Canva Pty Ltd. See [Licensing and trademarks](docs/licensing-and-trademarks.md).
 
+## Help
+
+The public [CanvaStage Help](https://mj00009.github.io/CanvaStage/) site provides a screenshot-based Sunday quick start, first-time/advanced setup, and troubleshooting. Guides are retained by app version. The in-app **Help** button and **F1** shortcut are implemented in development source for the next app release, not the existing v0.12.0 download. See [help maintenance](docs/help-authoring.md) for publishing and screenshot rules. Initial hosting requires the repository owner to enable Pages with GitHub Actions.
+
 ## Download
 
 The latest release is [CanvaStage v0.12.0](https://github.com/mj00009/CanvaStage/releases/tag/v0.12.0). See the [release notes](docs/releases/v0.12.0.md) for changes and suggested acceptance checks.

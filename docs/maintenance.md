@@ -28,6 +28,8 @@ CanvaStage relies on external behavior that can change independently of this rep
 
 ## Before a release
 
+Keep the public operator help aligned with each published app version. See [help maintenance](help-authoring.md) for reviewed demo screenshots, retained version routes, and the publication gate that runs after Windows verification. Do not publish unreleased UI as instructions for the current download.
+
 1. Check open GitHub issues, Canva's Connect changelog, supported API fields, GitHub Actions runner requirements, and action release notes. Upgrade workflow actions only after checking compatibility; the workflow currently uses Node 24-capable action majors.
 2. Restore, build, and run unit tests locally. On Windows, `Build Windows App.cmd` also publishes a ZIP with logs and a checksum.
 3. Push the commit and confirm the Windows workflow builds the **published** app in synthetic verification mode. Inspect its verification summary and, when artifact storage permits, `verification.json` and UI screenshots—not only the green checkmark.

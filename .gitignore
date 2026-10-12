@@ -7,6 +7,7 @@
 TestResults/
 publish/
 artifacts/
+_site/
 
 # Local environment and diagnostic files
 .vs/
