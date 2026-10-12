@@ -2,6 +2,8 @@
 
 The public operator help lives in this repository under `docs/help/` and is hosted at [CanvaStage Help](https://mj00009.github.io/CanvaStage/). The current guide covers v0.12.1. Its Help button and F1 shortcut open that version's guide; F1 also works in Compact view. The earlier v0.12.0 guide remains available, but that app version does not have Help/F1.
 
+[The v0.12.1 deployment](https://github.com/mj00009/CanvaStage/actions/runs/38289356641) passed. The app's versioned help URL, latest guide, F1 instructions, and tagged screenshots were checked in the live browser. Its screenshot provenance is tag run `38288646297`, commit `c904a8b112b27afd94354a61076c55a0efac8a24`; the manifest records the five reviewed image hashes.
+
 ## Enable hosting once
 
 Hosting was enabled by the owner on October 12, 2026. The [initial deployment](https://github.com/mj00009/CanvaStage/actions/runs/38254507700) and [current-portal documentation update](https://github.com/mj00009/CanvaStage/actions/runs/38254957162) both passed. Root and archived routes, demo images, and current portal instructions were verified in the live browser. The setup below is retained for recovery or a future move.
