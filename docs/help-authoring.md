@@ -1,6 +1,6 @@
 # Public help maintenance
 
-The public operator help lives in this repository, under `docs/help/`, and is hosted at [CanvaStage Help](https://mj00009.github.io/CanvaStage/). The initial guide covers the already-published v0.12.0 app. Source now adds a **Help** button and **F1**; these reach installed users only with the next application release. Do not describe them as part of v0.12.0.
+The public operator help lives in this repository under `docs/help/` and is hosted at [CanvaStage Help](https://mj00009.github.io/CanvaStage/). The current guide covers v0.12.1. Its Help button and F1 shortcut open that version's guide; F1 also works in Compact view. The earlier v0.12.0 guide remains available, but that app version does not have Help/F1.
 
 ## Enable hosting once
 

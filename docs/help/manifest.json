@@ -1,5 +1,5 @@
 {
-  "latest": "v0.12.0",
+  "latest": "v0.12.1",
   "versions": [
     {
       "version": "v0.12.0",
@@ -13,6 +13,20 @@
         "compact.png": "20d0460ec3b1afeced848d31aa1bef43776e3e20ffbc4fe61182fae837d93393",
         "connection.png": "9a263285596a2ec9fea913d70978226bd62ebc088db54422c24b25c280db94ec",
         "simple-ready.png": "1c517dfa42d0cb05119f37003aa32a95b908d73fe5ff6f965d825be8ca18580f"
+      }
+    },
+    {
+      "version": "v0.12.1",
+      "updated": "2026-10-12",
+      "screenshotRun": "38288646297",
+      "screenshotCommit": "c904a8b112b27afd94354a61076c55a0efac8a24",
+      "synthetic": true,
+      "images": {
+        "advanced.png": "3641fe700fcdc327c5deef5ec461bdddfb9cc9774acf49f7a91297d8fa62b9e6",
+        "appearance.png": "e773fdbe6fb1a483df741731ec69a7bdbb3eb29ecd65a0d85f3ae3ffd8c28cd4",
+        "compact.png": "18abc19745d84ea766c46bfd739a60c26fbddace973fad59d8d3b2df7beb274f",
+        "connection.png": "c8ec9a15ecf6bd448a572e1dc972a981141638cc74e020104062885498e2fd6d",
+        "simple-ready.png": "593806837bfa4b7ac00a02bfaa1b9fcc2bd29163c91f0d6b9993232269d5aea5"
       }
     }
   ]

@@ -6,11 +6,11 @@ CanvaStage is not affiliated with, endorsed by, or sponsored by Canva Pty Ltd. S
 
 ## Help
 
-The public [CanvaStage Help](https://mj00009.github.io/CanvaStage/) site provides a screenshot-based Sunday quick start, first-time/advanced setup, and troubleshooting. Guides are retained by app version. The in-app **Help** button and **F1** shortcut are implemented in development source for the next app release, not the existing v0.12.0 download. See [help maintenance](docs/help-authoring.md) for publishing and screenshot rules. GitHub Pages hosting is enabled and the initial guides are live.
+Choose **Help** in the app, or press **F1** while the main window has focus, to open [CanvaStage Help](https://mj00009.github.io/CanvaStage/). F1 also works in Compact view. The website has a Sunday quick start, first-time and advanced setup, troubleshooting, and demo screenshots. Each app release links to its own versioned guide. You need internet access to open the website. See [help maintenance](docs/help-authoring.md) for publishing and screenshot rules.
 
 ## Download
 
-The latest release is [CanvaStage v0.12.0](https://github.com/mj00009/CanvaStage/releases/tag/v0.12.0). See the [release notes](docs/releases/v0.12.0.md) for changes and suggested acceptance checks.
+The latest release is [CanvaStage v0.12.1](https://github.com/mj00009/CanvaStage/releases/tag/v0.12.1). See the [release notes](docs/releases/v0.12.1.md) for the Help/F1 links and suggested checks. Presentation, tracking, and display behavior are unchanged from v0.12.0.
 
 The operator workflow is Setup, Live control and Settings & Diagnostics. Simple Setup checks the last-used deck and saved Extended display, reuses unchanged cached content, and starts output with one action. Advanced retains the numbered controls for first-time setup or changing decks/displays. Compact has no Pause Sync button. Every preview copies the actual output visual, sharing text wrapping, fitted size, colors, clock and next-line truncation. Separate Preview does not relocate or start live output.
 
@@ -22,11 +22,11 @@ v0.12.0 also closes the fullscreen window on Stop, scales Compact smaller withou
 
 Monitor text again fits during layout before drawing, retaining the v0.10.4 diagnostics and output drawing checks. A separate casing report remains unconfirmed; the extractor copies PPTX text without changing its case and needs an affected export to establish the cause.
 
-Download `CanvaStage-v0.12.0-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
+Download `CanvaStage-v0.12.1-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
 
 The application and package are currently unsigned. Windows may show a SmartScreen warning on first launch. Administrator access is not required.
 
-Saved Canva connection details, Monitor appearance, advanced content-refresh controls and support tools live in Settings & Diagnostics. Simple Setup also offers the automatic-update checkbox. [Windows release verification passed](https://github.com/mj00009/CanvaStage/actions/runs/38190044919), including all 110 unit tests and 17 runtime/UI checks for Setup/cache reuse, cancellation, native Stop, high-resolution scrolling, display recovery, small Compact, offline previews and pixel parity. Versioned-build screenshots were reviewed following WPF guidance. The CI runner has one physical display; confirm your actual touchpad and secondary-display behavior before service use.
+Saved Canva connection details, Monitor appearance, advanced content-refresh controls and support tools live in Settings & Diagnostics. Simple Setup also has the automatic-update checkbox. [Windows release verification passed](https://github.com/mj00009/CanvaStage/actions/runs/38288646297): all 119 unit tests and 18 runtime/UI checks, including Help/F1, unchanged output while opening Help, Setup/cache reuse, cancellation, native Stop, scrolling, display recovery, Compact, offline previews and pixel parity. Screenshots from the versioned build were reviewed following WPF guidance. The CI runner has one physical display; confirm touchpad and secondary-display behavior on the presentation computer before service use.
 
 ## Features
 

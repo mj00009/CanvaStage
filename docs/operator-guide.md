@@ -1,8 +1,8 @@
 # Operator guide
 
-This guide describes v0.12.0, including Simple Setup, cached-deck reuse, smaller scrollbar-free Compact view, smoother scrolling and actionable recovery guidance.
+This guide describes v0.12.1. It covers Simple Setup, cached-deck reuse, Compact view, scrolling, recovery guidance, and the Help/F1 links.
 
-For a shorter guide with screenshots, use the public [CanvaStage Help](https://mj00009.github.io/CanvaStage/v0.12.0/). Development source adds Help/F1 for a subsequent release; v0.12.0 users can bookmark the website.
+Choose **Help** or press **F1** while the main CanvaStage window has focus to open [CanvaStage Help](https://mj00009.github.io/CanvaStage/v0.12.1/), a shorter guide with screenshots. F1 also works in Compact view. The website requires internet access; opening it does not change output or Presenter following. If CanvaStage cannot open the browser, it shows the help address so you can copy it.
 
 ## Simple Setup
 
@@ -94,6 +94,7 @@ Shortcuts work while the main CanvaStage window has focus:
 
 | Shortcut | Action |
 |---|---|
+| `F1` | Open the help guide for the installed app version |
 | `Ctrl+Left` | Previous page and pause sync |
 | `Ctrl+Right` | Next page and pause sync |
 | `Ctrl+Space` | Pause or resume Presenter sync |
