@@ -43,7 +43,7 @@ Canva currently offers Public integrations and Enterprise-only Private integrati
 9. Open **Authentication**. Under **Authorized redirects**, add the exact CanvaStage redirect URL. Use `127.0.0.1`; Canva does not allow `localhost` for this local redirect.
 10. Return to CanvaStage. Enter the Client ID and Client Secret, then choose **Save configuration**.
 11. Choose **Connect Canva**. Complete the authorization prompt in the browser and return to CanvaStage.
-12. Open **Setup → 1. Load the Canva deck** and choose **Refresh**. If presentations appear, setup is complete.
+12. Open **Setup → Advanced → 1. Load the Canva deck** and choose **Refresh**. Apply the intended presentation and choose the Extended confidence display in step 2. After this first-time setup, **Setup → Simple → Start setup** reuses those choices and downloads content only when necessary.
 
 CanvaStage uses OAuth 2.0 Authorization Code with PKCE. The browser returns the authorization result to CanvaStage through the loopback address; it does not require an internet-accessible server on the Windows computer.
 

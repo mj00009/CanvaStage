@@ -1,10 +1,10 @@
 # Operator guide
 
-This guide describes v0.11.3, including complete aspect-ratio previews, compact-only On top, always-visible Settings cards and display-selection recovery.
+This guide describes v0.12.0, including Simple Setup, cached-deck reuse, smaller scrollbar-free Compact view, smoother scrolling and actionable recovery guidance.
 
-## Upcoming build: Simple Setup and operator fixes (#36–40)
+## Simple Setup
 
-These changes are in the development build, not the published v0.11.3 ZIP:
+For a computer that already has a saved Canva connection, presentation and Extended confidence display, open **Setup → Simple** and choose **Start setup**. Wait for the synced/ready message, then use Live control or Compact view. Open one Canva Presenter View and confirm **Following Canva** before service use.
 
 - **Setup → Simple** is the default tab. **Start setup** connects using saved Canva configuration, checks the last successfully loaded deck for changes, and starts output on the remembered Extended display. If saved authorization is no longer valid, this explicit action may open browser authorization; approve it to continue. First-time operators must use **Advanced** to Apply a deck and choose a display; credentials still live in Settings & Diagnostics. Merely highlighting another deck does not change the Simple default.
 - An unchanged deck with a matching Canva modification time and intact rendered-image cache is reused without another export. Changed, incomplete or unverifiable caches are downloaded before starting output. The status explains whether content is synced/ready, checking, downloading or needs attention. Export preparation has no known percentage; byte/page progress applies to its current phase, not the entire setup duration.
@@ -19,7 +19,7 @@ Canva's [current design-list API](https://www.canva.dev/docs/apps/rest-apis/refe
 ## Prepare the presentation
 
 1. Open CanvaStage using the Windows account used during Canva setup.
-2. Select **Setup → 1. Load the Canva deck**.
+2. For first-time setup or changing decks, select **Setup → Advanced → 1. Load the Canva deck**.
 3. The saved Canva connection loads the presentation list automatically. Select the presentation and choose **Apply**; use **Refresh** if needed.
 4. Wait for the PowerPoint export, text extraction, separate Mirror image export, and image caching to finish.
 
@@ -35,7 +35,7 @@ The **Content refresh** card at the top of **Live control** shows the current st
 
 You do not need to stop and restart CanvaStage output or Presenter tracking to use newly downloaded content. The refresh preserves the current Presenter page when its counter matches the new deck, manual pauses, appearance, output placement, and blank state. If pages were added or removed, tracking can temporarily report a count mismatch until the new copy is ready. A failed refresh keeps the current deck and retries with a longer delay (up to five minutes). Updates still download the complete visible deck; selective image refresh is deferred.
 
-Turn automatic updates off in **Settings & Diagnostics → Content refresh and local cache** to control updates manually. With automatic updates enabled, **Check for updates** reloads the applied deck even if Canva's reported modification time has not advanced. With automatic updates disabled, it only checks the modification time; use **Re-download** to obtain new content. **Re-download** always reloads the applied deck, even if a different presentation is highlighted in the dropdown. Changing to another deck still requires **Apply**.
+Turn automatic updates off in **Setup → Simple** or **Settings & Diagnostics → Content refresh and local cache** to control updates manually. Simple **Check slides for updates** uses metadata and avoids exports for unchanged content. Advanced **Check for updates**, with automatic updates enabled, reloads the applied deck even if Canva's reported modification time has not advanced. With automatic updates disabled, both only check the modification time; use Advanced **Re-download** to obtain new content. **Re-download** always reloads the applied deck, even if a different presentation is highlighted in the dropdown. Changing to another deck still requires **Apply** in Advanced.
 
 Older cached decks that use preview thumbnails are upgraded once on the next automatic check. If automatic updates are disabled, choose **Re-download** to upgrade. Automatic checks still depend on Canva reporting a newer modification time after that upgrade; if an edit has not appeared, use **Check for updates** with automatic updates enabled or **Re-download**.
 
@@ -44,7 +44,7 @@ The next-line cue shows only the first authored line of the next page's main tex
 ## Choose the confidence display
 
 1. In Windows display settings, select **Extend these displays**.
-2. In CanvaStage, open **Setup → 2. Choose the confidence display** and choose **Identify displays**.
+2. In CanvaStage, open **Setup → Advanced → 2. Choose the confidence display** and choose **Identify displays**.
 3. Match the large temporary number on each screen with the numbered dropdown entry.
 4. Choose the Extended display intended for the stage.
 5. Use **Open Preview** to verify content and appearance in a resizable window. Use **Start output** to verify placement on the physical confidence monitor.
@@ -82,7 +82,7 @@ In **Live control**, Mirror/Monitor are under **Sunday controls**. Pause/Resume 
 - **Start output** opens borderless output on the chosen monitor.
 - **Blank output** makes the live confidence window black without closing it.
 - **Restore output** returns the current page.
-- **Stop output** closes the live session.
+- **Stop output** closes the fullscreen window and live session. Live control's Start button becomes Stop while output is live. Separate Preview can remain open for checking the cached deck and does not restart live output.
 
 The output window can always be closed with `Escape`. Moving the pointer over its upper-right corner reveals a close button.
 
@@ -101,7 +101,7 @@ Shortcuts work while the main CanvaStage window has focus:
 
 ### Compact view
 
-Compact view contains the complete output preview, Mirror/Monitor, blank/restore, **On top** and **Full view**. It grows vertically to fit the preview and scrolls if the screen is too short. There is no Pause Sync button. To resume or manage following, return to **Full view**. The sync status remains visible; manual navigation and keyboard shortcuts still work in the main window.
+Compact view contains the complete output preview, Mirror/Monitor, blank/restore, **On top** and **Full view**. It initially grows vertically to fit the preview. Resize it smaller to scale the controls and copied preview without scrollbars; short windows reduce preview height first. Its minimum is 240 × 240 Windows layout units, so very small previews are reference-only. There is no Pause Sync button. To resume or manage following, return to **Full view**. The sync status remains visible with a wrapped tooltip explaining problems; manual navigation and keyboard shortcuts still work in the main window.
 
 The saved **On top** choice applies only in Compact view. Returning to Full view clears topmost behavior; returning to Compact restores the saved choice. Full view has no Always on top control. In Settings & Diagnostics, Canva connection and Content refresh/local cache are always-visible cards; no expansion is needed.
 
@@ -120,7 +120,7 @@ In **Settings & Diagnostics → Content refresh and local cache**:
 
 - **Clean old downloads** removes previous immutable download generations while retaining the active presentation.
 - **Clear cache** removes downloaded presentation content and returns to the demo deck. It keeps credentials, preferences, and the saved presentation selection.
-On **Setup**, **Re-download** creates a fresh cache generation for the applied presentation, independently of the highlighted dropdown selection.
+On **Setup → Advanced**, **Re-download** creates a fresh cache generation for the applied presentation, independently of the highlighted dropdown selection.
 
 Use **Disconnect** only when the local Canva credentials should be removed.
 

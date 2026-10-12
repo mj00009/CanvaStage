@@ -8,7 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <Version>0.11.3</Version>
+    <Version>0.12.0</Version>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>..\..\assets\canva-stage.ico</ApplicationIcon>
