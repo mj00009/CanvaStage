@@ -1,6 +1,8 @@
 # Public help maintenance
 
-The public operator help lives in this repository under `docs/help/` and is hosted at [CanvaStage Help](https://mj00009.github.io/CanvaStage/). The current guide covers v0.12.1. Its Help button and F1 shortcut open that version's guide; F1 also works in Compact view. The earlier v0.12.0 guide remains available, but that app version does not have Help/F1.
+The public operator help lives in this repository under `docs/help/` and is hosted at [CanvaStage Help](https://mj00009.github.io/CanvaStage/). The current guide covers v0.12.2. Its Help button and F1 shortcut open that version's guide; F1 also works in Compact view. Earlier guides remain available; v0.12.0 does not have Help/F1.
+
+The v0.12.2 guide records neutral screenshots from successful tag run `38458961632`, commit `fe99335b1fd28ae7d09b59caf159d2955e2b92aa`. It documents the remembered-display Yes/No offer and clearer Windows display-loss warning. The user's release preference is to report build/publication completion, then ask before any additional EXE/package inspection. Keep automatic CI tests and screenshot review for help publication; do not download or manually inspect the released EXE/ZIP without approval.
 
 [The v0.12.1 deployment](https://github.com/mj00009/CanvaStage/actions/runs/38289356641) passed. The app's versioned help URL, latest guide, F1 instructions, and tagged screenshots were checked in the live browser. Its screenshot provenance is tag run `38288646297`, commit `c904a8b112b27afd94354a61076c55a0efac8a24`; the manifest records the reviewed image hashes. Both the v0.12.0 and v0.12.1 quick starts cover Full and Compact views, using original screenshots from their matching tagged builds.
 

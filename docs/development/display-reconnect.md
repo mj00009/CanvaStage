@@ -1,6 +1,6 @@
 # Display reconnect work for issues #43 and #44
 
-This work is not yet in a tagged release. The source version remains 0.12.1. [Windows run 38456793631](https://github.com/mj00009/CanvaStage/actions/runs/38456793631) for implementation commit `d067369` passed all 129 unit tests, all 19 published-app runtime checks, and packaging. Local cross-build had zero warnings/errors, and all nine help-site tests passed. The ordinary Full-view screenshot was reviewed with neutral sample text. The native dialogs and physical/wireless display behavior still need operator acceptance; CI injects its confirmation answers.
+This work ships in [v0.12.2](https://github.com/mj00009/CanvaStage/releases/tag/v0.12.2), tagged at `fe99335b1fd28ae7d09b59caf159d2955e2b92aa`. [Windows implementation run 38456793631](https://github.com/mj00009/CanvaStage/actions/runs/38456793631) and [the release-tag pipeline](https://github.com/mj00009/CanvaStage/actions/runs/38458961632) passed all 129 unit tests, all 19 published-app runtime checks, and packaging. Local cross-build had zero warnings/errors, and all nine help-site tests passed. Neutral demo screenshots were reviewed for the matching help guide. The native dialogs and physical/wireless display behavior still need operator acceptance; CI injects its confirmation answers. Additional manual EXE/package inspection is opt-in and has not been performed.
 
 ## Remembered-display prompt (#43)
 

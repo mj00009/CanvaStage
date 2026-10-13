@@ -10,23 +10,23 @@ Choose **Help** in the app, or press **F1** while the main window has focus, to 
 
 ## Download
 
-The latest release is [CanvaStage v0.12.1](https://github.com/mj00009/CanvaStage/releases/tag/v0.12.1). See the [release notes](docs/releases/v0.12.1.md) for the Help/F1 links and suggested checks. Presentation, tracking, and display behavior are unchanged from v0.12.0.
+The latest release is [CanvaStage v0.12.2](https://github.com/mj00009/CanvaStage/releases/tag/v0.12.2). See the [release notes](docs/releases/v0.12.2.md) for the remembered-display restart prompt, clearer disconnect warning/logs, and suggested checks. Presenter polling and rendering are unchanged.
 
 The operator workflow is Setup, Live control and Settings & Diagnostics. Simple Setup checks the last-used deck and saved Extended display, reuses unchanged cached content, and starts output with one action. Advanced retains the numbered controls for first-time setup or changing decks/displays. Compact has no Pause Sync button. Every preview copies the actual output visual, sharing text wrapping, fitted size, colors, clock and next-line truncation. Separate Preview does not relocate or start live output.
 
 See the [operator guide](docs/operator-guide.md) for the current behavior.
 
-v0.12.0 also closes the fullscreen window on Stop, scales Compact smaller without scrollbars, smooths touchpad wheel movement and explains problems with recovery steps. Live control and Compact preserve the output's aspect ratio. On top is Compact-only; connection/cache Settings cards remain always visible. Display-selection recovery is retained, and reconnecting a display does not restart output automatically.
+Stop closes the fullscreen window, Compact scales smaller without scrollbars, touchpad wheel movement is smooth, and errors explain recovery steps. Live control and Compact preserve the output's aspect ratio. On top is Compact-only; connection/cache Settings cards remain always visible. Reconnecting the remembered Extended display can offer a Yes/No restart using the cached deck. No keeps output off, and an explicit Stop suppresses later offers until the operator requests output again.
 
 **Hardware testing:** the freeze reported in [#24](https://github.com/mj00009/CanvaStage/issues/24) occurred with Windows wireless casting to a Samsung TV. The operator has closed the issue, but its root cause is not confirmed. Test on the actual presentation computer and receiver before service use; this release does not claim a casting fix. The audio source reported in [#35](https://github.com/mj00009/CanvaStage/issues/35) still needs confirmation; CanvaStage displays static images/text and does not play or automatically mute media.
 
 Monitor text again fits during layout before drawing, retaining the v0.10.4 diagnostics and output drawing checks. A separate casing report remains unconfirmed; the extractor copies PPTX text without changing its case and needs an affected export to establish the cause.
 
-Download `CanvaStage-v0.12.1-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
+Download `CanvaStage-v0.12.2-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
 
 The application and package are currently unsigned. Windows may show a SmartScreen warning on first launch. Administrator access is not required.
 
-Saved Canva connection details, Monitor appearance, advanced content-refresh controls and support tools live in Settings & Diagnostics. Simple Setup also has the automatic-update checkbox. [Windows release verification passed](https://github.com/mj00009/CanvaStage/actions/runs/38288646297): all 119 unit tests and 18 runtime/UI checks, including Help/F1, unchanged output while opening Help, Setup/cache reuse, cancellation, native Stop, scrolling, display recovery, Compact, offline previews and pixel parity. Screenshots from the versioned build were reviewed following WPF guidance. The CI runner has one physical display; confirm touchpad and secondary-display behavior on the presentation computer before service use.
+Saved Canva connection details, Monitor appearance, advanced content-refresh controls and support tools live in Settings & Diagnostics. Simple Setup also has the automatic-update checkbox. [Windows implementation verification passed](https://github.com/mj00009/CanvaStage/actions/runs/38456793631): all 129 unit tests and 19 runtime/UI checks, including confirmed reconnects, declined offers, stale consent, Help/F1, Setup/cache reuse, cancellation, native Stop, display recovery, Compact, offline previews and pixel parity. The CI runner has one physical display and injects Yes/No answers; confirm the native dialogs, touchpad and secondary-display behavior on the presentation computer before service use.
 
 ## Features
 

@@ -1,5 +1,5 @@
 {
-  "latest": "v0.12.1",
+  "latest": "v0.12.2",
   "versions": [
     {
       "version": "v0.12.0",
@@ -29,6 +29,21 @@
         "connection.png": "c8ec9a15ecf6bd448a572e1dc972a981141638cc74e020104062885498e2fd6d",
         "full-view-neutral.png": "8b6cde801116b1d97832f681c8f3c9b780c425890dba5d14993e3b9370819971",
         "simple-ready.png": "593806837bfa4b7ac00a02bfaa1b9fcc2bd29163c91f0d6b9993232269d5aea5"
+      }
+    },
+    {
+      "version": "v0.12.2",
+      "updated": "2026-10-13",
+      "screenshotRun": "38458961632",
+      "screenshotCommit": "fe99335b1fd28ae7d09b59caf159d2955e2b92aa",
+      "synthetic": true,
+      "images": {
+        "advanced.png": "423c4cbcf03920eb7eb28b19332e2754bc91f19110c74a41c1eebaaf87ef7a6a",
+        "appearance.png": "1070efde76a4eb28d5d8d99acaf8b8541a3b76ff5114b133ba99926b2f8ee74f",
+        "compact.png": "cf71311569a9833abbe21e0608732f287f906dd6c6453b699dc12f544fbd158f",
+        "connection.png": "05bfd9c37eaa3f31dd68e379b1a6993ba0f1a54f023e91d400560dca0f1cf79d",
+        "full-view-neutral.png": "8d01827dd8dc1cbcf63e8d86c59a5e77aacb3e38387cc4a9f00413d3dc3119d0",
+        "simple-ready.png": "0470be2acda761e74791cac958b939af0c23a0061da936148100f10e5dc9e9f0"
       }
     }
   ]
