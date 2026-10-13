@@ -16,6 +16,7 @@
     <ProjectReference Include="..\..\src\CanvaStage.Core\CanvaStage.Core.csproj" />
     <!-- Pure Windows-adapter policies are linked so they can also run on macOS. -->
     <Compile Include="..\..\src\CanvaStage.Windows\Services\DisplaySelection.cs" Link="WindowsPolicies\DisplaySelection.cs" />
+    <Compile Include="..\..\src\CanvaStage.Windows\Services\DisplayReconnectPolicy.cs" Link="WindowsPolicies\DisplayReconnectPolicy.cs" />
     <Compile Include="..\..\src\CanvaStage.Windows\Services\DisplayIdentificationPlacement.cs" Link="WindowsPolicies\DisplayIdentificationPlacement.cs" />
     <Compile Include="..\..\src\CanvaStage.Windows\Services\PreviewLayout.cs" Link="WindowsPolicies\PreviewLayout.cs" />
     <Compile Include="..\..\src\CanvaStage.Windows\Services\WheelScrollPolicy.cs" Link="WindowsPolicies\WheelScrollPolicy.cs" />

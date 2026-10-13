@@ -88,6 +88,7 @@ internal static class WindowsReleaseVerification
         checks.Add("DPAPI reuse, fresh rendered images instead of preview thumbnails, preview API schema guard, immutable refresh and cache save/recovery checks");
         checks.Add("Saved-token startup, concurrent token rotation, 401 retry, live refresh navigation, page-count change, failed export, pause/blank preservation, opt-out and shutdown cancellation");
         checks.Add("Simple Setup saved-deck/display defaults, unchanged-cache reuse without exports, changed-deck download progress, missing/Primary display guards, cancelled-start protection, restart and failed-export recovery");
+        checks.Add("Remembered Extended display reconnect with injected Yes/No confirmation; decline/event deduplication, cached page/mode retention, no exports, disconnect/deck/Stop consent invalidation and manual-Stop suppression");
         checks.Add("Mirror pixels change after refresh with unchanged thumbnails; manual refresh bypasses lagging metadata; hidden-page render mapping, bounded image size, signed URL preservation and invalid/failed image guards");
         checks.Add("Real content timer checks in Live control without repeated unchanged exports; refresh health, download/error screenshots, opt-out, retry recovery and timer shutdown");
         viewModel.CanvaClientId = "verification-client";

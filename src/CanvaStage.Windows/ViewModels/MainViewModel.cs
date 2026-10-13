@@ -72,7 +72,7 @@ public sealed partial class MainViewModel : ViewModelBase
     private bool _progressQueued;
     private bool _isAutomaticRefreshRunning;
 
-    public MainViewModel(IOutputCoordinator coordinator, OutputWindowManager outputWindowManager, DisplayService displayService, DisplayIdentificationService displayIdentificationService, DiagnosticsExportService diagnosticsExportService, JsonPreferencesStore preferencesStore, PresentationCacheStore presentationCacheStore, CanvaConnectService canva, ICanvaPresenterTracker canvaPresenterAccessibilityTracker, AppPreferences preferences, AutomaticContentRefreshSchedule? contentRefreshSchedule = null, Func<IReadOnlyList<DisplayOption>>? getDisplays = null, HelpLinkService? helpLinks = null)
+    public MainViewModel(IOutputCoordinator coordinator, OutputWindowManager outputWindowManager, DisplayService displayService, DisplayIdentificationService displayIdentificationService, DiagnosticsExportService diagnosticsExportService, JsonPreferencesStore preferencesStore, PresentationCacheStore presentationCacheStore, CanvaConnectService canva, ICanvaPresenterTracker canvaPresenterAccessibilityTracker, AppPreferences preferences, AutomaticContentRefreshSchedule? contentRefreshSchedule = null, Func<IReadOnlyList<DisplayOption>>? getDisplays = null, HelpLinkService? helpLinks = null, Func<DisplayOption, bool>? confirmDisplayReconnect = null)
     {
         _coordinator = coordinator;
         _helpLinks = helpLinks ?? new HelpLinkService(ApplicationVersion.Current);
@@ -80,6 +80,7 @@ public sealed partial class MainViewModel : ViewModelBase
         _outputWindowManager.PreviewSourceChanged += OnPreviewSourceChanged;
         _displayService = displayService;
         _getDisplays = getDisplays ?? displayService.GetDisplays;
+        _confirmDisplayReconnect = confirmDisplayReconnect ?? ConfirmDisplayReconnect;
         _displayIdentificationService = displayIdentificationService;
         _diagnosticsExportService = diagnosticsExportService;
         _preferencesStore = preferencesStore;
@@ -156,6 +157,8 @@ public sealed partial class MainViewModel : ViewModelBase
         ConfigureSimpleSetup(preferences);
         _preferredDisplayId = preferences.SelectedDisplayId;
         SelectedDisplay = DisplaySelection.Resolve(Displays, _preferredDisplayId);
+        _displayReconnectPolicy.Observe(Displays, _preferredDisplayId);
+        _displayReconnectTimer.Tick += OnDisplayReconnectTick;
         _outputWindowManager.DisplaysChanged += OnDisplaysChanged;
         LogDisplaySelection("Startup");
         _coordinator.SnapshotChanged += OnSnapshotChanged;
@@ -648,6 +651,8 @@ public sealed partial class MainViewModel : ViewModelBase
     public void PrepareToClose()
     {
         _isClosing = true;
+        CancelDisplayReconnectOffer();
+        _displayReconnectTimer.Tick -= OnDisplayReconnectTick;
         _lifetimeCancellation.Cancel();
         _contentRefreshTimer.Stop();
         _contentRefreshTimer.Tick -= OnAutomaticContentRefreshTick;
@@ -676,15 +681,19 @@ public sealed partial class MainViewModel : ViewModelBase
 
     private void StartOutput()
     {
+        CancelDisplayReconnectOffer();
+        _outputRequestRevision++;
         RefreshDisplays("Before Start output");
         LogDisplaySelection("Start output");
         // Route the current selection by its exact Windows device, not by saved identity.
         if (!_outputWindowManager.ShowOnDisplay(SelectedDisplay?.ScreenDeviceName))
             System.Windows.MessageBox.Show("That display is no longer available. Refresh the display list and choose another target.", "Display unavailable", MessageBoxButton.OK, MessageBoxImage.Warning);
+        else _simpleSetupOutputCancelled = false;
     }
 
     private void StopOutput()
     {
+        CancelDisplayReconnectOffer();
         _outputRequestRevision++;
         _simpleSetupOutputCancelled = true;
         if (IsSimpleSetupRunning) SimpleSetupStatus = "Setup start cancelled. The current Canva action may finish caching, but output will stay off. Choose Start setup when ready.";
@@ -741,6 +750,7 @@ public sealed partial class MainViewModel : ViewModelBase
         StartOutputCommand.RaiseCanExecuteChanged();
         LogDisplaySelection(reason);
         NotifyReadinessChanged();
+        ObserveDisplayReconnect(available);
     }
 
     private void LogDisplaySelection(string reason)

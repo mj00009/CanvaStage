@@ -171,6 +171,81 @@ internal static class LiveCanvaRefreshVerification
         finally { viewModel.PrepareToClose(); }
 
         await VerifySimpleSetupAsync();
+        VerifyDisplayReconnect();
+
+        void VerifyDisplayReconnect()
+        {
+            DisplayOption target = displays.GetDisplays()[0] with { IsPrimary = false };
+            IReadOnlyList<DisplayOption> available = [];
+            int prompts = 0;
+            bool accept = false;
+            Action? whilePromptOpen = null;
+            OutputCoordinator reconnectCoordinator = new(initial, preferences);
+            reconnectCoordinator.SelectPage(2);
+            reconnectCoordinator.SetOutputMode(OutputMode.Mirror);
+            OutputWindowManager reconnectManager = new(reconnectCoordinator);
+            MainViewModel reconnect = new(reconnectCoordinator, reconnectManager, displays,
+                new DisplayIdentificationService(displays), new DiagnosticsExportService(),
+                new JsonPreferencesStore(Path.Combine(storage, "reconnect")), cache, service,
+                new WindowsReleaseVerification.DemoTracker(), preferences with { SelectedDisplayId = target.Id },
+                getDisplays: () => available, confirmDisplayReconnect: offered =>
+                {
+                    Require(offered.Id == target.Id && !offered.IsPrimary, "Reconnect offers an arbitrary or Primary display");
+                    prompts++;
+                    whilePromptOpen?.Invoke();
+                    return accept;
+                });
+            int exports = handler.ExportRequests;
+            void Attach()
+            {
+                available = [target];
+                reconnect.ApplyDisplaySnapshot(available, "Verification reconnect");
+                reconnect.OfferDisplayReconnect();
+            }
+            void Detach()
+            {
+                available = [];
+                reconnect.ApplyDisplaySnapshot(available, "Verification detach");
+            }
+            try
+            {
+                Attach();
+                Require(prompts == 1 && !reconnectCoordinator.Snapshot.IsLive, "Declining reconnect starts output");
+                Attach();
+                Require(prompts == 1, "Repeated display events repeat a declined prompt");
+                Detach();
+                accept = true;
+                Attach();
+                Require(prompts == 2 && reconnectManager.WindowForVerification.IsVisible
+                    && reconnectCoordinator.Snapshot is { IsLive: true, SelectedPageNumber: 2, Mode: OutputMode.Mirror }
+                    && ReferenceEquals(reconnectCoordinator.Snapshot.Document, initial) && handler.ExportRequests == exports,
+                    "Accepted reconnect repeats Setup/downloads or loses the current content/page/mode");
+                Attach();
+                Require(prompts == 2, "A live output session receives an unnecessary reconnect prompt");
+                reconnectManager.StopOutput(); // Model a safety stop, not an operator Stop.
+                Detach();
+                whilePromptOpen = () => available = [];
+                Attach();
+                Require(prompts == 3 && !reconnectCoordinator.Snapshot.IsLive,
+                    "Display disappearance during consent starts output on a stale target");
+                whilePromptOpen = () => reconnectCoordinator.SetDocument(initial with { Title = "Sample replacement" });
+                Detach();
+                Attach();
+                Require(prompts == 4 && !reconnectCoordinator.Snapshot.IsLive,
+                    "A deck replaced during consent uses stale output authorization");
+                whilePromptOpen = () => reconnect.StopOutputCommand.Execute(null);
+                Detach();
+                Attach();
+                Require(prompts == 5 && !reconnectCoordinator.Snapshot.IsLive,
+                    "An explicit Stop while consent is open is overwritten by reconnect");
+                whilePromptOpen = null;
+                Detach();
+                Attach();
+                Require(prompts == 5 && !reconnectCoordinator.Snapshot.IsLive && handler.ExportRequests == exports,
+                    "A manual Stop allows later reconnect prompts or redundant exports");
+            }
+            finally { reconnect.PrepareToClose(); }
+        }
         await VerifyScheduledChecksAsync();
         handler.RejectRefreshToken = true;
         store.Save(store.Load()! with { AccessTokenExpiresAt = DateTimeOffset.UtcNow.AddHours(-1) });

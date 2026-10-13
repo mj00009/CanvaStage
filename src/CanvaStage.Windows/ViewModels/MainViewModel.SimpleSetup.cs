@@ -77,6 +77,7 @@ public sealed partial class MainViewModel
     {
         if (IsCanvaBusy || _isClosing) return;
         long revision = ++_outputRequestRevision;
+        CancelDisplayReconnectOffer();
         _simpleSetupOutputCancelled = false;
         RefreshDisplays("Simple setup preflight");
         DisplayOption? target = SelectedDisplay;

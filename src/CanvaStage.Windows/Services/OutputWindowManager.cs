@@ -38,6 +38,7 @@ public sealed class OutputWindowManager : IDisposable
 
     internal OutputWindow WindowForVerification { get { EnsureWindow(); return _window!; } }
     internal Window? PreviewWindowForVerification => _previewWindow;
+    internal bool IsDisplayWarningOpen { get; private set; }
 
     public void SetPreviewDisplay(string? displayId)
     {
@@ -168,11 +169,16 @@ public sealed class OutputWindowManager : IDisposable
         {
             bool stopped = RefreshDisplayConfiguration();
             if (!stopped) return;
-            System.Windows.MessageBox.Show(
-                "The selected confidence display is no longer available. Output was stopped safely. Choose a display or open Preview when you are ready.",
-                "Confidence display disconnected",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+            IsDisplayWarningOpen = true;
+            try
+            {
+                System.Windows.MessageBox.Show(
+                    "Windows no longer reports the selected confidence display. CanvaStage stopped output to avoid moving it to another screen. Your cached deck and Presenter tracking remain available.\n\nReconnect the screen in Windows display or casting settings and choose Extend. If CanvaStage offers to restart output, confirm the named display. You can also use Start output in Live control or open Preview.\n\nThis warning is from CanvaStage. It does not identify why the display connection was lost.",
+                    "Confidence display disconnected",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+            finally { IsDisplayWarningOpen = false; }
         });
     }
 
@@ -184,7 +190,11 @@ public sealed class OutputWindowManager : IDisposable
         PrivacySafeLog.Write($"Windows display settings changed: live {_coordinator.Snapshot.IsLive}; target {_targetDisplayId ?? "Preview/none"}; available {availableDisplays}.");
         bool stopped = _coordinator.Snapshot.IsLive && _targetDisplayId is not null
             && _displayService.FindDisplay(_targetDisplayId) is null;
-        if (stopped) StopOutput();
+        if (stopped)
+        {
+            PrivacySafeLog.Write($"Display loss safety stop: Windows no longer enumerates target {_targetDisplayId}; available display count {System.Windows.Forms.Screen.AllScreens.Length}. Connection-loss cause is unknown; CanvaStage is closing only its output window, not disconnecting a display.");
+            StopOutput();
+        }
         DisplaysChanged?.Invoke(this, EventArgs.Empty);
         QueuePreviewLayout();
         return stopped;
