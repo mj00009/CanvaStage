@@ -1,6 +1,6 @@
 # Display reconnect work for issues #43 and #44
 
-This work is not yet in a tagged release. The source version remains 0.12.1. Windows verification and physical-display acceptance are required before release.
+This work is not yet in a tagged release. The source version remains 0.12.1. [Windows run 38456793631](https://github.com/mj00009/CanvaStage/actions/runs/38456793631) for implementation commit `d067369` passed all 129 unit tests, all 19 published-app runtime checks, and packaging. Local cross-build had zero warnings/errors, and all nine help-site tests passed. The ordinary Full-view screenshot was reviewed with neutral sample text. The native dialogs and physical/wireless display behavior still need operator acceptance; CI injects its confirmation answers.
 
 ## Remembered-display prompt (#43)
 
