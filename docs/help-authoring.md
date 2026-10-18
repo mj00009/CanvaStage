@@ -1,6 +1,8 @@
 # Public help maintenance
 
-The public operator help lives in this repository under `docs/help/` and is hosted at [CanvaStage Help](https://mj00009.github.io/CanvaStage/). The current guide covers v0.12.2. Its Help button and F1 shortcut open that version's guide; F1 also works in Compact view. Earlier guides remain available; v0.12.0 does not have Help/F1.
+The public operator help lives in this repository under `docs/help/` and is hosted at [CanvaStage Help](https://mj00009.github.io/CanvaStage/). The current guide covers v0.13.0. Its Help button and F1 shortcut open that version's guide; F1 also works in Compact view. Earlier guides remain available; v0.12.0 does not have Help/F1.
+
+The v0.13.0 guide uses eight reviewed synthetic screenshots from successful [tag run 39131462609](https://github.com/mj00009/CanvaStage/actions/runs/39131462609), commit `6052c4ee6bf94da3bb93a98bb7feacab0a523c97`. It adds faster-following guidance, clock size/weight/placement controls and optional fades. The manifest retains all earlier guides. The release EXE/ZIP has not been downloaded or inspected; that extra verification remains opt-in after the release handoff. Matching Pages publication and live-route verification must be confirmed before declaring this handoff complete.
 
 The v0.12.2 guide records neutral screenshots from successful tag run `38458961632`, commit `fe99335b1fd28ae7d09b59caf159d2955e2b92aa`. It documents the remembered-display Yes/No offer and clearer Windows display-loss warning. The user's release preference is to report build/publication completion, then ask before any additional EXE/package inspection. Keep automatic CI tests and screenshot review for help publication; do not download or manually inspect the released EXE/ZIP without approval.
 

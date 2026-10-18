@@ -10,7 +10,7 @@ Choose **Help** in the app, or press **F1** while the main window has focus, to 
 
 ## Download
 
-The latest release is [CanvaStage v0.12.2](https://github.com/mj00009/CanvaStage/releases/tag/v0.12.2). See the [release notes](docs/releases/v0.12.2.md) for the remembered-display restart prompt, clearer disconnect warning/logs, and suggested checks. Presenter polling and rendering are unchanged.
+The latest release is [CanvaStage v0.13.0](https://github.com/mj00009/CanvaStage/releases/tag/v0.13.0). See the [release notes](docs/releases/v0.13.0.md) for faster Presenter following, optional slide fades, a customizable Mirror clock and regression fixes.
 
 The operator workflow is Setup, Live control and Settings & Diagnostics. Simple Setup checks the last-used deck and saved Extended display, reuses unchanged cached content, and starts output with one action. Advanced retains the numbered controls for first-time setup or changing decks/displays. Compact has no Pause Sync button. Every preview copies the actual output visual, sharing text wrapping, fitted size, colors, clock and next-line truncation. Separate Preview does not relocate or start live output.
 
@@ -22,11 +22,11 @@ Stop closes the fullscreen window, Compact scales smaller without scrollbars, to
 
 Monitor text again fits during layout before drawing, retaining the v0.10.4 diagnostics and output drawing checks. A separate casing report remains unconfirmed; the extractor copies PPTX text without changing its case and needs an affected export to establish the cause.
 
-Download `CanvaStage-v0.12.2-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
+Download `CanvaStage-v0.13.0-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
 
 The application and package are currently unsigned. Windows may show a SmartScreen warning on first launch. Administrator access is not required.
 
-Saved Canva connection details, Monitor appearance, advanced content-refresh controls and support tools live in Settings & Diagnostics. Simple Setup also has the automatic-update checkbox. [Windows implementation verification passed](https://github.com/mj00009/CanvaStage/actions/runs/38456793631): all 129 unit tests and 19 runtime/UI checks, including confirmed reconnects, declined offers, stale consent, Help/F1, Setup/cache reuse, cancellation, native Stop, display recovery, Compact, offline previews and pixel parity. The CI runner has one physical display and injects Yes/No answers; confirm the native dialogs, touchpad and secondary-display behavior on the presentation computer before service use.
+Saved Canva connection details, appearance, clock/fade controls, advanced content-refresh controls and support tools live in Settings & Diagnostics. Simple Setup also has the automatic-update checkbox. [Versioned Windows verification passed](https://github.com/mj00009/CanvaStage/actions/runs/39131248434): all 135 unit tests and 20 runtime/UI checks, including clocks, fades, immediate Blank/Stop, reconnects, Help/F1, Setup/cache reuse, typography, offline previews and pixel parity. The CI runner has one physical display and injects Yes/No answers; confirm native dialogs, actual Canva timing, touchpad and secondary-display behavior on the presentation computer before service use.
 
 ## Features
 
@@ -41,6 +41,8 @@ Saved Canva connection details, Monitor appearance, advanced content-refresh con
 - Chooses the largest primary text region and ignores smaller header or footer text where possible.
 - Shrinks long Monitor text to keep it visible and falls back to the slide image when usable text is unavailable.
 - Supports next-line styling, four Monitor layouts, custom colors, curated fonts, and an optional clock.
+- Adds an optional Mirror clock at the bottom left or right with a small shadow, separate Monitor/Mirror sizes and regular or slightly bold weight.
+- Offers optional slide fades from 100 to 1000 ms in both modes; Blank and Stop remain immediate.
 - Keeps the downloaded presentation, preferences, Canva credentials, and authorization between launches.
 - Provides cache controls, presentation freshness checks, tracking health, and sanitized diagnostic exports.
 - Loads presentation choices using saved authorization and automatically renews expired or rejected access tokens.
@@ -84,7 +86,7 @@ Logs and exported diagnostic bundles redact credentials, tokens, OAuth codes, an
 
 ## Development
 
-Unreleased work for [#41](https://github.com/mj00009/CanvaStage/issues/41), [#42](https://github.com/mj00009/CanvaStage/issues/42) and [#45](https://github.com/mj00009/CanvaStage/issues/45) adds faster Presenter polling, optional slide fades and a Mirror clock with size, weight and placement controls. See [development notes](docs/development/output-effects.md) for settings and acceptance checks. These changes are not in the v0.12.2 download or its published help.
+v0.13.0 addresses [#41](https://github.com/mj00009/CanvaStage/issues/41), [#42](https://github.com/mj00009/CanvaStage/issues/42) and [#45](https://github.com/mj00009/CanvaStage/issues/45). Healthy Presenter scans wait 200 ms before the next scan; actual latency also depends on scan time and Canva's accessibility updates. See [development notes](docs/development/output-effects.md) for implementation and acceptance checks.
 
 CanvaStage is a .NET 10 WPF application. On Windows, run `Build Windows App.cmd`, or use:
 

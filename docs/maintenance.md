@@ -16,7 +16,7 @@ CanvaStage relies on external behavior that can change independently of this rep
 ## Canva Presenter and Windows
 
 - Presenter following reads the first matching page counter exposed through Windows accessibility. Manual controls must remain usable whenever the counter is missing, stale, inaccessible, or reports the wrong visible-page total.
-- Development builds wait 200 ms after healthy Presenter scans, retaining sequential scans and failure backoff. Check CPU use and actual page-change latency on the presentation computer. Optional slide fades must never delay Blank or Stop; exercise rapid navigation and deck/display changes while a fade is active. See [output effects](development/output-effects.md).
+- Since v0.13.0, healthy Presenter scans wait 200 ms before the next scan, retaining sequential scans and failure backoff. Check CPU use and actual page-change latency on the presentation computer. Optional slide fades must never delay Blank or Stop; exercise rapid navigation and deck/display changes while a fade is active. See [output effects](development/output-effects.md).
 - Test the actual Canva desktop app or browser used for services, with only one Presenter View open and the same Windows permission level as CanvaStage. Check forward/backward/distant jumps, closing/reopening Presenter View, pause/resume, and restart with sync disabled.
 - For Windows display changes, test one-screen Preview, an Extended monitor, mixed DPI, hotplug, and full physical-pixel coverage. CI's synthetic DPI screenshots do not replace real hardware tests. See [Windows acceptance](windows-acceptance.md).
 

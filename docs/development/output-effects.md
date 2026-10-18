@@ -1,6 +1,6 @@
-# Faster following, slide fades and clocks (unreleased)
+# Faster following, slide fades and clocks
 
-This development build addresses [#41](https://github.com/mj00009/CanvaStage/issues/41), [#42](https://github.com/mj00009/CanvaStage/issues/42) and [#45](https://github.com/mj00009/CanvaStage/issues/45). The published v0.12.2 download and its versioned help are unchanged.
+v0.13.0 addresses [#41](https://github.com/mj00009/CanvaStage/issues/41), [#42](https://github.com/mj00009/CanvaStage/issues/42) and [#45](https://github.com/mj00009/CanvaStage/issues/45). See the [release notes](../releases/v0.13.0.md) and [versioned help](https://mj00009.github.io/CanvaStage/v0.13.0/).
 
 ## Operator controls
 
