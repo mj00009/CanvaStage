@@ -22,7 +22,7 @@ public sealed class OutputCoordinator : IOutputCoordinator
         _mode = preferences.OutputMode;
         _layout = preferences.MonitorLayout;
         _nextLineOption = preferences.NextLineOption;
-        _appearance = preferences.Appearance;
+        _appearance = preferences.Appearance.Normalize();
     }
 
     public event EventHandler<OutputSnapshot>? SnapshotChanged;
@@ -89,7 +89,7 @@ public sealed class OutputCoordinator : IOutputCoordinator
 
     public void SetAppearance(MonitorAppearance appearance)
     {
-        _appearance = appearance;
+        _appearance = appearance.Normalize();
         Publish();
     }
 

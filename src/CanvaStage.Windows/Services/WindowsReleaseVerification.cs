@@ -187,6 +187,8 @@ internal static class WindowsReleaseVerification
         VerificationWindowSizing.Configure(output);
         try
         {
+            await OutputEffectsVerification.RunAsync(mainWindow, viewModel, output, coordinator, directory, capture);
+            checks.Add("Fitted long Mirror placeholder; independent Monitor/Mirror clock sizes, cached-image overlay, left/right shadow and weight; optional replaceable fades with immediate Blank/Stop, opt-out, deck replacement and bitmap cleanup");
             await MonitorTypographyVerification.RunAsync(mainWindow, viewModel, output, coordinator, directory, capture);
             checks.Add("First-frame text fit on both Monitor surfaces without forced redraw, matching Current/Next typography across four fonts, independent cue size and optional bold");
             await OutputPageUpdateVerification.RunAsync(mainWindow, viewModel, output, coordinator, directory, capture);

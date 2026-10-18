@@ -6,6 +6,27 @@ namespace CanvaStage.Tests;
 public sealed class ResilientPollingLoopTests
 {
     [Fact]
+    public async Task HealthyScansUseFastIntervalWithoutOverlappingAndFailuresKeepBackoff()
+    {
+        using CancellationTokenSource cancellation = new();
+        List<double> delays = [];
+        int scans = 0;
+        await ResilientPollingLoop.RunAsync<int>(async _ =>
+        {
+            await Task.Yield();
+            if (++scans == 2) throw new InvalidOperationException("Unavailable");
+            return scans;
+        }, _ => { }, (_, _) => { }, cancellation.Token, (interval, _) =>
+        {
+            delays.Add(interval.TotalMilliseconds);
+            if (delays.Count == 3) cancellation.Cancel();
+            return Task.CompletedTask;
+        });
+        Assert.Equal([200d, 1000d, 200d], delays);
+        Assert.Equal(3, scans);
+    }
+
+    [Fact]
     public async Task RetriesFailuresAndResetsBackoffAfterSuccessfulScan()
     {
         using CancellationTokenSource cancellation = new();

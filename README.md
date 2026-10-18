@@ -84,6 +84,8 @@ Logs and exported diagnostic bundles redact credentials, tokens, OAuth codes, an
 
 ## Development
 
+Unreleased work for [#41](https://github.com/mj00009/CanvaStage/issues/41), [#42](https://github.com/mj00009/CanvaStage/issues/42) and [#45](https://github.com/mj00009/CanvaStage/issues/45) adds faster Presenter polling, optional slide fades and a Mirror clock with size, weight and placement controls. See [development notes](docs/development/output-effects.md) for settings and acceptance checks. These changes are not in the v0.12.2 download or its published help.
+
 CanvaStage is a .NET 10 WPF application. On Windows, run `Build Windows App.cmd`, or use:
 
 ```powershell

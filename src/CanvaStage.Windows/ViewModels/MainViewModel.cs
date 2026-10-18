@@ -322,6 +322,13 @@ public sealed partial class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(IsNextLineBold));
             OnPropertyChanged(nameof(NextLineColor));
             OnPropertyChanged(nameof(ShowClock));
+            OnPropertyChanged(nameof(ShowMirrorClock));
+            OnPropertyChanged(nameof(ClockFontSize));
+            OnPropertyChanged(nameof(MirrorClockFontSize));
+            OnPropertyChanged(nameof(IsClockBold));
+            OnPropertyChanged(nameof(IsMirrorClockOnLeft));
+            OnPropertyChanged(nameof(IsSlideFadeEnabled));
+            OnPropertyChanged(nameof(SlideFadeMilliseconds));
             OnPropertyChanged(nameof(ContrastMessage));
             OnPropertyChanged(nameof(SelectedPage));
             OnPropertyChanged(nameof(SelectedPageTitle));
@@ -435,6 +442,13 @@ public sealed partial class MainViewModel : ViewModelBase
     public bool IsNextLineBold { get => Snapshot.Appearance.IsNextLineBold; set => SetAppearance(Snapshot.Appearance with { IsNextLineBold = value }); }
     public string NextLineColor { get => Snapshot.Appearance.NextLineColor; set => SetAppearance(Snapshot.Appearance with { NextLineColor = value }); }
     public bool ShowClock { get => Snapshot.Appearance.ShowClock; set => SetAppearance(Snapshot.Appearance with { ShowClock = value }); }
+    public bool ShowMirrorClock { get => Snapshot.Appearance.ShowMirrorClock; set => SetAppearance(Snapshot.Appearance with { ShowMirrorClock = value }); }
+    public double ClockFontSize { get => Snapshot.Appearance.ClockFontSize; set => SetAppearance(Snapshot.Appearance with { ClockFontSize = value }); }
+    public double MirrorClockFontSize { get => Snapshot.Appearance.MirrorClockFontSize; set => SetAppearance(Snapshot.Appearance with { MirrorClockFontSize = value }); }
+    public bool IsClockBold { get => Snapshot.Appearance.IsClockBold; set => SetAppearance(Snapshot.Appearance with { IsClockBold = value }); }
+    public bool IsMirrorClockOnLeft { get => Snapshot.Appearance.IsMirrorClockOnLeft; set => SetAppearance(Snapshot.Appearance with { IsMirrorClockOnLeft = value }); }
+    public bool IsSlideFadeEnabled { get => Snapshot.Appearance.IsSlideFadeEnabled; set => SetAppearance(Snapshot.Appearance with { IsSlideFadeEnabled = value }); }
+    public double SlideFadeMilliseconds { get => Snapshot.Appearance.SlideFadeMilliseconds; set => SetAppearance(Snapshot.Appearance with { SlideFadeMilliseconds = value }); }
     public string CanvaClientId { get => _canvaClientId; set { if (SetProperty(ref _canvaClientId, value)) NotifySecretState(); } }
     public string CanvaConnectionStatus
     {

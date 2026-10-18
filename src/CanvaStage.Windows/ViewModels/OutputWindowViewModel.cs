@@ -31,6 +31,8 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
         get => _snapshot;
         private set
         {
+            if (_snapshot == value) return;
+            SnapshotChanging?.Invoke(this, value);
             if (!SetProperty(ref _snapshot, value))
             {
                 return;
@@ -59,6 +61,11 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(NextLineFontWeight));
             OnPropertyChanged(nameof(ShowNextLine));
             OnPropertyChanged(nameof(ShowClock));
+            OnPropertyChanged(nameof(ShowMirrorClock));
+            OnPropertyChanged(nameof(ClockFontSize));
+            OnPropertyChanged(nameof(MirrorClockFontSize));
+            OnPropertyChanged(nameof(ClockFontWeight));
+            OnPropertyChanged(nameof(MirrorClockAlignment));
             OnPropertyChanged(nameof(EffectiveFontSize));
             OnPropertyChanged(nameof(FallbackImage));
             OnPropertyChanged(nameof(HasFallbackImage));
@@ -81,6 +88,14 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
     public string? NextLine => Snapshot.NextLine;
     public bool ShowNextLine => IsMonitor && Snapshot.Layout is not MonitorLayout.CurrentOnly and not MonitorLayout.SpeakerFocused && !string.IsNullOrWhiteSpace(NextLine);
     public bool ShowClock => IsMonitor && Snapshot.Appearance.ShowClock;
+    public bool ShowMirrorClock => IsMirror && Snapshot.Appearance.ShowMirrorClock;
+    public double ClockFontSize => Snapshot.Appearance.ClockFontSize;
+    public double MirrorClockFontSize => Snapshot.Appearance.MirrorClockFontSize;
+    public System.Windows.FontWeight ClockFontWeight => Snapshot.Appearance.IsClockBold
+        ? System.Windows.FontWeights.SemiBold : System.Windows.FontWeights.Normal;
+    public System.Windows.HorizontalAlignment MirrorClockAlignment => Snapshot.Appearance.IsMirrorClockOnLeft
+        ? System.Windows.HorizontalAlignment.Left : System.Windows.HorizontalAlignment.Right;
+    internal event EventHandler<OutputSnapshot>? SnapshotChanging;
     public double EffectiveFontSize => Snapshot.Layout switch
     {
         MonitorLayout.SpeakerFocused => Math.Min(160, Snapshot.Appearance.FontSize * 1.2),

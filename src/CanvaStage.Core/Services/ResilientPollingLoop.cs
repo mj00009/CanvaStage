@@ -3,6 +3,7 @@ namespace CanvaStage.Core.Services;
 /// <summary>A single cancellable worker retries failed scans without stopping the application.</summary>
 public static class ResilientPollingLoop
 {
+    public static TimeSpan ScanInterval { get; } = TimeSpan.FromMilliseconds(200);
     public static TimeSpan RetryDelay(int failures) => TimeSpan.FromSeconds(Math.Min(15, Math.Pow(2, Math.Clamp(failures - 1, 0, 4))));
 
     public static async Task RunAsync<T>(Func<CancellationToken, Task<T>> scan, Action<T> publish,
@@ -15,7 +16,7 @@ public static class ResilientPollingLoop
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                TimeSpan interval = TimeSpan.FromMilliseconds(750);
+                TimeSpan interval = ScanInterval;
                 try
                 {
                     T result = await scan(cancellationToken).ConfigureAwait(false);

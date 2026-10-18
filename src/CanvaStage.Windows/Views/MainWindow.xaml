@@ -261,7 +261,26 @@
                             <StackPanel><TextBlock Text="Monitor layout and next line" Style="{StaticResource SectionTitle}" />
                                 <TextBlock Text="Layout" Style="{StaticResource FieldLabel}" Margin="0,16,0,7" /><ComboBox SelectedValue="{Binding Layout}" SelectedValuePath="Tag"><ComboBoxItem Content="Current + next" Tag="{x:Static core:MonitorLayout.CurrentAndNext}" /><ComboBoxItem Content="Current only" Tag="{x:Static core:MonitorLayout.CurrentOnly}" /><ComboBoxItem Content="Speaker focused" Tag="{x:Static core:MonitorLayout.SpeakerFocused}" /><ComboBoxItem Content="Current + next compact" Tag="{x:Static core:MonitorLayout.CurrentAndNextCompact}" /></ComboBox>
                                 <TextBlock Text="Next line" Style="{StaticResource FieldLabel}" Margin="0,15,0,7" /><ComboBox SelectedValue="{Binding NextLineOption}" SelectedValuePath="Tag"><ComboBoxItem Content="First non-empty line" Tag="{x:Static core:NextLineOption.FirstNonEmptyLine}" /><ComboBoxItem Content="Next title only" Tag="{x:Static core:NextLineOption.TitleOnly}" /><ComboBoxItem Content="Hidden" Tag="{x:Static core:NextLineOption.Hidden}" /></ComboBox>
-                                <CheckBox Content="Show current time" IsChecked="{Binding ShowClock}" Margin="0,16,0,0" />
+                            </StackPanel>
+                        </Border>
+                        <Border x:Name="OutputEffectsSettings" Style="{StaticResource PanelCard}">
+                            <StackPanel>
+                                <TextBlock Text="Output clocks and slide changes" Style="{StaticResource SectionTitle}" />
+                                <CheckBox Content="Show current time in Monitor" IsChecked="{Binding ShowClock}" Margin="0,16,0,0" />
+                                <CheckBox Content="Show current time in Mirror" IsChecked="{Binding ShowMirrorClock}" Margin="0,12,0,0" />
+                                <CheckBox Content="Place Mirror clock at bottom left (otherwise bottom right)" IsChecked="{Binding IsMirrorClockOnLeft}" Margin="0,12,0,0" />
+                                <TextBlock Text="Monitor clock size (16–96)" Style="{StaticResource FieldLabel}" Margin="0,16,0,7" />
+                                <Slider Minimum="16" Maximum="96" TickFrequency="4" IsSnapToTickEnabled="True" Value="{Binding ClockFontSize}" />
+                                <TextBlock Text="{Binding ClockFontSize, StringFormat={}{0:0}}" Style="{StaticResource MutedText}" />
+                                <TextBlock Text="Mirror clock size (16–96)" Style="{StaticResource FieldLabel}" Margin="0,16,0,7" />
+                                <Slider Minimum="16" Maximum="96" TickFrequency="4" IsSnapToTickEnabled="True" Value="{Binding MirrorClockFontSize}" />
+                                <TextBlock Text="{Binding MirrorClockFontSize, StringFormat={}{0:0}}" Style="{StaticResource MutedText}" />
+                                <CheckBox Content="Bold clocks (clear for regular weight)" IsChecked="{Binding IsClockBold}" Margin="0,12,0,0" />
+                                <CheckBox Content="Fade between slides" IsChecked="{Binding IsSlideFadeEnabled}" Margin="0,22,0,0" />
+                                <TextBlock Text="Fade duration (100–1000 ms)" Style="{StaticResource FieldLabel}" Margin="0,16,0,7" />
+                                <Slider Minimum="100" Maximum="1000" TickFrequency="50" IsSnapToTickEnabled="True" Value="{Binding SlideFadeMilliseconds}" IsEnabled="{Binding IsSlideFadeEnabled}" />
+                                <TextBlock Text="{Binding SlideFadeMilliseconds, StringFormat={}{0:0} ms}" Style="{StaticResource MutedText}" />
+                                <TextBlock Text="Fades are off by default. Longer fades take more time to reveal the new slide. Blank and Stop always take effect immediately." Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,12,0,0" />
                             </StackPanel>
                         </Border>
                         <Border x:Name="ContentCacheSettings" Style="{StaticResource PanelCard}"><StackPanel>

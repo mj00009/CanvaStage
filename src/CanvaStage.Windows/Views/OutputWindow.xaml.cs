@@ -6,6 +6,10 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
+using CanvaStage.Core.Models;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 
 namespace CanvaStage.Windows.Views;
 
@@ -18,6 +22,7 @@ public partial class OutputWindow : Window
     private long _contentRevision;
     private Rectangle? _displayBounds;
     private Rectangle? _hiddenPreviewBounds;
+    private OutputSnapshot? _renderedSnapshot;
 
     public OutputWindow(OutputWindowViewModel viewModel)
     {
@@ -26,8 +31,9 @@ public partial class OutputWindow : Window
         DataContext = viewModel;
         Loaded += OnOutputLoaded;
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        viewModel.SnapshotChanging += OnSnapshotChanging;
         System.Windows.Media.RenderCapability.TierChanged += OnRenderingTierChanged;
-        _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
+        _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _clockTimer.Tick += OnClockTick;
         _clockTimer.Start();
     }
@@ -125,6 +131,8 @@ public partial class OutputWindow : Window
         System.Windows.Media.RenderCapability.TierChanged -= OnRenderingTierChanged;
         Loaded -= OnOutputLoaded;
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _viewModel.SnapshotChanging -= OnSnapshotChanging;
+        ClearTransition();
         _clockTimer.Stop();
         _clockTimer.Tick -= OnClockTick;
         base.OnClosed(eventArgs);
@@ -136,6 +144,68 @@ public partial class OutputWindow : Window
         {
             viewModel.UpdateClock();
         }
+    }
+
+    internal bool IsTransitionActive => TransitionOverlay.Source is not null;
+
+    private void OnSnapshotChanging(object? sender, OutputSnapshot next)
+    {
+        OutputSnapshot previous = _viewModel.Snapshot;
+        bool pageChanged = previous.SelectedPageNumber != next.SelectedPageNumber;
+        bool canFade = !_isClosed && IsVisible && next.Appearance.IsSlideFadeEnabled
+            && previous.IsLive && next.IsLive && !previous.IsBlanked && !next.IsBlanked
+            && ReferenceEquals(previous.Document, next.Document) && previous.Mode == next.Mode
+            && previous.Layout == next.Layout && previous.Appearance == next.Appearance
+            && _renderedSnapshot is { } rendered && rendered.IsLive && !rendered.IsBlanked
+            && ReferenceEquals(rendered.Document, previous.Document) && rendered.Mode == previous.Mode
+            && rendered.Layout == previous.Layout && rendered.Appearance == previous.Appearance;
+        if (!canFade)
+        {
+            ClearTransition();
+            return;
+        }
+        if (!pageChanged) return;
+
+        // SnapshotChanging fires before bindings receive the new page. Capture the
+        // current composite so rapid navigation replaces, rather than queues, fades.
+        double width = TransitionSurface.ActualWidth;
+        double height = TransitionSurface.ActualHeight;
+        if (width <= 0 || height <= 0) return;
+        DpiScale dpi = VisualTreeHelper.GetDpi(TransitionSurface);
+        double scale = Math.Min(1, 4096 / Math.Max(width * dpi.DpiScaleX, height * dpi.DpiScaleY));
+        try
+        {
+            RenderTargetBitmap frame = new(Math.Max(1, (int)Math.Ceiling(width * dpi.DpiScaleX * scale)),
+                Math.Max(1, (int)Math.Ceiling(height * dpi.DpiScaleY * scale)),
+                dpi.PixelsPerInchX * scale, dpi.PixelsPerInchY * scale, PixelFormats.Pbgra32);
+            frame.Render(TransitionSurface);
+            frame.Freeze();
+            ClearTransition();
+            TransitionOverlay.Source = frame;
+            TransitionOverlay.Visibility = Visibility.Visible;
+            DoubleAnimation fade = new(1, 0, TimeSpan.FromMilliseconds(next.Appearance.SlideFadeMilliseconds))
+            {
+                FillBehavior = FillBehavior.Stop
+            };
+            fade.Completed += (_, _) =>
+            {
+                if (ReferenceEquals(TransitionOverlay.Source, frame)) ClearTransition();
+            };
+            TransitionOverlay.BeginAnimation(OpacityProperty, fade, HandoffBehavior.SnapshotAndReplace);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or ArgumentException or OutOfMemoryException)
+        {
+            // A failed visual capture must never prevent a live page change.
+            ClearTransition();
+            PrivacySafeLog.WriteException("Slide fade capture failed; showing the new page directly", exception);
+        }
+    }
+
+    private void ClearTransition()
+    {
+        TransitionOverlay.BeginAnimation(OpacityProperty, null);
+        TransitionOverlay.Source = null;
+        TransitionOverlay.Visibility = Visibility.Collapsed;
     }
 
     private void OnOutputLoaded(object sender, RoutedEventArgs eventArgs)
@@ -167,6 +237,7 @@ public partial class OutputWindow : Window
         System.Windows.Media.CompositionTarget.Rendering -= OnRenderDiagnostic;
         _isRenderDiagnosticQueued = false;
         if (_isClosed) return;
+        _renderedSnapshot = _viewModel.Snapshot;
         PrivacySafeLog.Write(FormattableString.Invariant($"Output render stage: revision {_contentRevision}; page {_viewModel.Snapshot.SelectedPageNumber}; surface {(_displayBounds is null ? "Preview" : "Display")}; visible {IsVisible}; mode {_viewModel.Snapshot.Mode}; fallback {_viewModel.ShowFallbackImage}; text matches {PrimaryText.Text == _viewModel.PrimaryText}; characters {PrimaryText.Text.Length}/{_viewModel.PrimaryText.Length}; font {_viewModel.Snapshot.Appearance.FontFamily}; size {PrimaryText.FontSize:0.00}/{_viewModel.EffectiveFontSize:0.00}; host {PrimaryTextHost.ActualWidth:0.00}x{PrimaryTextHost.ActualHeight:0.00}; dpi {System.Windows.Media.VisualTreeHelper.GetDpi(this).PixelsPerDip:0.00}."));
     }
 

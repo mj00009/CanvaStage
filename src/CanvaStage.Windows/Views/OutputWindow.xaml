@@ -20,6 +20,7 @@
             </Style>
         </Grid.Style>
         <Grid x:Name="PreviewSurface" Background="#101113" ClipToBounds="True">
+        <Grid x:Name="TransitionSurface">
         <TextBlock Text="OUTPUT IS BLANK"
                    Foreground="#8C929C"
                    FontSize="26"
@@ -64,20 +65,33 @@
                     </Style>
                 </Image.Style>
             </Image>
-            <StackPanel Margin="72" VerticalAlignment="Center">
-                <StackPanel.Style>
-                    <Style TargetType="StackPanel">
+            <Grid x:Name="MirrorFallbackBounds" Margin="72">
+                <Grid.Style>
+                    <Style TargetType="Grid">
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding HasFallbackImage}" Value="True">
                                 <Setter Property="Visibility" Value="Collapsed" />
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
-                </StackPanel.Style>
-                <Border Background="{Binding MirrorAccent}" Height="16" Margin="0,0,0,28" />
-                <TextBlock Text="{Binding Page.Title}" FontSize="58" FontWeight="Bold" TextWrapping="Wrap" />
-                <TextBlock Text="{Binding PrimaryText}" FontSize="30" Margin="0,26,0,0" TextWrapping="Wrap" />
-            </StackPanel>
+                </Grid.Style>
+                <Viewbox StretchDirection="DownOnly">
+                    <StackPanel x:Name="MirrorFallbackContent" Width="{Binding ActualWidth, ElementName=MirrorFallbackBounds}">
+                        <Border Background="{Binding MirrorAccent}" Height="16" Margin="0,0,0,28" />
+                        <TextBlock Text="{Binding Page.Title}" FontSize="58" FontWeight="Bold" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding PrimaryText}" FontSize="30" Margin="0,26,0,0" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Viewbox>
+            </Grid>
+            <TextBlock x:Name="MirrorClock" Text="{Binding CurrentTime}"
+                       FontFamily="{Binding Snapshot.Appearance.FontFamily}" FontSize="{Binding MirrorClockFontSize}"
+                       FontWeight="{Binding ClockFontWeight}" Foreground="White" Margin="28"
+                       HorizontalAlignment="{Binding MirrorClockAlignment}" VerticalAlignment="Bottom">
+                <TextBlock.Effect><DropShadowEffect Color="Black" BlurRadius="5" ShadowDepth="2" Opacity="0.85" /></TextBlock.Effect>
+                <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers><DataTrigger Binding="{Binding ShowMirrorClock}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                </Style></TextBlock.Style>
+            </TextBlock>
         </Grid>
 
         <Grid Background="{Binding BackgroundBrush}">
@@ -97,11 +111,11 @@
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0"
+                <TextBlock x:Name="MonitorClock" Grid.Row="0"
                            Text="{Binding CurrentTime}"
                            Foreground="{Binding AccentBrush}"
-                           FontSize="28"
-                           FontWeight="SemiBold"
+                           FontSize="{Binding ClockFontSize}"
+                           FontWeight="{Binding ClockFontWeight}"
                            HorizontalAlignment="Right">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
@@ -163,6 +177,8 @@
                     </StackPanel>
                 </Border>
             </Grid>
+        </Grid>
+        <Image x:Name="TransitionOverlay" Stretch="Fill" IsHitTestVisible="False" Visibility="Collapsed" />
         </Grid>
         <Border Background="Black">
             <Border.Style>
