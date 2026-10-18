@@ -1,8 +1,8 @@
 # Operator guide
 
-This guide describes v0.12.1. It covers Simple Setup, cached-deck reuse, Compact view, scrolling, recovery guidance, and the Help/F1 links.
+This guide describes v0.13.0, including faster Presenter following, optional slide fades and clocks in both output modes.
 
-Choose **Help** or press **F1** while the main CanvaStage window has focus to open [CanvaStage Help](https://mj00009.github.io/CanvaStage/v0.12.1/), a shorter guide with screenshots. F1 also works in Compact view. The website requires internet access; opening it does not change output or Presenter following. If CanvaStage cannot open the browser, it shows the help address so you can copy it.
+Choose **Help** or press **F1** while the main CanvaStage window has focus to open [CanvaStage Help](https://mj00009.github.io/CanvaStage/v0.13.0/), a shorter guide with screenshots. F1 also works in Compact view. The website requires internet access; opening it does not change output or Presenter following. If CanvaStage cannot open the browser, it shows the help address so you can copy it.
 
 ## Simple Setup
 
@@ -87,6 +87,14 @@ In **Live control**, Mirror/Monitor are under **Sunday controls**. Pause/Resume 
 - **Stop output** closes the fullscreen window and live session. Live control's Start button becomes Stop while output is live. Separate Preview can remain open for checking the cached deck and does not restart live output.
 
 The output window can always be closed with `Escape`. Moving the pointer over its upper-right corner reveals a close button.
+
+### Clocks and slide fades
+
+Open **Settings & Diagnostics → Output clocks and slide changes**. Monitor and Mirror have separate clock toggles and size sliders from 16 to 96. Mirror's white clock has a small black shadow and can sit at the bottom right or bottom left. **Bold clocks (clear for regular weight)** changes both clocks between a slightly bold font and regular weight. The clock uses the computer's local time.
+
+**Fade between slides** is off by default. Enable it for a crossfade in either output mode and choose a duration from 100 to 1000 ms. Longer fades take longer to reveal a new slide; turn fades off for immediate changes. Rapid navigation replaces the fade with the newest page, and Blank and Stop take effect immediately. Saved settings carry over when you reopen the app.
+
+Presenter scans wait 200 ms after a healthy scan, down from 750 ms. Canva's accessibility updates and scan time also affect following latency. Check timing and CPU use on the actual presentation computer before a service.
 
 ### Keyboard shortcuts
 
