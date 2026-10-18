@@ -46,7 +46,7 @@ internal static class OperatorWorkflowVerification
         // Settings retains its own sync control, but it is not shown on Live control.
         Require(Descendants(main).OfType<ButtonBase>().Count(button => button.IsVisible
             && ReferenceEquals(button.Command, model.TogglePresenterSyncCommand)) == 1,
-            "Sync controls are duplicated instead of remaining beside the main status");
+            "Sync controls are duplicated instead of remaining with the visible Presenter status");
         Require(!Descendants(live).OfType<ButtonBase>().Any(button => ReferenceEquals(button.Command, model.TestSetupCommand)),
             "Sunday controls still duplicate Sync details");
         FrameworkElement modes = (FrameworkElement)main.FindName("SundayModeControls");

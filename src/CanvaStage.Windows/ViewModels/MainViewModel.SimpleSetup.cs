@@ -30,6 +30,7 @@ public sealed partial class MainViewModel
             OnPropertyChanged(nameof(OutputActionText));
             OnPropertyChanged(nameof(OutputActionCommand));
             OnPropertyChanged(nameof(SimpleSetupProgressIndeterminate));
+            NotifyDisplayLayoutState();
         }
     }
     public double SimpleSetupProgress { get => IsCanvaDownloadProgressVisible ? CanvaDownloadProgressPercent : _simpleSetupProgress; private set => SetProperty(ref _simpleSetupProgress, value); }
@@ -51,7 +52,7 @@ public sealed partial class MainViewModel
         // without silently choosing a different first item from a refreshed list.
         _defaultPresentationId = Snapshot.Document.Id != "demo-sunday" ? Snapshot.Document.Id : preferences.LastAppliedPresentationId;
         _defaultPresentationTitle = Snapshot.Document.Id != "demo-sunday" ? Snapshot.Document.Title : preferences.LastAppliedPresentationTitle;
-        StartSimpleSetupCommand = new AsyncRelayCommand(StartSimpleSetupAsync, () => !IsCanvaBusy && !_isClosing);
+        StartSimpleSetupCommand = new AsyncRelayCommand(StartSimpleSetupAsync, () => !IsCanvaBusy && !_isClosing && !IsDisplayLayoutBusy && !HasMirroringRestorePoint);
         CheckSimpleSlidesCommand = new AsyncRelayCommand(CheckSimpleSlidesAsync,
             () => !IsCanvaBusy && _canva.IsConnected && Snapshot.Document.Id != "demo-sunday");
     }
@@ -75,6 +76,7 @@ public sealed partial class MainViewModel
 
     internal async Task StartSimpleSetupAsync()
     {
+        if (IsDisplayLayoutBusy || HasMirroringRestorePoint) { SimpleSetupStatus = "Restore the Extended display layout in Advanced before starting separate confidence output."; return; }
         if (IsCanvaBusy || _isClosing) return;
         long revision = ++_outputRequestRevision;
         CancelDisplayReconnectOffer();

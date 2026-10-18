@@ -19,6 +19,7 @@ CanvaStage relies on external behavior that can change independently of this rep
 - Since v0.13.0, healthy Presenter scans wait 200 ms before the next scan, retaining sequential scans and failure backoff. Check CPU use and actual page-change latency on the presentation computer. Optional slide fades must never delay Blank or Stop; exercise rapid navigation and deck/display changes while a fade is active. See [output effects](development/output-effects.md).
 - Test the actual Canva desktop app or browser used for services, with only one Presenter View open and the same Windows permission level as CanvaStage. Check forward/backward/distant jumps, closing/reopening Presenter View, pause/resume, and restart with sync disabled.
 - For Windows display changes, test one-screen Preview, an Extended monitor, mixed DPI, hotplug, and full physical-pixel coverage. CI's synthetic DPI screenshots do not replace real hardware tests. See [Windows acceptance](windows-acceptance.md).
+- The unreleased mirroring fallback uses CCD validation, explicit confirmation, a persistent original layout and a timed keep/rollback dialog. Keep automated mutations on the injected backend; the native query is read-only. Test real clone support and restore on the intended hardware before relying on it. See [mirroring development notes](development/display-mirroring.md), including recovery when hardware identities change.
 
 ## Local cache and recovery
 

@@ -66,6 +66,10 @@ Use this checklist before relying on a new release during a service. Automated v
 
 ## Automated release verification
 
+For the unreleased audience-mirroring fallback, begin with three Extended screens. In Advanced Setup, check the named audience/confidence pair. No in the first confirmation must leave output and layout unchanged. Yes must stop confidence output, clone only the requested pair and keep the primary screen independent. No, close and timeout in the keep dialog must restore the original layout. Keep mirroring, restart the app, then confirm Restore extended layout restores the saved arrangement without restarting confidence output. Test unsupported pairs, hotplug and failed restoration; a missing screen must not redirect output. See [recovery details](development/display-mirroring.md).
+
+For #46, compare Following, Paused, Mismatch, Waiting and recovery states in the sidebar. The outline must match the status color, and Pause/Resume plus Sync details must remain accessible exactly once, including in narrow and short windows. For #47, retain an unedited affected PPTX export before trying casing changes; automated mixed-case tests do not reproduce the reported deck.
+
 The GitHub workflow:
 
 1. restores, builds, and tests the solution on Windows;

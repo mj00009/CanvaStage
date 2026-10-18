@@ -24,6 +24,11 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(CancelEventArgs eventArgs)
     {
+        if (_viewModel.IsDisplayLayoutBusy)
+        {
+            eventArgs.Cancel = true;
+            return; // Complete the change/rollback before shutting down its dispatcher.
+        }
         if (_viewModel.IsLive)
         {
             MessageBoxResult result = System.Windows.MessageBox.Show(
@@ -160,6 +165,7 @@ public partial class MainWindow : Window
         SidebarColumn.Width = new GridLength(narrow ? 0 : width < 1250 ? 230 : 286);
         Sidebar.Visibility = narrow ? Visibility.Collapsed : Visibility.Visible;
         SidebarFooter.Visibility = height < 650 ? Visibility.Collapsed : Visibility.Visible;
+        HeaderPresenterStatus.Visibility = narrow || height < 650 ? Visibility.Visible : Visibility.Collapsed;
         NarrowNavigation.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
         MainContent.Margin = new Thickness(width < 1250 ? 16 : 30, 20, 16, 20);
         bool stacked = width < 1250;

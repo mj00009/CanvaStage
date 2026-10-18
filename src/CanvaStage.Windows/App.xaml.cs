@@ -48,7 +48,8 @@ public partial class App : System.Windows.Application
             ICanvaPresenterTracker canvaPresenterAccessibilityTracker = screenshotPath is null
                 ? new CanvaPresenterAccessibilityTracker() : new WindowsReleaseVerification.DemoTracker();
             var viewModel = new MainViewModel(coordinator, _outputWindowManager, displayService, displayIdentificationService, diagnosticsExportService, preferencesStore, presentationCacheStore, canva, canvaPresenterAccessibilityTracker, preferences,
-                helpLinks: screenshotPath is null ? null : new HelpLinkService(ApplicationVersion.Current, _ => { }));
+                helpLinks: screenshotPath is null ? null : new HelpLinkService(ApplicationVersion.Current, _ => { }),
+                displayMirror: new DisplayMirrorService(isolatedDirectory));
             PrivacySafeLog.Write("Startup: services created.");
 
             var mainWindow = new MainWindow(viewModel);

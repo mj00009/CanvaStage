@@ -86,6 +86,8 @@ Logs and exported diagnostic bundles redact credentials, tokens, OAuth codes, an
 
 ## Development
 
+Unreleased: Advanced Setup has a confirmed audience-to-confidence mirroring fallback and a saved-layout restore action. The Presenter sidebar also shows live status and recovery guidance for [#46](https://github.com/mj00009/CanvaStage/issues/46). See [mirroring development notes](docs/development/display-mirroring.md) for behavior, recovery and hardware acceptance. The casing report in #47 still needs an affected PPTX export; no casing conversion was added.
+
 v0.13.0 addresses [#41](https://github.com/mj00009/CanvaStage/issues/41), [#42](https://github.com/mj00009/CanvaStage/issues/42) and [#45](https://github.com/mj00009/CanvaStage/issues/45). Healthy Presenter scans wait 200 ms before the next scan; actual latency also depends on scan time and Canva's accessibility updates. See [development notes](docs/development/output-effects.md) for implementation and acceptance checks.
 
 CanvaStage is a .NET 10 WPF application. On Windows, run `Build Windows App.cmd`, or use:

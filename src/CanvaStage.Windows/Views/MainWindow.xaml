@@ -57,12 +57,19 @@
                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBlock Text="⌕" Foreground="{StaticResource AccentHoverBrush}" Margin="0,0,12,0" VerticalAlignment="Center" /><TextBlock x:Name="SettingsNavigationLabel" Grid.Column="1" Text="Settings &amp; Diagnostics" TextWrapping="Wrap" /></Grid>
                     </RadioButton>
                 </StackPanel>
-                <Border x:Name="SidebarFooter" Grid.Row="3" Background="#111824" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="14" VerticalAlignment="Bottom">
+                <StackPanel x:Name="SidebarFooter" Grid.Row="3" VerticalAlignment="Bottom">
+                  <Border x:Name="PresenterStatusCard" Background="#111824" BorderBrush="{Binding PresenterSyncBrush}" BorderThickness="1" CornerRadius="10" Padding="14">
                     <StackPanel>
                         <TextBlock Text="PRESENTER SYNC" Style="{StaticResource EyebrowText}" />
-                        <TextBlock Text="CanvaStage follows the first Canva Presenter page counter exposed by Windows. Manual controls remain available." Style="{StaticResource MutedText}" Margin="0,8,0,0" TextWrapping="Wrap" />
+                        <TextBlock x:Name="SidebarPresenterStatus" Text="{Binding PresenterSyncSummary}" Foreground="{Binding PresenterSyncBrush}" FontWeight="SemiBold" FontSize="16" Margin="0,8,0,0" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding PresenterSidebarDetail}" Style="{StaticResource MutedText}" Margin="0,8,0,0" TextWrapping="Wrap" />
                     </StackPanel>
-                </Border>
+                  </Border>
+                  <WrapPanel Margin="0,8,0,0">
+                    <Button Content="{Binding PresenterSyncButtonText}" Command="{Binding TogglePresenterSyncCommand}" Style="{StaticResource SecondaryButton}" Padding="10,6" />
+                    <Button Content="Sync details" Command="{Binding TestSetupCommand}" Style="{StaticResource TextButton}" Padding="6" />
+                  </WrapPanel>
+                </StackPanel>
                 <TextBlock x:Name="ApplicationVersionLabel" Grid.Row="4" Text="{Binding ApplicationVersionLabel}" Style="{StaticResource MutedText}" FontSize="12" Margin="12,12,0,0" />
             </Grid>
         </Border>
@@ -85,6 +92,7 @@
                     </ComboBox>
                     <TextBlock Text="{Binding OperatorPageTitle}" Style="{StaticResource PageTitle}" />
                     <TextBlock Text="{Binding OperatorPageSubtitle}" Style="{StaticResource MutedText}" Margin="0,5,0,0" />
+                    <StackPanel x:Name="HeaderPresenterStatus" Visibility="Collapsed">
                     <WrapPanel Margin="0,10,0,0">
                         <TextBlock Text="{Binding PresenterSyncSummary}" Foreground="{Binding PresenterSyncBrush}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,14,0" ToolTip="{Binding CanvaPresenterTrackingStatus}" />
                         <Button Content="{Binding PresenterSyncButtonText}" Command="{Binding TogglePresenterSyncCommand}" Style="{StaticResource SecondaryButton}" Padding="12,6" />
@@ -93,6 +101,7 @@
                     <TextBlock Text="{Binding CanvaPresenterTrackingStatus}" TextWrapping="Wrap" Margin="0,6,0,0" MaxWidth="760" HorizontalAlignment="Left">
                         <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource MutedText}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding HasPresenterAttention}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                     </TextBlock>
+                    </StackPanel>
                 </StackPanel>
                 <WrapPanel Grid.Row="1" Margin="0,14,0,0" HorizontalAlignment="Right">
                     <Border Style="{StaticResource LiveStatusCard}" Margin="0,0,12,0">
@@ -184,6 +193,15 @@
                         </Border>
                         <StackPanel x:Name="AdvancedSetupPanel">
                             <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsAdvancedSetup}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                        <Border x:Name="MirrorFallbackCard" Style="{StaticResource PanelCard}"><StackPanel>
+                            <TextBlock Text="{Binding MirrorFallbackTitle}" Style="{StaticResource SectionTitle}" />
+                            <TextBlock Text="Audience screen to mirror" Style="{StaticResource FieldLabel}" Margin="0,12,0,7" />
+                            <ComboBox x:Name="MirrorAudienceSelector" ItemsSource="{Binding MirrorAudienceDisplays}" SelectedItem="{Binding MirrorAudienceDisplay}" DisplayMemberPath="Label" />
+                            <TextBlock Text="{Binding MirrorFallbackTarget}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,8,0,10" />
+                            <WrapPanel><Button x:Name="MirrorAudienceButton" Content="Mirror audience screen" Command="{Binding MirrorAudienceCommand}" Style="{StaticResource SecondaryButton}" />
+                                <Button x:Name="RestoreExtendedLayoutButton" Content="Restore extended layout" Command="{Binding RestoreExtendedLayoutCommand}" Style="{StaticResource SecondaryButton}" /></WrapPanel>
+                            <TextBlock Text="{Binding DisplayLayoutStatus}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,10,0,0" />
+                        </StackPanel></Border>
                         <Border Style="{StaticResource PanelCard}"><StackPanel>
                             <TextBlock Text="{Binding CanvaConnectionStatus}" Style="{StaticResource MutedText}" TextWrapping="Wrap" />
                             <WrapPanel Margin="0,10,0,0"><Button Content="Connect Canva" Command="{Binding ConnectCanvaCommand}" Style="{StaticResource SecondaryButton}" /><Button Content="Connection settings" Command="{Binding TestSetupCommand}" Style="{StaticResource TextButton}" /></WrapPanel>

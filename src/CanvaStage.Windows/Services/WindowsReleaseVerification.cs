@@ -64,6 +64,7 @@ internal static class WindowsReleaseVerification
         Feed(2);
         Require(viewModel.PresenterSyncSummary == "Following Canva", "Recovered scan resumes following");
         checks.Add("Direct Presenter counter following, page-count guard, manual pause, resume, disabled updates and recovery");
+        Require(viewModel.PresenterSidebarDetail.Contains("page 2 of 3"), "Sidebar does not describe the current following state");
 
         coordinator.StartOutput();
         viewModel.BlankOutputCommand.Execute(null);
@@ -85,6 +86,8 @@ internal static class WindowsReleaseVerification
         await VerifyCredentialsAndCacheAsync(directory);
         await LiveCanvaRefreshVerification.RunAsync(directory, mainWindow, capture);
         await MirrorImageExportVerification.RunAsync(directory);
+        await DisplayMirrorVerification.RunAsync(directory, capture);
+        checks.Add("Read-only native CCD query; simulated audience/confidence clone, No/stale-consent safety, timed keep-dialog decline, durable restore, output suppression and exact Extended restoration without mutating CI displays");
         checks.Add("DPAPI reuse, fresh rendered images instead of preview thumbnails, preview API schema guard, immutable refresh and cache save/recovery checks");
         checks.Add("Saved-token startup, concurrent token rotation, 401 retry, live refresh navigation, page-count change, failed export, pause/blank preservation, opt-out and shutdown cancellation");
         checks.Add("Simple Setup saved-deck/display defaults, unchanged-cache reuse without exports, changed-deck download progress, missing/Primary display guards, cancelled-start protection, restart and failed-export recovery");
@@ -107,6 +110,17 @@ internal static class WindowsReleaseVerification
 
         mainWindow.SetCompactViewForAutomation(false);
         VerificationWindowSizing.Configure(mainWindow);
+        VerificationWindowSizing.SetSize(mainWindow, 1380, 900);
+        Feed(1, 4);
+        await mainWindow.Dispatcher.InvokeAsync(() => mainWindow.UpdateLayout(), DispatcherPriority.ApplicationIdle);
+        System.Windows.Controls.Border statusCard = (System.Windows.Controls.Border)mainWindow.FindName("PresenterStatusCard");
+        Require(viewModel.PresenterSidebarDetail.Contains("4 pages") && viewModel.PresenterSidebarDetail.Contains("3")
+            && statusCard.BorderBrush.ToString() == viewModel.PresenterSyncBrush.ToString()
+            && ((System.Windows.Controls.TextBlock)mainWindow.FindName("SidebarPresenterStatus")).Text == viewModel.PresenterSyncSummary,
+            "Sidebar status, concise recovery or matching border color is missing");
+        capture(mainWindow, Path.Combine(directory, "operator-sidebar-mismatch.png"), 1);
+        Feed(2);
+        checks.Add("Presenter sidebar shows live status, matching border color and concise recovery; sync controls stay grouped with responsive header fallback");
         foreach ((int width, int height, double scale) in new[] { (1380, 900, 1d), (1366, 768, 1.25d), (1920, 1080, 1.5d), (1920, 1080, 2d) })
         {
             VerificationWindowSizing.SetSize(mainWindow, width / scale, height / scale);

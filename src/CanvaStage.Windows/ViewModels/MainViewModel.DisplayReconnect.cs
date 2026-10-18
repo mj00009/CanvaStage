@@ -28,7 +28,7 @@ public sealed partial class MainViewModel
         _displayReconnectTimer.Stop();
     }
 
-    private bool CanOfferDisplayReconnect => !_isClosing && !IsLive && !_simpleSetupOutputCancelled
+    private bool CanOfferDisplayReconnect => !_isClosing && !IsLive && !_simpleSetupOutputCancelled && !IsDisplayLayoutBusy && !HasMirroringRestorePoint
         && Snapshot.Document.Id != "demo-sunday" && Snapshot.Document.Id == _defaultPresentationId
         && Snapshot.Document.Pages.Count > 0;
 

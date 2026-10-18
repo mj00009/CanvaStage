@@ -72,7 +72,7 @@ public sealed partial class MainViewModel : ViewModelBase
     private bool _progressQueued;
     private bool _isAutomaticRefreshRunning;
 
-    public MainViewModel(IOutputCoordinator coordinator, OutputWindowManager outputWindowManager, DisplayService displayService, DisplayIdentificationService displayIdentificationService, DiagnosticsExportService diagnosticsExportService, JsonPreferencesStore preferencesStore, PresentationCacheStore presentationCacheStore, CanvaConnectService canva, ICanvaPresenterTracker canvaPresenterAccessibilityTracker, AppPreferences preferences, AutomaticContentRefreshSchedule? contentRefreshSchedule = null, Func<IReadOnlyList<DisplayOption>>? getDisplays = null, HelpLinkService? helpLinks = null, Func<DisplayOption, bool>? confirmDisplayReconnect = null)
+    public MainViewModel(IOutputCoordinator coordinator, OutputWindowManager outputWindowManager, DisplayService displayService, DisplayIdentificationService displayIdentificationService, DiagnosticsExportService diagnosticsExportService, JsonPreferencesStore preferencesStore, PresentationCacheStore presentationCacheStore, CanvaConnectService canva, ICanvaPresenterTracker canvaPresenterAccessibilityTracker, AppPreferences preferences, AutomaticContentRefreshSchedule? contentRefreshSchedule = null, Func<IReadOnlyList<DisplayOption>>? getDisplays = null, HelpLinkService? helpLinks = null, Func<DisplayOption, bool>? confirmDisplayReconnect = null, DisplayMirrorService? displayMirror = null, Func<string, bool>? confirmLayoutChange = null, Func<bool>? keepMirroredLayout = null)
     {
         _coordinator = coordinator;
         _helpLinks = helpLinks ?? new HelpLinkService(ApplicationVersion.Current);
@@ -155,6 +155,7 @@ public sealed partial class MainViewModel : ViewModelBase
         }, message => CanvaConnectionStatus = message), () => !IsCanvaBusy);
         ReplaceCanvaSecretCommand = new RelayCommand(() => { _isEditingCanvaSecret = true; NotifySecretState(); });
         ConfigureSimpleSetup(preferences);
+        ConfigureDisplayMirror(displayMirror, confirmLayoutChange, keepMirroredLayout);
         _preferredDisplayId = preferences.SelectedDisplayId;
         SelectedDisplay = DisplaySelection.Resolve(Displays, _preferredDisplayId);
         _displayReconnectPolicy.Observe(Displays, _preferredDisplayId);
@@ -226,6 +227,16 @@ public sealed partial class MainViewModel : ViewModelBase
     public Brush PresenterSyncBrush => _presenterSyncState == PresenterSyncState.Following
         ? BrushFrom("#74E5A2", Brushes.LightGreen) : BrushFrom("#E5C07B", Brushes.Goldenrod);
     public string PresenterSyncButtonText => !IsPresenterSyncEnabled || _isPresenterSyncPaused ? "Resume sync" : "Pause sync";
+    public string PresenterSidebarDetail => _presenterSyncState switch
+    {
+        PresenterSyncState.Following => $"Following Canva page {_lastPresenterUpdate?.CurrentPage} of {_lastPresenterUpdate?.TotalPages}. Manual page changes pause following.",
+        PresenterSyncState.Paused => "Manual page control is active. Choose Resume sync to follow Canva again.",
+        PresenterSyncState.Manual => "Automatic following is off. Use the page controls or choose Resume sync.",
+        PresenterSyncState.Mismatch => $"Canva reports {_lastPresenterUpdate?.TotalPages} pages; this deck has {Snapshot.Document.Pages.Count}. Open the matching deck or Re-download in Advanced Setup.",
+        PresenterSyncState.Recovering => "Presenter scanning was interrupted and will retry. Keep Presenter View open; manual controls still work.",
+        _ when Snapshot.Document.Id == "demo-sunday" => "Load your Canva deck in Setup, then open its Presenter View. The demo uses manual controls.",
+        _ => "Open one matching Canva Presenter View with its page counter visible. Keep Canva and CanvaStage at the same Windows permission level."
+    };
     public string RedirectUrl => CanvaConnectService.RedirectUrl;
     public bool IsCanvaPresenterTracking => _canvaPresenterAccessibilityTracker.IsTracking;
     public bool IsPresenterSyncEnabled
@@ -387,6 +398,7 @@ public sealed partial class MainViewModel : ViewModelBase
             Persist();
             StartOutputCommand.RaiseCanExecuteChanged();
             NotifyReadinessChanged();
+            RefreshMirrorChoices();
         }
     }
 
@@ -630,6 +642,7 @@ public sealed partial class MainViewModel : ViewModelBase
             ((RelayCommand)CleanOldCacheCommand).RaiseCanExecuteChanged();
             ((RelayCommand)ClearCacheCommand).RaiseCanExecuteChanged();
             ((RelayCommand)UseDemoDeckCommand).RaiseCanExecuteChanged();
+            NotifyDisplayLayoutState();
         }
     }
 
@@ -691,10 +704,11 @@ public sealed partial class MainViewModel : ViewModelBase
     }
     private void OnPreviewSourceChanged(object? sender, EventArgs args) => OnPropertyChanged(nameof(OutputPreviewSurface));
     private void ShowPreview() => _outputWindowManager.ShowPreview(this);
-    private bool CanStartOutput() => SelectedDisplay is not null && !IsSimpleSetupRunning;
+    private bool CanStartOutput() => SelectedDisplay is not null && !IsSimpleSetupRunning && !IsDisplayLayoutBusy && !HasMirroringRestorePoint;
 
     private void StartOutput()
     {
+        if (!CanStartOutput()) return;
         CancelDisplayReconnectOffer();
         _outputRequestRevision++;
         RefreshDisplays("Before Start output");
@@ -765,6 +779,7 @@ public sealed partial class MainViewModel : ViewModelBase
         LogDisplaySelection(reason);
         NotifyReadinessChanged();
         ObserveDisplayReconnect(available);
+        RefreshMirrorChoices();
     }
 
     private void LogDisplaySelection(string reason)
@@ -1263,6 +1278,7 @@ public sealed partial class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(PresenterSyncSummary));
         OnPropertyChanged(nameof(PresenterSyncBrush));
         OnPropertyChanged(nameof(PresenterSyncButtonText));
+        OnPropertyChanged(nameof(PresenterSidebarDetail));
         OnPropertyChanged(nameof(PresenterScanHealth));
         OnPropertyChanged(nameof(HasPresenterAttention));
     }
