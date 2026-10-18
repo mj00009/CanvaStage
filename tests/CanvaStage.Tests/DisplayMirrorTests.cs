@@ -65,6 +65,16 @@ public sealed class DisplayMirrorTests : IDisposable
         DisplayTopology sample = Sample();
         Assert.Throws<InvalidOperationException>(() => DisplayMirrorPolicy.Create(sample with { Paths = sample.Paths[..2], Endpoints = sample.Endpoints[..2] }, "DISPLAY2", "DISPLAY3"));
     }
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void MissingNativeSourceModeRefusesLayoutWithRecoveryGuidance(bool virtualMode)
+    {
+        DisplayTopology sample = Sample(virtualMode);
+        sample.Paths[2].Source.ModeIndex = uint.MaxValue;
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => DisplayMirrorPolicy.Create(sample, "DISPLAY2", "DISPLAY3"));
+        Assert.Contains("Refresh displays", error.Message);
+    }
     [Fact]
     public void SavedLayoutSurvivesAppRestartAndRestoresExactExtendedGeometry()
     {

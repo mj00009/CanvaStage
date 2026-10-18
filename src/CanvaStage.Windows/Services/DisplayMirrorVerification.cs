@@ -17,7 +17,23 @@ internal static class DisplayMirrorVerification
     {
         // Read native CCD data/ABI on Windows; every mutation below uses a fake backend.
         DisplayTopology native = new WindowsDisplayTopology().Capture();
-        Require(native.Paths.Length > 0 && native.Paths.All(path => native.SourceMode(path).Width > 0), "Native Windows topology/source mode query failed");
+        Require(native.Paths.Length > 0 && native.Endpoints.Length == native.Paths.Length, "Native Windows topology query failed");
+        foreach (DisplayPath path in native.Paths)
+        {
+            int index = native.SourceIndex(path);
+            PrivacySafeLog.Write($"Read-only CCD verification: flags {path.Flags}; source mode field {path.Source.ModeIndex}; resolved index {index}; mode types {string.Join(',', native.Modes.Select(mode => mode.Type))}.");
+            if (index >= 0 && index < native.Modes.Length && native.Modes[index].Type == 1)
+                Require(native.SourceMode(path).Width > 0, "Native Windows source mode has no width");
+            else
+            {
+                // Remote/virtual CI displays can omit a usable mode. Production must
+                // refuse this configuration; never synthesize a physical layout for it.
+                bool refused = false;
+                try { native.SourceMode(path); }
+                catch (InvalidOperationException) { refused = true; }
+                Require(refused, "An unavailable native source mode bypasses the display safety guard");
+            }
+        }
         string storage = Path.Combine(directory, "isolated-storage", "display-mirror");
         Backend backend = new();
         DisplayMirrorService layouts = new(storage, backend);

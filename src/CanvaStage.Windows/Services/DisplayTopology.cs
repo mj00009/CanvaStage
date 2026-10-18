@@ -45,7 +45,11 @@ public sealed record DisplayEndpoint(string Key, string DeviceName, string Monit
 public sealed record DisplayTopology(DisplayPath[] Paths, DisplayMode[] Modes, DisplayEndpoint[] Endpoints)
 {
     public static string TargetKey(DisplayPath path) => $"{path.Target.Adapter.High}:{path.Target.Adapter.Low}:{path.Target.Id}";
-    public int SourceIndex(DisplayPath path) => checked((int)((path.Flags & 8) != 0 ? path.Source.ModeIndex >> 16 : path.Source.ModeIndex));
+    public int SourceIndex(DisplayPath path)
+    {
+        uint index = (path.Flags & 8) != 0 ? path.Source.ModeIndex >> 16 : path.Source.ModeIndex;
+        return index > int.MaxValue ? -1 : (int)index;
+    }
     public DisplayMode SourceMode(DisplayPath path)
     {
         int index = SourceIndex(path);
