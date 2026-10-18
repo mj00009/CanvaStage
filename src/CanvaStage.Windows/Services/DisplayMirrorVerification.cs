@@ -74,6 +74,7 @@ internal static class DisplayMirrorVerification
             await model.ChangeDisplayLayoutAsync(false);
             Require(backend.IsCloned && layouts.HasRestorePoint && !coordinator.Snapshot.IsLive && !model.StartOutputCommand.CanExecute(null)
                 && !model.StartSimpleSetupCommand.CanExecute(null), "Mirroring permits confidence output to cover the shared audience desktop");
+            Require(model.MirrorFallbackTarget.StartsWith("Restore the saved layout"), "Active fallback asks for an unavailable separate screen");
             await model.StartSimpleSetupAsync();
             Require(!coordinator.Snapshot.IsLive, "Simple Setup bypasses active mirroring guard");
             await main.Dispatcher.InvokeAsync(() => main.UpdateLayout(), DispatcherPriority.ApplicationIdle);

@@ -26,7 +26,9 @@ public sealed partial class MainViewModel
     public bool HasMirroringRestorePoint => _displayMirror?.HasRestorePoint == true;
     public string DisplayLayoutStatus { get => _displayLayoutStatus; private set => SetProperty(ref _displayLayoutStatus, value); }
     public string MirrorFallbackTitle => HasMirroringRestorePoint ? "Return to extended displays" : "Mirror the audience screen";
-    public string MirrorFallbackTarget => SelectedDisplay is { IsPrimary: false } target
+    public string MirrorFallbackTarget => HasMirroringRestorePoint
+        ? "Restore the saved layout before selecting a separate confidence screen."
+        : SelectedDisplay is { IsPrimary: false } target
         ? $"Confidence screen: {target.Label}" : "First select the Extended confidence screen in step 2 below.";
 
     private void ConfigureDisplayMirror(DisplayMirrorService? service, Func<string, bool>? confirm, Func<bool>? keep)
