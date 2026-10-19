@@ -1,5 +1,5 @@
 {
-  "latest": "v0.14.0",
+  "latest": "v0.14.1",
   "versions": [
     {
       "version": "v0.12.0",
@@ -79,6 +79,25 @@
         "mirror-clock.png": "56ed1a0c5e3b8950f47cce502011ecfbd55ebb65549b4f60f7f46761c5716eaa",
         "output-effects.png": "686b6359ff1ec825b83bc58e44d2fc3cd407c8a1e114f14168dfc50faa35eecd",
         "simple-ready.png": "713ee1fa7c6e94f5ba0ce24c01fd8bbc67e13673e865bf17414c9df86742d71f"
+      }
+    },
+    {
+      "version": "v0.14.1",
+      "updated": "2026-10-19",
+      "screenshotRun": "39339379139",
+      "screenshotCommit": "5fbbfd4a4579d6cd06df504cd0ef8ff92d07ee4c",
+      "synthetic": true,
+      "images": {
+        "advanced.png": "32c115d0b9f2e18c6d0fbc5824f710c3ee64b291a358334ab143fc832387a647",
+        "appearance.png": "193680885402fa8a5f8edd583c8b9da36f08b19bcee57a8a79528a30832dfb93",
+        "capitalization.png": "061503d11c7bcde68bac440a572b48b2ebc68f64a91d286a3cae9a06b1d166ef",
+        "compact.png": "2dfe31a2eedf40a687ce107e3802844e3a91b9898823a5f48e521e9915b84c10",
+        "connection.png": "eee116fc5557f2ffe46b0f4b3d670a600493c1d5e229cd71c8b60bf238035512",
+        "display-fallback.png": "765ba4fb04fc8956ad529e3e2cef10726b2241347bca395f4a692a6b5beca2a8",
+        "full-view-neutral.png": "e27c48e6de4b26977d088c90da59c719e9eb573f26d3f43441845d9c10d54ec9",
+        "mirror-clock.png": "2123b9b0653a23c0ec2060ce8494576e1051db5298b118b4b1bd1d1e156bd362",
+        "output-effects.png": "5cd32a8d67c53e5e640ea7db3cc5c41ec1cf1a22073a5fbdce60edc5378e6089",
+        "simple-ready.png": "2442c9679b278a640de3529b1b357dafdec45d312b99c54ea7870002d72a144e"
       }
     }
   ]

@@ -26,7 +26,7 @@ Download `CanvaStage-v0.14.1-win-x64.zip`, extract the entire ZIP, and run `Canv
 
 The application and package are currently unsigned. Windows may show a SmartScreen warning on first launch. Administrator access is not required.
 
-Saved Canva connection details, appearance, clock/fade controls, advanced content-refresh controls and support tools live in Settings & Diagnostics. Simple Setup also has the automatic-update checkbox. [Versioned Windows verification passed](https://github.com/mj00009/CanvaStage/actions/runs/39131248434): all 135 unit tests and 20 runtime/UI checks, including clocks, fades, immediate Blank/Stop, reconnects, Help/F1, Setup/cache reuse, typography, offline previews and pixel parity. The CI runner has one physical display and injects Yes/No answers; confirm native dialogs, actual Canva timing, touchpad and secondary-display behavior on the presentation computer before service use.
+Saved Canva connection details, appearance, clock/fade controls, advanced content-refresh controls and support tools live in Settings & Diagnostics. Simple Setup also has the automatic-update checkbox. [Versioned Windows verification passed](https://github.com/mj00009/CanvaStage/actions/runs/39339379139): all 171 unit tests and 23 runtime/UI checks, including clocks, fades, immediate Blank/Stop, reconnects, Help/F1, Setup/cache reuse, typography, offline previews and pixel parity. The CI runner has one physical display and injects Yes/No answers; confirm native dialogs, actual Canva timing, touchpad and secondary-display behavior on the presentation computer before service use.
 
 ## Features
 
@@ -88,7 +88,7 @@ Logs and exported diagnostic bundles redact credentials, tokens, OAuth codes, an
 
 v0.14.1: **Match slide capitalization** can check long uppercase sections against downloaded slide images using local Windows OCR. It is off by default and keeps original text when matching is uncertain. See [development notes](docs/development/slide-capitalization.md) for use, limits and acceptance. No new third-party PDF/OCR dependency was added.
 
-v0.14.0 adds a confirmed audience-to-confidence mirroring fallback and a saved-layout restore action in Advanced Setup. The Presenter sidebar also shows live status and recovery guidance for [#46](https://github.com/mj00009/CanvaStage/issues/46). See [mirroring development notes](docs/development/display-mirroring.md) for behavior, recovery and hardware acceptance. The casing report in #47 still needs an affected PPTX export; no casing conversion was added.
+v0.14.0 adds a confirmed audience-to-confidence mirroring fallback and a saved-layout restore action in Advanced Setup. The Presenter sidebar also shows live status and recovery guidance for [#46](https://github.com/mj00009/CanvaStage/issues/46). See [mirroring development notes](docs/development/display-mirroring.md) for behavior, recovery and hardware acceptance. The supplied export confirmed literal uppercase text for #47. v0.14.1 adds an optional capitalization workaround; actual Canva JPEG acceptance is still needed.
 
 v0.13.0 addresses [#41](https://github.com/mj00009/CanvaStage/issues/41), [#42](https://github.com/mj00009/CanvaStage/issues/42) and [#45](https://github.com/mj00009/CanvaStage/issues/45). Healthy Presenter scans wait 200 ms before the next scan; actual latency also depends on scan time and Canva's accessibility updates. See [development notes](docs/development/output-effects.md) for implementation and acceptance checks.
 
