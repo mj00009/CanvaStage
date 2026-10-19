@@ -84,7 +84,7 @@ public sealed class OutputWindowViewModel : ViewModelBase, IDisposable
         : Snapshot.Document.FindPage(Snapshot.SelectedPageNumber);
     public string PrimaryText => Page is null
         ? string.Empty
-        : string.Join(Environment.NewLine, Page.TextBlocks.Where(static text => !string.IsNullOrWhiteSpace(text)));
+        : string.Join(Environment.NewLine, Page.DisplayTextBlocks.Where(static text => !string.IsNullOrWhiteSpace(text)));
     public string? NextLine => Snapshot.NextLine;
     public bool ShowNextLine => IsMonitor && Snapshot.Layout is not MonitorLayout.CurrentOnly and not MonitorLayout.SpeakerFocused && !string.IsNullOrWhiteSpace(NextLine);
     public bool ShowClock => IsMonitor && Snapshot.Appearance.ShowClock;

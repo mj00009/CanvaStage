@@ -37,6 +37,35 @@ internal static class MirrorImageExportVerification
         handler.WrongImageCount = false;
         handler.InvalidImage = true;
         await ExpectFailureAsync(service, "new image for page");
+        handler.FailImageDownload = false;
+        handler.InvalidImage = false;
+        handler.CapitalizationSample = true;
+        int reads = 0;
+        string? reference = "Everyone should read this sample text with God and the USA.";
+        bool failRecognition = false;
+        CanvaConnectService matching = new(credentials, client, Path.Combine(storage, "case-cache"), (_, token) =>
+        {
+            token.ThrowIfCancellationRequested(); reads++;
+            if (failRecognition) throw new IOException("Synthetic recognition failure");
+            return Task.FromResult<string?>(reference);
+        });
+        await matching.LoadAsync("hidden-deck");
+        Require(reads == 0, "Default import must not invoke OCR");
+        PresentationDocument matched = await matching.LoadAsync("hidden-deck", true);
+        Require(reads == 2 && matched.CapitalizationAdjustedPages == 2 && matched.Pages[0].PrimaryText == reference
+            && matched.Pages[0].TextBlocks[0].StartsWith("EVERYONE SHOULD"), "Case matching must retain original text and visible-page mapping");
+        reference = "Different wording is not casing evidence";
+        Require((await matching.LoadAsync("hidden-deck", true)).CapitalizationUnchangedPages == 2, "Uncertain OCR must keep exported text");
+        reference = null;
+        Require((await matching.LoadAsync("hidden-deck", true)).CapitalizationUnavailablePages == 2, "Missing OCR must be reported without failing import");
+        failRecognition = true;
+        Require((await matching.LoadAsync("hidden-deck", true)).Pages[0].PrimaryText.StartsWith("EVERYONE SHOULD"), "OCR failure must retain native content");
+        using CancellationTokenSource cancelled = new();
+        cancelled.Cancel();
+        bool cancelledImport = false;
+        try { await matching.LoadAsync("hidden-deck", true, cancelled.Token); }
+        catch (OperationCanceledException) { cancelledImport = true; }
+        Require(cancelledImport, "Cancelled case import must not complete");
         handler.InvalidImage = false;
         handler.FailImageDownload = true;
         await ExpectFailureAsync(service, "new image for page");
@@ -67,6 +96,7 @@ internal static class MirrorImageExportVerification
         public bool WrongImageCount { get; set; }
         public bool InvalidImage { get; set; }
         public bool FailImageDownload { get; set; }
+        public bool CapitalizationSample { get; set; }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -94,7 +124,8 @@ internal static class MirrorImageExportVerification
                     for (int page = 1; page <= 3; page++)
                     {
                         using StreamWriter writer = new(archive.CreateEntry($"ppt/slides/slide{page}.xml").Open());
-                        writer.Write($"<p:sld xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"{(page == 2 ? " show=\"0\"" : string.Empty)}><a:p><a:r><a:t>Source {page}</a:t></a:r></a:p></p:sld>");
+                        string text = CapitalizationSample ? "EVERYONE SHOULD READ THIS SAMPLE TEXT with God and the USA." : $"Source {page}";
+                        writer.Write($"<p:sld xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"{(page == 2 ? " show=\"0\"" : string.Empty)}><a:p><a:r><a:t>{text}</a:t></a:r></a:p></p:sld>");
                     }
                 return new(HttpStatusCode.OK) { Content = new ByteArrayContent(stream.ToArray()) };
             }

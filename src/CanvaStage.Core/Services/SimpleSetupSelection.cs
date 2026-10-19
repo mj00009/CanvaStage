@@ -13,8 +13,9 @@ public static class SimpleSetupSelection
         return candidates.Length == 1 ? candidates[0] : null;
     }
 
-    public static bool CanReuseCache(PresentationDocument document, CanvaPresentation metadata, bool hasAllImages)
+    public static bool CanReuseCache(PresentationDocument document, CanvaPresentation metadata, bool hasAllImages, bool matchSlideCapitalization = false)
         => document.Id == metadata.Id && document.UsesRenderedPageImages && hasAllImages
+            && (!matchSlideCapitalization || document.WasSlideCapitalizationChecked)
             && document.SourceModifiedAt is not null && metadata.ModifiedAt is not null
             && document.SourceModifiedAt == metadata.ModifiedAt;
 }

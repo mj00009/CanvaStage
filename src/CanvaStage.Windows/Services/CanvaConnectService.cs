@@ -25,12 +25,15 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
     private readonly string _cacheRoot;
     private readonly SemaphoreSlim _tokenRefreshLock = new(1, 1);
     private long _lastProgressTimestamp;
+    private readonly Func<string, CancellationToken, Task<string?>> _readSlideText;
 
     public event EventHandler<CanvaLoadProgress>? LoadProgressChanged;
 
-    public CanvaConnectService(CanvaCredentialsStore credentialsStore, HttpClient? httpClient = null, string? cacheRoot = null)
+    public CanvaConnectService(CanvaCredentialsStore credentialsStore, HttpClient? httpClient = null, string? cacheRoot = null,
+        Func<string, CancellationToken, Task<string?>>? readSlideText = null)
     {
         _credentialsStore = credentialsStore;
+        _readSlideText = readSlideText ?? WindowsSlideTextRecognizer.ReadAsync;
         _httpClient = httpClient ?? new HttpClient { BaseAddress = new Uri(ApiBaseUrl), Timeout = TimeSpan.FromSeconds(30) };
         _httpClient.BaseAddress ??= new Uri(ApiBaseUrl);
         _cacheRoot = cacheRoot ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CanvaStage", "cache");
@@ -203,7 +206,10 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         return await LoadAsync(_lastPresentationId, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<PresentationDocument> LoadAsync(string presentationId, CancellationToken cancellationToken = default)
+    public Task<PresentationDocument> LoadAsync(string presentationId, CancellationToken cancellationToken = default)
+        => LoadAsync(presentationId, false, cancellationToken);
+
+    public async Task<PresentationDocument> LoadAsync(string presentationId, bool matchSlideCapitalization, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(presentationId))
         {
@@ -240,6 +246,7 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
         IReadOnlyList<string> imageUrls = await ExportPageImagesAsync(presentationId, sourcePageNumbers, pageMetadata, cancellationToken).ConfigureAwait(false);
         string hiddenSlideProgress = hiddenSlideCount > 0 ? $"; {hiddenSlideCount} hidden skipped" : string.Empty;
         ReportLoadProgress($"Caching Canva page images (0 of {totalPageCount}{hiddenSlideProgress})…", 0d);
+        int adjustedPages = 0, unchangedPages = 0, unavailablePages = 0;
 
         for (int index = 0; index < totalPageCount; index++)
         {
@@ -249,14 +256,40 @@ public sealed class CanvaConnectService : ICanvaPresentationProvider
             IReadOnlyList<string> textBlocks = slide?.TextBlocks ?? [];
             PageResponse? metadata = pageMetadata.FirstOrDefault(page => page.PageNumber == sourcePageNumber);
             string fallbackImagePath = await DownloadPageImageAsync(imageDirectory, sourcePageNumber, imageUrls[index], cancellationToken).ConfigureAwait(false);
+            IReadOnlyList<string>? matchedBlocks = null;
+            if (matchSlideCapitalization && textBlocks.Any(SlideCapitalizationMatcher.HasCandidate))
+            {
+                ReportLoadProgress($"Checking slide capitalization ({pageNumber} of {totalPageCount})…", (double)index / totalPageCount);
+                try
+                {
+                    string? reference = await _readSlideText(fallbackImagePath, cancellationToken).ConfigureAwait(false);
+                    if (string.IsNullOrWhiteSpace(reference)) unavailablePages++;
+                    else
+                    {
+                        string[] matched = textBlocks.Select(text => SlideCapitalizationMatcher.Match(text, [reference])).ToArray();
+                        if (matched.SequenceEqual(textBlocks)) unchangedPages++;
+                        else { matchedBlocks = matched; adjustedPages++; }
+                    }
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+                catch (Exception exception)
+                {
+                    unavailablePages++;
+                    PrivacySafeLog.Write($"Local capitalization recognition unavailable for page {pageNumber}: {exception.GetType().Name}. Original text retained.");
+                }
+            }
             string title = textBlocks.FirstOrDefault() ?? $"Page {pageNumber}";
-            pages.Add(new PresentationPage(pageNumber, title, textBlocks, "#0D0E10", "#75E6C8", textBlocks.Count > 0, fallbackImagePath, metadata?.Id));
+            pages.Add(new PresentationPage(pageNumber, title, textBlocks, "#0D0E10", "#75E6C8", textBlocks.Count > 0, fallbackImagePath, metadata?.Id,
+                matchedBlocks, matchSlideCapitalization));
             ReportLoadProgress($"Caching Canva page images ({pageNumber} of {totalPageCount}{hiddenSlideProgress})…", (double)pageNumber / totalPageCount);
         }
 
         PrivacySafeLog.Write($"Canva content import completed: {pages.Count} visible pages, {hiddenSlideCount} hidden skipped; fresh image export downloaded.");
         ReportLoadProgress("Presentation is ready.", 1d);
-        return new PresentationDocument(presentationId, design.Title ?? "Untitled presentation", pages, DateTimeOffset.UtcNow, ToDateTimeOffset(design.UpdatedAt), UsesRenderedPageImages: true);
+        PrivacySafeLog.Write($"Slide capitalization: enabled {matchSlideCapitalization}; adjusted pages {adjustedPages}; unchanged candidates {unchangedPages}; unavailable {unavailablePages}.");
+        return new PresentationDocument(presentationId, design.Title ?? "Untitled presentation", pages, DateTimeOffset.UtcNow, ToDateTimeOffset(design.UpdatedAt),
+            UsesRenderedPageImages: true, WasSlideCapitalizationChecked: matchSlideCapitalization,
+            CapitalizationAdjustedPages: adjustedPages, CapitalizationUnchangedPages: unchangedPages, CapitalizationUnavailablePages: unavailablePages);
     }
 
     private CanvaCredentials RequireCredentials() => _credentialsStore.Load() ?? throw new CanvaConnectException("Configure your Canva Client ID and Client Secret first.");

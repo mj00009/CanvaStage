@@ -28,7 +28,7 @@ The API approach follows Microsoft's [CCD example](https://learn.microsoft.com/e
 
 [#46](https://github.com/mj00009/CanvaStage/issues/46): the sidebar Presenter card now shows the current sync status, a matching outline, and a short explanation or recovery step. Pause/Resume and Sync details sit beneath it. Narrow or short windows retain the header controls when the sidebar card is hidden.
 
-[#47](https://github.com/mj00009/CanvaStage/issues/47): the attached screenshots show different casing between CanvaStage and the authored slide. They do not establish where the change occurs. The importer reads PPTX text runs without uppercase/lowercase conversion, and existing mixed-case import/render checks pass. Diagnosis still needs an unedited affected Canva PPTX export and a comparison after Re-download. Do not add blanket lowercase conversion; legitimate uppercase words and acronyms must remain intact. No fix is claimed for this issue.
+[#47](https://github.com/mj00009/CanvaStage/issues/47): the supplied affected PPTX stores uppercase text directly. An unreleased, off-by-default local OCR workaround is described in [slide capitalization](slide-capitalization.md). The original importer remains unchanged. Verify the actual Canva JPEG export before closing the issue; no blanket lowercase conversion is used.
 
 ## Verification boundary
 

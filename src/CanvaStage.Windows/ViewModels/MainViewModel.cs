@@ -97,6 +97,7 @@ public sealed partial class MainViewModel : ViewModelBase
         _lastCanvaContentRefresh = preferences.SelectedPresentationRefreshedAt;
         _isPresenterSyncEnabled = preferences.IsPresenterSyncEnabled;
         _isAutomaticContentRefreshEnabled = preferences.IsAutomaticContentRefreshEnabled;
+        _matchSlideCapitalization = preferences.MatchSlideCapitalization;
         _canvaConnectionStatus = canva.IsConnected
             ? "Saved Canva connection is ready. Loading presentations…"
             : canva.HasSavedConfiguration
@@ -372,7 +373,7 @@ public sealed partial class MainViewModel : ViewModelBase
         {
             PresentationPage? page = SelectedPage;
             if (page is null) return string.Empty;
-            string text = string.Join(Environment.NewLine, page.TextBlocks.Where(static item => !string.IsNullOrWhiteSpace(item)));
+            string text = string.Join(Environment.NewLine, page.DisplayTextBlocks.Where(static item => !string.IsNullOrWhiteSpace(item)));
             return string.IsNullOrWhiteSpace(text) ? "This page has no readable text. Monitor mode will use its Canva page image." : text;
         }
     }
@@ -874,7 +875,9 @@ public sealed partial class MainViewModel : ViewModelBase
         try
         {
             CanvaPresentationStatus = $"Preparing and reading {presentation.Title}. Text and Mirror image exports can take several minutes.";
-            PresentationDocument document = await Task.Run(() => _canva.LoadAsync(presentation.Id, _lifetimeCancellation.Token), _lifetimeCancellation.Token);
+            bool matchCapitalization = MatchSlideCapitalization;
+            PresentationDocument imported = await Task.Run(() => _canva.LoadAsync(presentation.Id, matchCapitalization, _lifetimeCancellation.Token), _lifetimeCancellation.Token);
+            PresentationDocument document = imported.WithSlideCapitalization(MatchSlideCapitalization);
             if (_isClosing || expectedDocument is not null && (!ReferenceEquals(Snapshot.Document, expectedDocument) || !IsAutomaticContentRefreshEnabled && _isAutomaticRefreshRunning)) return;
             await Task.Run(() => _presentationCacheStore.Save(document), _lifetimeCancellation.Token);
             if (_isClosing) return;
@@ -882,7 +885,7 @@ public sealed partial class MainViewModel : ViewModelBase
                 && _lastPresenterUpdate is { State: CanvaPresenterTrackingState.PageDetected, CurrentPage: int page, TotalPages: int total }
                 && total == document.Pages.Count && DateTimeOffset.UtcNow - _lastPresenterUpdate.ObservedAt <= TimeSpan.FromSeconds(3)
                 ? page : null;
-            _coordinator.SetDocument(document, presenterPage);
+            _coordinator.SetDocument(document.WithSlideCapitalization(MatchSlideCapitalization), presenterPage);
             RememberAppliedPresentation(presentation);
             PrivacySafeLog.Write($"Canva content applied: {document.Pages.Count} visible pages; selected page {Snapshot.SelectedPageNumber}; rendered images {document.UsesRenderedPageImages}; source modified {DiagnosticTimestamp.FormatUtc(document.SourceModifiedAt)}.");
             _lastCanvaContentRefresh = document.RefreshedAt;
@@ -1313,6 +1316,7 @@ public sealed partial class MainViewModel : ViewModelBase
         Snapshot = snapshot;
         if (documentChanged)
         {
+            OnPropertyChanged(nameof(SlideCapitalizationStatus));
             ReevaluatePresenterSync();
             EvaluatePresentationFreshness();
             OnPropertyChanged(nameof(CacheSummary));
@@ -1349,7 +1353,7 @@ public sealed partial class MainViewModel : ViewModelBase
         _isSaving = true;
         try
         {
-            _preferencesStore.Save(new AppPreferences(_preferredDisplayId, CurrentPageNumber, Snapshot.Mode, Snapshot.Layout, Snapshot.NextLineOption, Snapshot.Appearance, IsOperatorTopmost, SelectedCanvaPresentation?.Id ?? _savedCanvaPresentationId, SelectedCanvaPresentation?.Title ?? _savedCanvaPresentationTitle, _lastCanvaContentRefresh, IsPresenterSyncEnabled, IsAutomaticContentRefreshEnabled, _defaultPresentationId, _defaultPresentationTitle));
+            _preferencesStore.Save(new AppPreferences(_preferredDisplayId, CurrentPageNumber, Snapshot.Mode, Snapshot.Layout, Snapshot.NextLineOption, Snapshot.Appearance, IsOperatorTopmost, SelectedCanvaPresentation?.Id ?? _savedCanvaPresentationId, SelectedCanvaPresentation?.Title ?? _savedCanvaPresentationTitle, _lastCanvaContentRefresh, IsPresenterSyncEnabled, IsAutomaticContentRefreshEnabled, _defaultPresentationId, _defaultPresentationTitle, MatchSlideCapitalization));
         }
         finally { _isSaving = false; }
     }

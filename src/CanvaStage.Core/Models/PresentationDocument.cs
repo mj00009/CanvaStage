@@ -6,8 +6,17 @@ public sealed record PresentationDocument(
     IReadOnlyList<PresentationPage> Pages,
     DateTimeOffset RefreshedAt,
     DateTimeOffset? SourceModifiedAt = null,
-    bool UsesRenderedPageImages = false)
+    bool UsesRenderedPageImages = false,
+    bool WasSlideCapitalizationChecked = false,
+    int CapitalizationAdjustedPages = 0,
+    int CapitalizationUnchangedPages = 0,
+    int CapitalizationUnavailablePages = 0)
 {
+    public PresentationDocument WithSlideCapitalization(bool enabled) => Pages.All(page => page.UseSlideCapitalization == enabled) ? this : this with
+    {
+        Pages = Pages.Select(page => page.UseSlideCapitalization == enabled ? page : page with { UseSlideCapitalization = enabled }).ToArray()
+    };
+
     public PresentationPage? FindPage(int pageNumber) => Pages.FirstOrDefault(page => page.Number == pageNumber);
 
     public PresentationPage? FindPageByExternalId(string pageId) =>

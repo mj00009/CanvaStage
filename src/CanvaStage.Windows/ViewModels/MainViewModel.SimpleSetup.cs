@@ -114,7 +114,7 @@ public sealed partial class MainViewModel
             if (!CanContinue()) return;
             SimpleSetupProgress = 25;
             bool intactImages = Snapshot.Document.Pages.All(page => page.FallbackImagePath is string path && System.IO.File.Exists(path));
-            bool reused = SimpleSetupSelection.CanReuseCache(Snapshot.Document, presentation, intactImages);
+            bool reused = SimpleSetupSelection.CanReuseCache(Snapshot.Document, presentation, intactImages, MatchSlideCapitalization);
             PrivacySafeLog.Write($"Simple setup content decision: reuse cache {reused}; intact page images {intactImages}; cached pages {Snapshot.Document.Pages.Count}; rendered images {Snapshot.Document.UsesRenderedPageImages}.");
             if (reused)
             {

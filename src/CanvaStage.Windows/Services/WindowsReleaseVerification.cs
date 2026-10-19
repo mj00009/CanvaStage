@@ -87,6 +87,8 @@ internal static class WindowsReleaseVerification
         await LiveCanvaRefreshVerification.RunAsync(directory, mainWindow, capture);
         await MirrorImageExportVerification.RunAsync(directory);
         await DisplayMirrorVerification.RunAsync(directory, capture);
+        await SlideCapitalizationVerification.RunAsync(directory, capture);
+        checks.Add("Optional local capitalization matching: off by default/no extra exports, exact-word casing evidence, OCR failure/unavailability/cancellation, preserved original cache, reversible live/blank output, settings binding and native Windows OCR on neutral text");
         checks.Add("Read-only native CCD query; simulated audience/confidence clone, No/stale-consent safety, timed keep-dialog decline, durable restore, output suppression and exact Extended restoration without mutating CI displays");
         checks.Add("DPAPI reuse, fresh rendered images instead of preview thumbnails, preview API schema guard, immutable refresh and cache save/recovery checks");
         checks.Add("Saved-token startup, concurrent token rotation, 401 retry, live refresh navigation, page-count change, failed export, pause/blank preservation, opt-out and shutdown cancellation");

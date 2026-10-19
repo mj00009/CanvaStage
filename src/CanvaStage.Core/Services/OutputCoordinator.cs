@@ -17,7 +17,7 @@ public sealed class OutputCoordinator : IOutputCoordinator
 
     public OutputCoordinator(PresentationDocument document, AppPreferences preferences)
     {
-        _document = document;
+        _document = document.WithSlideCapitalization(preferences.MatchSlideCapitalization);
         _selectedPage = document.FindPage(preferences.SelectedPage) is null ? document.Pages.First().Number : preferences.SelectedPage;
         _mode = preferences.OutputMode;
         _layout = preferences.MonitorLayout;
@@ -142,7 +142,7 @@ public sealed class OutputCoordinator : IOutputCoordinator
             return null;
         }
 
-        string text = _nextLineOption == NextLineOption.TitleOnly ? nextPage.Title : nextPage.PrimaryText;
+        string text = _nextLineOption == NextLineOption.TitleOnly ? nextPage.DisplayTitle : nextPage.PrimaryText;
         return text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
             .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))?.Trim();
     }

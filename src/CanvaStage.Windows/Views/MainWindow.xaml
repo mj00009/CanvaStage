@@ -301,6 +301,12 @@
                                 <TextBlock Text="Fades are off by default. Longer fades take more time to reveal the new slide. Blank and Stop always take effect immediately." Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,12,0,0" />
                             </StackPanel>
                         </Border>
+                        <Border x:Name="SlideCapitalizationSettings" Style="{StaticResource PanelCard}"><StackPanel>
+                            <TextBlock Text="Monitor text capitalization" Style="{StaticResource SectionTitle}" />
+                            <CheckBox x:Name="MatchSlideCapitalizationToggle" Content="Match slide capitalization" IsChecked="{Binding MatchSlideCapitalization}" Margin="0,14,0,8" />
+                            <TextBlock Text="Off by default. Uses local Windows text recognition on the downloaded slide image to check long uppercase sections. Only matching words can supply casing; wording, punctuation and mixed-case names stay as exported. No slide content is uploaded for recognition." Style="{StaticResource MutedText}" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding SlideCapitalizationStatus}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,10,0,0" />
+                        </StackPanel></Border>
                         <Border x:Name="ContentCacheSettings" Style="{StaticResource PanelCard}"><StackPanel>
                             <TextBlock Text="Content refresh and local cache" Style="{StaticResource SectionTitle}" />
                             <TextBlock Text="{Binding CacheSummary}" Style="{StaticResource MutedText}" Margin="0,14,0,0" TextWrapping="Wrap" />

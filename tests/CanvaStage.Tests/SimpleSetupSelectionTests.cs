@@ -38,5 +38,7 @@ public sealed class SimpleSetupSelectionTests
         Assert.False(SimpleSetupSelection.CanReuseCache(cached, metadata with { ModifiedAt = null }, true));
         Assert.False(SimpleSetupSelection.CanReuseCache(cached with { SourceModifiedAt = null }, metadata, true));
         Assert.False(SimpleSetupSelection.CanReuseCache(cached with { UsesRenderedPageImages = false }, metadata, true));
+        Assert.False(SimpleSetupSelection.CanReuseCache(cached, metadata, true, matchSlideCapitalization: true));
+        Assert.True(SimpleSetupSelection.CanReuseCache(cached with { WasSlideCapitalizationChecked = true }, metadata, true, matchSlideCapitalization: true));
     }
 }
