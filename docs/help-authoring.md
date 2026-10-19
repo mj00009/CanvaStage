@@ -1,6 +1,8 @@
 # Public help maintenance
 
-The public operator help lives in this repository under `docs/help/` and is hosted at [CanvaStage Help](https://mj00009.github.io/CanvaStage/). The current guide covers v0.13.0. Its Help button and F1 shortcut open that version's guide; F1 also works in Compact view. Earlier guides remain available; v0.12.0 does not have Help/F1.
+The v0.14.0 guide adds audience-mirroring confirmation, timed rollback, saved-layout recovery and the Presenter sidebar. Nine neutral synthetic screenshots were reviewed from successful [tag run 39248943377](https://github.com/mj00009/CanvaStage/actions/runs/39248943377), commit `83a31059011925251e108852ed3fda756e6ef2dc`. The manifest now selects v0.14.0 and retains earlier guides. Matching Pages publication and live checks are pending. No released EXE/ZIP was downloaded or inspected.
+
+The public operator help lives in this repository under `docs/help/` and is hosted at [CanvaStage Help](https://mj00009.github.io/CanvaStage/). The current guide covers v0.14.0. Its Help button and F1 shortcut open that version's guide; F1 also works in Compact view. Earlier guides remain available; v0.12.0 does not have Help/F1.
 
 The v0.13.0 guide uses eight reviewed synthetic screenshots from successful [tag run 39131462609](https://github.com/mj00009/CanvaStage/actions/runs/39131462609), commit `6052c4ee6bf94da3bb93a98bb7feacab0a523c97`. It adds faster-following guidance, clock size/weight/placement controls and optional fades. The manifest retains all earlier guides. The release EXE/ZIP has not been downloaded or inspected; that extra verification remains opt-in after the release handoff.
 

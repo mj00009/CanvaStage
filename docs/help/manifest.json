@@ -1,5 +1,5 @@
 {
-  "latest": "v0.13.0",
+  "latest": "v0.14.0",
   "versions": [
     {
       "version": "v0.12.0",
@@ -61,6 +61,24 @@
         "mirror-clock.png": "6b09e95f519844252b814ece111badebb78b53ff95cb591dbd6a54a52859090a",
         "output-effects.png": "efaa7d98018a8c24e2d950a23906bc189c024d942c2d196ae3c1c2220e8a1f63",
         "simple-ready.png": "016a3bb88caf4704404e4b4deb46c6cae97b7dfc561da84fce5b71dde41ff37f"
+      }
+    },
+    {
+      "version": "v0.14.0",
+      "updated": "2026-10-19",
+      "screenshotRun": "39248943377",
+      "screenshotCommit": "83a31059011925251e108852ed3fda756e6ef2dc",
+      "synthetic": true,
+      "images": {
+        "advanced.png": "07821af410bb8d1d8f968c3867274360abbe3d30b70009f317fd9055527e52ed",
+        "appearance.png": "812dc2c8199693d1c29e04da5c0a4b88e9c7b4835a9e072462d1280a5603a08e",
+        "compact.png": "236085b9975b15b90cc6111753a69d9f3aca92ad6f842203794101bae645513d",
+        "connection.png": "d28f47dff76bcb0bd5059f05f632199769279907865873fa04175e5ebed5f770",
+        "display-fallback.png": "c454a5d3e5f6c213a2fdf196d67e84b3dd1180ab7ce9e2d0a00428d0ec9201ef",
+        "full-view-neutral.png": "6cced3f3829094fce207390356347c8e2db28c7b26f1c379ab3a267eacf0c91d",
+        "mirror-clock.png": "56ed1a0c5e3b8950f47cce502011ecfbd55ebb65549b4f60f7f46761c5716eaa",
+        "output-effects.png": "686b6359ff1ec825b83bc58e44d2fc3cd407c8a1e114f14168dfc50faa35eecd",
+        "simple-ready.png": "713ee1fa7c6e94f5ba0ce24c01fd8bbc67e13673e865bf17414c9df86742d71f"
       }
     }
   ]
