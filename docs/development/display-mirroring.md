@@ -1,6 +1,6 @@
-# Audience mirroring fallback (unreleased)
+# Audience mirroring fallback
 
-This development change adds **Mirror the audience screen** at the top of **Setup → Advanced**. Source and public help remain v0.13.0 until a release is requested.
+v0.14.0 adds **Mirror the audience screen** at the top of **Setup → Advanced**. Matching public help is published after the tag's Windows checks and screenshot review pass.
 
 ## Operator flow
 

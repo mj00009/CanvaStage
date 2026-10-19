@@ -1,0 +1,76 @@
+<h1>First-time &amp; advanced setup</h1>
+<p class="lead">Set up the presentation computer here. Most settings only need to be changed once.</p>
+<h2 id="connection">Configure the Canva connection</h2>
+<aside class="notice warning"><strong>Canva does not support this desktop integration.</strong> Its <a href="https://www.canva.dev/docs/apps/rest-apis/security-recommendations/">official security recommendations</a> rule out desktop REST API integrations that store client credentials. CanvaStage protects credentials locally on a computer you manage, but Windows protection does not make the integration Canva-supported. Publishing the source code does not authorize wider distribution of a Canva integration or sharing its credentials.</aside>
+<p>You need access to the intended Canva account, multi-factor authentication, and permission to configure an integration. Use the Windows account that will operate CanvaStage.</p>
+<ol>
+  <li>In CanvaStage, open <strong>Settings &amp; Diagnostics → Canva connection</strong>. Choose <strong>Copy redirect URL</strong>.</li>
+  <li>Open <a href="https://www.canva.com/developers/apps">Your apps in the Canva Developer Portal</a>. Choose <strong>Create an app</strong> and an audience appropriate for your account and use, following Canva's developer terms.</li>
+  <li>Open <strong>Outside Canva</strong> and choose <strong>Start integrating</strong>. On <strong>Configuration</strong>, confirm <strong>Canva REST APIs</strong> is enabled under Integration methods.</li>
+  <li>Under <strong>Credentials</strong>, copy the <strong>Client ID</strong>. Generate and save the <strong>Client Secret</strong> privately; Canva does not show the secret again.</li>
+  <li>In the REST API <strong>Scopes</strong>, enable only <strong>Read</strong> for design:meta and design:content (<code>design:meta:read</code> and <code>design:content:read</code>). CanvaStage does not need Write permissions.</li>
+  <li>Open <strong>Outside Canva → Redirect URLs</strong> and enter the exact URL copied from CanvaStage in a redirect field such as <strong>URL 1</strong>. The current value is <code>http://127.0.0.1:27843/callback/</code>, including its trailing slash. Use the app's value if it differs. Do not substitute <code>localhost</code>. Return navigation is not needed for CanvaStage.</li>
+  <li>Return to CanvaStage, enter the Client ID and Client Secret, and choose <strong>Save configuration</strong>.</li>
+  <li>Choose <strong>Connect Canva</strong>, authorize the intended account in the browser, then return to the app.</li>
+</ol>
+<p>Existing integrations may still show <strong>Your integrations → Configure your integration</strong>, with separate Scopes and Authentication/Authorized redirects sections. Enter the same credentials, Read scopes, and exact redirect in those fields. If the saved connection works, you do not need to recreate it because the portal labels changed.</p>
+<p>Private apps require Canva Enterprise, and public distribution requires Canva's review. Loopback redirects are for local development and testing and must be removed afterward. This guide describes CanvaStage's local setup, not an approved public integration. Follow <a href="https://www.canva.dev/docs/apps/quickstart/">Canva's current REST API quickstart</a>, review requirements, and security guidance for your deployment. Use CanvaStage's two Read scopes and the URL above, rather than the starter kit's broader permissions or example redirect.</p>
+<details><summary>Show the connection settings</summary><figure><a href="images/connection.png"><img src="images/connection.png" alt="Settings and Diagnostics contains the Canva connection card, redirect URL, Client ID, saved-secret indicator, and Connect Canva." width="1380" height="900" loading="lazy"></a><figcaption>This demo uses "verification-client", a fake test identifier. Do not enter it as your Client ID or share your own secret in a screenshot.</figcaption></figure></details>
+<p>CanvaStage protects the secret and tokens for the current Windows user and reuses them after you close the app. Another Windows account needs its own connection. Use <strong>Replace saved secret</strong> when changing credentials. <strong>Disconnect</strong> removes the local protected connection; do not use it to shut down the app.</p>
+<h2 id="deck">Load the presentation</h2>
+<ol>
+  <li>Open <strong>Setup → Advanced → 1. Load the Canva deck</strong>.</li>
+  <li>Choose <strong>Refresh</strong> to list presentations accessible to the connected account.</li>
+  <li>Select the intended deck and choose <strong>Apply</strong>. Wait for the import to finish.</li>
+</ol>
+<p>Simple Setup remembers the last presentation you <em>successfully applied</em>. Selecting another item without choosing Apply does not change the default. Large exports take time, and Canva does not provide a percentage during export preparation. Once downloading starts, CanvaStage shows byte progress if it knows the file size, then progress for the page images.</p>
+<details><summary>Show Advanced Setup</summary><figure><a href="images/advanced.png"><img src="images/advanced.png" alt="Advanced Setup separates loading the Canva deck from choosing the confidence display." width="1380" height="900" loading="lazy"></a><figcaption>This demo shows Setup before authorization and deck selection. Actions that are not yet available are disabled.</figcaption></figure></details>
+<h2 id="display">Choose the confidence display</h2>
+<ol>
+  <li>In Windows, open <strong>Settings → System → Display</strong> and set the screens to <strong>Extend</strong>.</li>
+  <li>In <strong>Setup → Advanced → 2. Choose the confidence display</strong>, choose <strong>Identify displays</strong>.</li>
+  <li>Match the temporary on-screen number to the dropdown's name, resolution, and Primary/Extended label. Choose the stage's <strong>Extended</strong> display.</li>
+  <li>Choose <strong>Open Preview</strong> to inspect content, then <strong>Start output</strong> to verify placement on the physical screen.</li>
+</ol>
+<p>Simple Setup will not start output if the saved display is missing, could refer to more than one screen, or is Primary. Use Advanced to choose a display yourself. With only one screen, Preview is safest. If the selected display disconnects, CanvaStage stops output instead of moving it onto the operator screen. When the remembered Extended display returns and the current cached deck matches your saved default, CanvaStage can offer to restart output. Confirm the named screen with Yes, or choose No to keep output off. The offer uses the current cached deck without repeating Setup or a download. After a manual Stop, start output yourself when ready.</p>
+<h2 id="mirroring">Mirror the audience screen as a fallback</h2>
+<p>Use this when three connected screens normally run as separate Extended displays, and you want the confidence screen to show the same audience presentation as the audience screen. Your primary operator screen stays separate. This changes the Windows display layout; it is separate from CanvaStage's Mirror image mode.</p>
+<ol>
+  <li>In <strong>Setup → Advanced → 2. Choose the confidence display</strong>, check the intended Extended confidence screen. Use Identify displays if needed.</li>
+  <li>At the top of Advanced Setup, under <strong>Mirror the audience screen</strong>, choose the audience screen. Check both screen names; Windows display numbers can change.</li>
+  <li>Choose <strong>Mirror audience screen</strong>. Read the Yes/No confirmation. <strong>No</strong> leaves live output and the layout alone. <strong>Yes</strong> stops CanvaStage confidence output and asks Windows to mirror the chosen pair.</li>
+  <li>Keep Canva's audience presentation on the audience screen. CanvaStage does not start or move it. Check both screens, then choose <strong>Yes</strong> in the keep-mirroring dialog within 15 seconds. <strong>No</strong>, closing the dialog or leaving it unanswered restores the previous layout.</li>
+  <li>To return to separate confidence output, choose <strong>Restore extended layout</strong> and confirm Yes. Check the confidence screen in step 2, then start output when ready.</li>
+</ol>
+<p>The original layout is saved across app restarts. Separate confidence output and Simple Setup stay blocked until it is restored. The fallback needs a compatible graphics driver and three connected Extended screens; it cannot reconnect a missing wireless screen. Test the actual computer before service use.</p>
+<details><summary>Show the mirroring fallback</summary><figure><a href="images/display-fallback.png"><img src="images/display-fallback.png" alt="Advanced Setup offers an audience screen selector, names the confidence screen, and has Mirror audience screen and Restore extended layout buttons." width="1380" height="900" loading="lazy"></a><figcaption>Synthetic three-screen choices from Windows verification. The test simulates layout changes; it does not prove that a physical display or wireless receiver supports mirroring.</figcaption></figure></details>
+<p>If restoring fails, reconnect the same screens and retry. See <a href="troubleshooting.html#mirroring">saved-layout recovery</a> if the hardware or Windows arrangement has changed.</p>
+<h2 id="appearance">Adjust Monitor appearance</h2>
+<p>In <strong>Settings &amp; Diagnostics</strong>, choose the Monitor font, maximum size, colors, layout and next-line behavior. Clock controls are in <strong>Output clocks and slide changes</strong>. CanvaStage saves these settings locally and applies changes immediately to output and previews.</p>
+<ul>
+  <li>The selected font size is a maximum. Main text shrinks when needed to fit.</li>
+  <li>The Next cue shares the selected font family, with its own size, color, and optional Bold setting. Long cues use an ellipsis rather than multiple display lines.</li>
+  <li>Use the contrast guidance, then check readability from the stage. Mirror uses static JPEGs for reference and does not play embedded media.</li>
+</ul>
+<details><summary>Show appearance settings</summary><figure><a href="images/appearance.png"><img src="images/appearance.png" alt="Settings shows the Monitor appearance card with font, maximum size, colors, and contrast guidance." width="1380" height="900" loading="lazy"></a><figcaption>v0.14.0 demo settings. Scroll within the app to reach the remaining appearance and layout controls.</figcaption></figure></details>
+<h2 id="clocks">Clocks and slide fades</h2>
+<p>Open <strong>Settings &amp; Diagnostics → Output clocks and slide changes</strong>.</p>
+<ul>
+  <li><strong>Show current time in Monitor</strong> controls the clock at the top right of Monitor output. <strong>Show current time in Mirror</strong> adds a white clock with a small black shadow over the slide. Mirror's clock starts at the bottom right; select the bottom-left option to move it.</li>
+  <li>Monitor and Mirror have separate clock size sliders from 16 to 96. <strong>Bold clocks (clear for regular weight)</strong> switches both clocks between a slightly bold font and regular weight. The clock uses this computer's local time and updates once a second.</li>
+  <li><strong>Fade between slides</strong> adds a crossfade in either output mode. Set <strong>Fade duration (100–1000 ms)</strong> to choose its length. Fades are off by default. A longer fade takes longer to reveal the new slide.</li>
+</ul>
+<p>Rapid navigation replaces the current fade with the newest page. Blank and Stop take effect immediately, including during a fade. Changes to the output mode or loaded deck discard the old frame. Every preview copies the same output visual.</p>
+<details><summary>Show clock and fade settings</summary><figure><a href="images/output-effects.png"><img src="images/output-effects.png" alt="Output clocks and slide changes offers Monitor and Mirror clock toggles, separate sizes, Mirror placement, regular or bold weight, and fade duration." loading="lazy"></a><figcaption>v0.14.0 synthetic settings. Enable only the clocks and transitions you want, then check the physical confidence screen.</figcaption></figure></details>
+<details><summary>Show the Mirror clock</summary><figure><a href="images/mirror-clock.png"><img src="images/mirror-clock.png" alt="White clock with a small black shadow at the bottom right of a light synthetic Mirror slide." width="1000" height="560" loading="lazy"></a><figcaption>The Mirror clock overlays a cached image. Check readability over your own light and dark slides before service use.</figcaption></figure></details>
+<h2 id="updates">Content updates during a service</h2>
+<p>With <strong>Automatically apply Canva content updates</strong> enabled, CanvaStage checks the applied deck about every 30 seconds after the previous check finishes. It waits longer between checks after failures. When a new download is complete, it applies the content without stopping Presenter View or output. The working cached deck stays active until the download succeeds.</p>
+<p>Canva can take time to publish an edit or update its modification timestamp. In Advanced, <strong>Check for updates</strong> imports fresh content when automatic updates are enabled. When they are disabled, it checks metadata and reports changes without applying them. In Simple Setup, <strong>Check slides for updates</strong> skips the download if nothing has changed. <strong>Re-download</strong> always imports the applied deck, even if a different item is selected in the dropdown.</p>
+<p>Finish edits before the service and check the preview. If you do not want content to change during the service, disable automatic application. Presenter following and content refresh are separate, so disabling updates does not pause following.</p>
+<h2 id="cache">Cache and housekeeping</h2>
+<ul>
+  <li>Use <strong>Clean old downloads</strong> to remove older downloads while keeping the current presentation.</li>
+  <li><strong>Clear cache</strong> removes downloaded presentation content and returns to the demo. It keeps connection credentials, preferences, and the saved presentation selection, but you will need to download the content again.</li>
+  <li>Closing the app normally keeps the presentation and protected connection. Updating the extracted application files is not intended to erase this Windows user's saved data.</li>
+</ul>
+<p><a href="troubleshooting.html">Connection, following, and display recovery →</a></p>

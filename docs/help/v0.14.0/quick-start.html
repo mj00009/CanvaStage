@@ -1,0 +1,57 @@
+<h1>Sunday quick start</h1>
+<p class="lead">Use these steps if the computer already has a saved Canva connection, presentation, and confidence display.</p>
+<aside class="notice">First time on this computer? Use <a href="advanced.html">first-time setup</a> before following these steps.</aside>
+<h2 id="start">1. Start with saved choices</h2>
+<ol>
+  <li>Connect the confidence screen. In Windows Display settings, confirm it is an <strong>Extended</strong> display, not a duplicate of the operator screen.</li>
+  <li>Open CanvaStage using the same Windows account used during setup.</li>
+  <li>Open <strong>Setup → Simple</strong>. Check the named presentation and confidence display, then choose <strong>Start setup</strong>.</li>
+  <li>Wait until CanvaStage says the presentation is synced and ready, and confidence output is live. If an authorization page opens in the browser, approve access using the intended Canva account, then return to CanvaStage.</li>
+</ol>
+<p>CanvaStage reuses an unchanged presentation if it can verify that the saved download is complete. If the content has changed or the download is incomplete, it downloads the presentation before starting output. Large exports can take several minutes. The progress bar shows the current phase, not the total time remaining.</p>
+<figure><a href="images/simple-ready.png"><img src="images/simple-ready.png" alt="Simple Setup shows the remembered deck and Extended display, and reports that cached content is ready and output is live." width="1380" height="900" loading="lazy"></a><figcaption>v0.14.0 demo: "Ready for Sunday" confirms that content and output are ready. "Waiting for Presenter" means you still need to complete step 2. Click a screenshot to open it at full size.</figcaption></figure>
+<h2 id="presenter">2. Confirm following</h2>
+<ol>
+  <li>Open the <strong>same presentation</strong> in Canva and start <strong>Presenter View</strong>, with its page counter visible.</li>
+  <li>Keep only one Presenter View open. Run CanvaStage and Canva at the same Windows permission level. Normally, neither needs administrator rights.</li>
+  <li>Confirm CanvaStage says <strong>Following Canva</strong>. Move forward and back in Presenter View and verify the confidence screen follows.</li>
+</ol>
+<p>CanvaStage excludes hidden slides from its page numbering. If its visible-page total does not match Presenter View, it stays on the last page instead of guessing. See <a href="troubleshooting.html#sync">sync troubleshooting</a>.</p>
+<p>The Presenter card in the sidebar shows the current status, a matching outline and a short explanation or recovery step. Pause/Resume and Sync details sit beneath it. In narrow or short windows, those controls appear below the page title. Canva's accessibility updates and scan time affect following delay. For immediate slide changes, leave fades off; optional <a href="advanced.html#clocks">clocks and fades</a> are in Settings &amp; Diagnostics.</p>
+<h2 id="service">3. Use the simple controls</h2>
+<h3 id="full-view">Full view</h3>
+<p>Choose <strong>Live control</strong> in the menu to see the output preview and Sunday controls.</p>
+<ul>
+  <li>Choose <strong>Monitor</strong> for readable text during songs, readings, and speaking.</li>
+  <li>Use <strong>Mirror</strong> for the original slide image, such as sermon graphics or other visual references.</li>
+  <li>Choose <strong>Blank output</strong> to make the confidence screen black while following continues. <strong>Restore output</strong> brings the content back.</li>
+  <li>Choose <strong>Open Preview</strong> for a separate preview window. <strong>Stop output</strong> closes the confidence display window; the button then becomes <strong>Start output</strong>.</li>
+</ul>
+<p>The previous/next arrows in Sunday controls let you choose a page manually, but doing so pauses following. Choose <strong>Resume sync</strong> near the following status to return to the current Canva Presenter page.</p>
+<figure><a href="images/full-view-neutral.png"><img src="images/full-view-neutral.png" alt="Full view on Live control shows Following Canva in the sidebar, the Monitor preview, Sunday controls with page arrows, and Preview, Stop, Blank and Compact controls." width="1380" height="900" loading="lazy"></a><figcaption>Full view in v0.14.0 with placeholder text. This test has a disconnected Canva connection, so it shows "Reconnect Canva" for content refresh. Presenter following is reported separately in the sidebar.</figcaption></figure>
+<h3 id="compact-view">Compact view</h3>
+<ol>
+  <li>Choose <strong>Compact view</strong> at the top of Full view. Resize the smaller window as needed.</li>
+  <li>Check <strong>Following Canva</strong> and the page number above the preview. Use <strong>Mirror</strong> or <strong>Monitor</strong> to change the output mode, or <strong>Blank output</strong> / <strong>Restore output</strong> to hide or show the content.</li>
+  <li>Turn on <strong>On top</strong> if you want CanvaStage to stay visible over other windows.</li>
+  <li>Choose <strong>Full view</strong> to return to the larger controls, manage following, or stop output.</li>
+</ol>
+<figure class="compact-shot"><a href="images/compact.png"><img src="images/compact.png" alt="Compact view shows Following Canva, the copied output preview, Mirror and Monitor buttons, and Blank output." width="320" height="414" loading="lazy"></a><figcaption>Demo content in Compact view. Small previews scale the whole output. Use them for reference, then check readability on the stage display.</figcaption></figure>
+<p>Compact view has no Pause Sync button. Use <strong>Full view</strong> to manage following.</p>
+<h2 id="preview">4. Check the physical screen</h2>
+<p>The in-app preview and <strong>Open Preview</strong> copy the confidence display's layout, so text wraps the same way. Resizing Preview may leave empty borders. Before the service, check the physical monitor too. The preview cannot tell you whether a cable or wireless display is receiving the image.</p>
+<h2 id="finish">5. Finish safely</h2>
+<p>For a three-screen fallback that shows the audience presentation on both external screens, use <a href="advanced.html#mirroring">Mirror the audience screen</a> in Advanced Setup. It asks for confirmation and stops separate confidence output. Restore the saved Extended layout before starting confidence output again.</p>
+<p>If the remembered confidence screen disconnects, reconnect it in Windows using Extend. CanvaStage may offer to start output on that named screen using the current cached deck, without repeating Setup or downloading it again. Choose <strong>Yes</strong> only if the named screen is correct; <strong>No</strong> keeps output off. If you stopped output manually, use <strong>Start output</strong> or <strong>Start setup</strong> when ready instead.</p>
+<p>Return to Full view, choose <strong>Stop output</strong>, then close CanvaStage. Closing the app closes its windows and keeps the deck, connection, and preferences. You do not need Disconnect or Clear cache for normal shutdown.</p>
+<p>If a full-screen confidence window blocks your screen, focus it and press <kbd>Escape</kbd>, or hover over its upper-right corner to reveal the close button.</p>
+<h2 id="shortcuts">Keyboard shortcuts</h2>
+<p>These work while the main CanvaStage window has focus, including Compact view.</p>
+<table><thead><tr><th scope="col">Shortcut</th><th scope="col">Action</th></tr></thead><tbody>
+<tr><td><kbd>Ctrl+Left</kbd> / <kbd>Ctrl+Right</kbd></td><td>Previous / next page; pauses following</td></tr>
+<tr><td><kbd>Ctrl+Space</kbd></td><td>Pause / resume following</td></tr>
+<tr><td><kbd>Ctrl+B</kbd></td><td>Blank / restore output</td></tr>
+<tr><td><kbd>Ctrl+1</kbd> / <kbd>Ctrl+2</kbd></td><td>Mirror / Monitor</td></tr>
+<tr><td><kbd>F1</kbd></td><td>Open the help guide for this app version in your browser</td></tr>
+</tbody></table>
+<p><a href="advanced.html#updates">Learn about content changes during a service →</a></p>

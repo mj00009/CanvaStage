@@ -1,0 +1,59 @@
+<h1>Troubleshooting</h1>
+<p class="lead">Keep the last working content on screen while you investigate. Avoid changing connection settings during a service unless necessary.</p>
+<h2 id="setup">Simple Setup needs attention</h2>
+<p>Check the deck and Extended screen listed on Setup. If either is missing, open <strong>Advanced</strong>, Apply the intended deck, and select its confidence display. Make sure Apply finishes successfully. Simple Setup will not guess which deck or screen to use.</p>
+<p>If authorization has expired, choose <strong>Connect Canva</strong> and approve access in the browser. You do not need to replace the saved secret just to renew authorization.</p>
+<h2 id="sync">Waiting, paused, or presentation mismatch</h2>
+<ol>
+  <li>Open the same deck in Canva <strong>Presenter View</strong>, with its page counter visible. Keep only one Presenter View open.</li>
+  <li>Confirm Canva and CanvaStage run at the same Windows permission level; normally neither needs administrator rights.</li>
+  <li>If following is paused for manual control, return to Full view and choose <strong>Resume sync</strong>. Using CanvaStage Previous/Next pauses following.</li>
+  <li>For a mismatch, Apply the correct deck or Re-download it after Canva finishes publishing edits. Hidden slides are excluded; visible totals must match before following starts.</li>
+  <li>Open <strong>Settings &amp; Diagnostics</strong> for observation and scan details. If following is unavailable, use manual controls. CanvaStage stays on the last page rather than guessing.</li>
+</ol>
+<h2 id="effects">Slide changes feel slow, or the clock is missing</h2>
+<p>In <strong>Settings &amp; Diagnostics → Output clocks and slide changes</strong>, turn off <strong>Fade between slides</strong> or reduce its duration. A long fade takes longer to reveal the new slide. If following still lags, keep one matching Canva Presenter View open and check the scan details in Settings &amp; Diagnostics. Canva's accessibility updates and scan time affect the delay.</p>
+<p>Monitor and Mirror have separate clock toggles and size sliders. Mirror's clock is off by default; enable <strong>Show current time in Mirror</strong> and check its bottom-left or bottom-right position. Both clocks use the computer's local time. If it is wrong, check Windows date, time and time-zone settings. Blank output also hides the clock.</p>
+<h2 id="display">Output missing or on the wrong screen</h2>
+<ol>
+  <li>Check Windows Display settings: the confidence screen must be detected and set to Extend.</li>
+  <li>In Setup → Advanced, choose <strong>Identify displays</strong>, select the matching Extended screen, then <strong>Start output</strong>.</li>
+  <li>If Windows stops reporting the selected display, CanvaStage stops its output window for safety. Reconnect the screen using Extend. If a restart prompt appears, check the named screen before choosing Yes; No keeps output off. Reconnecting alone never starts output. After a manual Stop, use Start output or Start setup yourself.</li>
+  <li>If output is black, check whether it is <strong>Blanked</strong>; choose Restore output.</li>
+</ol>
+<p>Focus a full-screen output window and press <kbd>Escape</kbd> to close it, or hover at its upper-right corner for the close button. On a single-screen computer, use Preview instead of full-screen output for setup.</p>
+<h2 id="mirroring">Mirroring or saved-layout restoration needs attention</h2>
+<p>If you used the mirroring fallback, open <strong>Setup → Advanced</strong> and choose <strong>Restore extended layout</strong>. It asks Yes/No and keeps confidence output stopped. A saved restore point blocks separate output even after restarting CanvaStage.</p>
+<p>Reconnect the original screens before retrying. If Windows reports a missing or unusable mode, refresh displays and check the connections. Some drivers, docks and wireless receivers do not support the requested pair. CanvaStage refuses a layout it cannot validate.</p>
+<p>If hardware identities or the Windows arrangement have changed, restore the intended <strong>Extend</strong> layout in Windows Display settings. If the saved restore point is no longer usable, close CanvaStage, verify that the audience and confidence screens are separate Extended displays, then remove only <code>%LOCALAPPDATA%\CanvaStage\display-layout-restore.json</code> and reopen. Keep credentials, preferences and cached content. Check the selected confidence screen before starting output.</p>
+<h2 id="freeze">The secondary screen freezes or goes blank</h2>
+<p>Check whether the Presenter page and status, in-app preview, separate Preview, and physical output still change. Record which ones are stuck. Try opening an unrelated window, such as Notepad, on the same secondary screen. If other apps fail there too, check Windows graphics, the cable, dock, or wireless casting as well as CanvaStage. If practical, compare the result with a wired HDMI connection.</p>
+<p>The "Confidence display disconnected" warning comes from CanvaStage. It reports that Windows no longer lists the selected screen; it does not establish why the connection dropped. If a cast TV resets, check whether it remains listed in Windows and whether other apps can use it. Include that information with the time of the disconnect when reporting the problem.</p>
+<p>Export diagnostics before restarting if you can. Rendering callbacks in the log show that WPF is doing work, but they cannot prove that a TV or wireless receiver displayed the frame. An updating preview does not mean the physical display has recovered.</p>
+<h2 id="download">Download slow, failed, or content still old</h2>
+<ul>
+  <li>Canva does not provide a file-size percentage during export preparation. The bar may have no percentage until downloading begins.</li>
+  <li>During the download, CanvaStage can show byte progress if the server supplies the file size. Page-image progress is a separate phase. Neither tells you the total time remaining.</li>
+  <li>Check internet access and retry the action shown in the error. The previous complete deck remains available if a refresh fails.</li>
+  <li>Canva can delay publishing edits. Confirm the edit is saved; Advanced <strong>Re-download</strong> forces a fresh import of the applied deck.</li>
+  <li>If Mirror reports missing cached images, Re-download before relying on it. Monitor text may still be usable.</li>
+</ul>
+<h2 id="connection">Connection or browser return fails</h2>
+<p>In the Canva integration, check that the authorized redirect matches the URL shown in CanvaStage exactly, including <code>127.0.0.1</code>, the port, and the trailing slash. Enable both required scopes. If another CanvaStage instance might be using the loopback port, close it and retry Connect Canva.</p>
+<p>If a presentation is missing from the list, confirm that the connected Canva account can open it, then choose Test connection and Refresh. Protected credentials belong to the Windows user that saved them. A different Windows account needs its own setup.</p>
+<h2 id="text">Text or image looks different</h2>
+<p>The unexpected uppercase report in issue #47 remains under investigation. Before changing casing in Canva, retain an unedited affected PPTX export and compare it after Re-download. Share a small reproducing example privately if requested. This release does not convert text to lowercase or claim a fix.</p>
+<p>Monitor chooses the largest main text block and usually leaves out smaller headers and footers. It does not transcribe the whole slide or use OCR. If there is no usable native text, it shows the slide image. If extraction is wrong, share a small PPTX example that reproduces the problem privately, without sensitive content. Do not upload a whole church deck to a public issue without permission.</p>
+<p>Fonts and sizes are in Settings &amp; Diagnostics. Current text shrinks to fit, while the Next cue stays on one line. Mirror images are for reference, not audience projection. Preview copies the output layout, but a very small preview cannot show whether people on stage can read it.</p>
+<h2 id="audio">The confidence TV plays audio</h2>
+<p>CanvaStage does not play slide media or change audio routing. Test while CanvaStage is closed and check Windows Volume mixer for the Canva app or browser's output device. Do not mute the audience audio path during a service.</p>
+<h2 id="report">Report a problem safely</h2>
+<ol>
+  <li>Record the app version, time, action, and what you expected. Note connection type (HDMI, dock, wireless casting) for display problems.</li>
+  <li>Choose <strong>Settings &amp; Diagnostics → Export diagnostics</strong>. CanvaStage creates a ZIP on the desktop.</li>
+  <li>Review the bundle before sharing. It excludes credentials, tokens, codes, slide text, and slide images, but system paths or device identifiers can still be sensitive. <strong>GitHub issues in this repository are public.</strong> Do not attach secrets, real presentation screenshots, or sensitive logs there.</li>
+  <li><a href="https://github.com/mj00009/CanvaStage/issues">Open a GitHub issue</a> with a description that contains no private information. If the maintainer needs sensitive diagnostics, arrange to share them privately.</li>
+</ol>
+<p>The local log is <code>%LOCALAPPDATA%\CanvaStage\canvastage.log</code>. New log timestamps are UTC with a <code>Z</code>; app clocks are local time. Older entries may use an explicit offset.</p>
+<h2 id="help">Help does not open</h2>
+<p>The website needs internet access. If CanvaStage cannot launch your browser, it shows the help address in a dialog so you can copy it. If the browser opens but the page does not load, check the connection in the browser.</p>

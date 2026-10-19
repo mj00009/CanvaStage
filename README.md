@@ -10,7 +10,7 @@ Choose **Help** in the app, or press **F1** while the main window has focus, to 
 
 ## Download
 
-The latest release is [CanvaStage v0.13.0](https://github.com/mj00009/CanvaStage/releases/tag/v0.13.0). See the [release notes](docs/releases/v0.13.0.md) for faster Presenter following, optional slide fades, a customizable Mirror clock and regression fixes.
+The latest release is [CanvaStage v0.14.0](https://github.com/mj00009/CanvaStage/releases/tag/v0.14.0). See the [release notes](docs/releases/v0.14.0.md) for the confirmed audience-mirroring fallback, saved-layout restoration and Presenter status sidebar.
 
 The operator workflow is Setup, Live control and Settings & Diagnostics. Simple Setup checks the last-used deck and saved Extended display, reuses unchanged cached content, and starts output with one action. Advanced retains the numbered controls for first-time setup or changing decks/displays. Compact has no Pause Sync button. Every preview copies the actual output visual, sharing text wrapping, fitted size, colors, clock and next-line truncation. Separate Preview does not relocate or start live output.
 
@@ -22,7 +22,7 @@ Stop closes the fullscreen window, Compact scales smaller without scrollbars, to
 
 Monitor text again fits during layout before drawing, retaining the v0.10.4 diagnostics and output drawing checks. A separate casing report remains unconfirmed; the extractor copies PPTX text without changing its case and needs an affected export to establish the cause.
 
-Download `CanvaStage-v0.13.0-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
+Download `CanvaStage-v0.14.0-win-x64.zip`, extract the entire ZIP, and run `CanvaStage.Windows.exe`. The package includes the Apache-2.0 `LICENSE` and `TRADEMARKS.md` notice. It is self-contained, so the computer does not need a separate .NET installation.
 
 The application and package are currently unsigned. Windows may show a SmartScreen warning on first launch. Administrator access is not required.
 
@@ -86,7 +86,7 @@ Logs and exported diagnostic bundles redact credentials, tokens, OAuth codes, an
 
 ## Development
 
-Unreleased: Advanced Setup has a confirmed audience-to-confidence mirroring fallback and a saved-layout restore action. The Presenter sidebar also shows live status and recovery guidance for [#46](https://github.com/mj00009/CanvaStage/issues/46). See [mirroring development notes](docs/development/display-mirroring.md) for behavior, recovery and hardware acceptance. The casing report in #47 still needs an affected PPTX export; no casing conversion was added.
+v0.14.0 adds a confirmed audience-to-confidence mirroring fallback and a saved-layout restore action in Advanced Setup. The Presenter sidebar also shows live status and recovery guidance for [#46](https://github.com/mj00009/CanvaStage/issues/46). See [mirroring development notes](docs/development/display-mirroring.md) for behavior, recovery and hardware acceptance. The casing report in #47 still needs an affected PPTX export; no casing conversion was added.
 
 v0.13.0 addresses [#41](https://github.com/mj00009/CanvaStage/issues/41), [#42](https://github.com/mj00009/CanvaStage/issues/42) and [#45](https://github.com/mj00009/CanvaStage/issues/45). Healthy Presenter scans wait 200 ms before the next scan; actual latency also depends on scan time and Canva's accessibility updates. See [development notes](docs/development/output-effects.md) for implementation and acceptance checks.
 
